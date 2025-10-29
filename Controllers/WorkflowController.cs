@@ -124,20 +124,5 @@ namespace AwningsAPI.Controllers
 
             return Ok(bracketsDto);
         }
-
-        [HttpGet("GeFixingPointsForProduct")]
-        public async Task<ActionResult<IEnumerable<FixingPointDto>>> GeFixingPointsForProduct(int ProductId)
-        {
-            var fixingPoints = await _workflowService.GeFixingPointsForProductAsync(ProductId);
-
-            var fixingPointsDto = fixingPoints.Select(c => new FixingPointDto
-            {
-                 FixingPointId = c.FixingPointId,
-                 Description = c.Description,
-                 Price = c.Price
-            }).ToList();
-
-            return Ok(fixingPointsDto);
-        }
     }
 }

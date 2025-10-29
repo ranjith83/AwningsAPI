@@ -146,10 +146,6 @@ namespace AwningsAPI.Services.WorkflowService
         {
             return await _context.Brackets.Where(b => b.ProductId == productId).ToListAsync();
         }
-
-        public async Task<List<FixingPoints>> GeFixingPointsForProductAsync(int productId)
-        {
-            return await _context.FixingPoints.Where(b => b.ProductId == productId).ToListAsync();
-        }         
+     
     }
 }
