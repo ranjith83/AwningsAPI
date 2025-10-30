@@ -180,6 +180,11 @@ namespace AwningsAPI.Services.WorkflowService
                      .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
                      .Select(p => p.Price)
                      .FirstOrDefaultAsync();
+        }
+
+        public async Task<List<Heaters>> GeHeatersForProductAsync(int productId)
+        {
+            return await _context.Heaters.Where(f => f.ProductId == productId).ToListAsync();
         }         
     }
 }

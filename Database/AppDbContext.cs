@@ -32,8 +32,9 @@ namespace AwningsAPI.Database
         public DbSet<Motors> Motors { get; set; }
         public DbSet<ValanceStyle> valanceStyles { get; set; }
         public DbSet<NonStandardRALColours> nonStandardRALColours { get; set; }
-
         public DbSet<WallSealingProfile> wallSealingProfiles { get; set; }
+
+        public DbSet<Heaters> Heaters { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configure one-to-many relationship
@@ -73,6 +74,14 @@ namespace AwningsAPI.Database
 
             modelBuilder.Entity<WallSealingProfile>()
                 .Property(p => p.Price)
+                .HasPrecision(18, 4);
+
+            modelBuilder.Entity<Heaters>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 4);
+
+            modelBuilder.Entity<Heaters>()
+                .Property(p => p.PriceNonRALColour)
                 .HasPrecision(18, 4);
 
             // Invoice Configuration
@@ -261,6 +270,10 @@ namespace AwningsAPI.Database
                 new WallSealingProfile { WallSealingProfileId = 5, ProductId = 6, WidthCm = 450, Price = 141m, DateCreated = staticCreatedDate, CreatedBy = 1 },
                 new WallSealingProfile { WallSealingProfileId = 6, ProductId = 6, WidthCm = 500, Price = 157m, DateCreated = staticCreatedDate, CreatedBy = 1 }
              );
+            //Heaters Data
+            modelBuilder.Entity<Heaters>().HasData(
+                new Heaters { HeaterId = 1, ProductId = 6, Description = "Markilux Infrared Heater 2500 watt Dimmable",Price = 1393m, PriceNonRALColour = 1635m, DateCreated = staticCreatedDate, CreatedBy = 1 }
+             ); 
         }
     }
 }
