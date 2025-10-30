@@ -1,4 +1,5 @@
-﻿using AwningsAPI.Dto.Workflow;
+﻿using AwningsAPI.Dto.Product;
+using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Model.Products;
 using AwningsAPI.Model.Workflow;
 
@@ -17,5 +18,6 @@ namespace AwningsAPI.Interfaces
         Task<decimal> GetProjectionPriceForProductAsync(int productId, int widthcm, int projectioncm);
         Task<List<Brackets>> GeBracketsForProductAsync(int productId);
         Task<List<Arms>> GeArmsForProductAsync(int productId);
+        Task<List<Motors>> GeMotorsForProductAsync(int productId);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using AwiningsIreland_WebAPI.Models;
+using AwningsAPI.Dto.Product;
 using AwningsAPI.Model.Customers;
 using AwningsAPI.Model.Products;
 using AwningsAPI.Model.Suppliers;
@@ -28,6 +29,7 @@ namespace AwningsAPI.Database
         public DbSet<InvoiceItem> InvoiceItems { get; set; }
         public DbSet<InvoicePayment> InvoicePayments { get; set; }
         public DbSet<Arms>  Arms { get; set; }
+        public DbSet<Motors> Motors { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -51,6 +53,10 @@ namespace AwningsAPI.Database
                 .HasPrecision(18, 4);
 
             modelBuilder.Entity<Arms>()
+            .Property(p => p.Price)
+            .HasPrecision(18, 4);
+
+            modelBuilder.Entity<Motors>()
             .Property(p => p.Price)
             .HasPrecision(18, 4);
 
@@ -204,6 +210,16 @@ namespace AwningsAPI.Database
                 new Arms { ArmId = 6, ProductId = 6, Description = "Surcharge for arms with bionic tendon", Price = 117m, DateCreated = staticCreatedDate, CreatedBy = 1 },
                 new Arms { ArmId = 7, ProductId = 6, Description = "Surcharge for bespoke arms", Price = 177m, DateCreated = staticCreatedDate, CreatedBy = 1 }
             );
+            //Motors Data
+            modelBuilder.Entity<Motors>().HasData(
+                new Motors { MotorId = 1, ProductId=6, Description= "Surcharge for servo-assisted gear", Price=72m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new Motors { MotorId = 2, ProductId = 6, Description = "Surcharge for hard-wired motor", Price = 470m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new Motors { MotorId = 3, ProductId = 6, Description = "Surcharge for radio-contr. motor io/RTS + 1 ch. transmitter", Price = 700m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new Motors { MotorId = 4, ProductId = 6, Description = "Surcharge for radio-contr. motor io/RTS w/o transmitter", Price = 586m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new Motors { MotorId = 5, ProductId = 6, Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter", Price = 1082m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new Motors { MotorId = 6, ProductId = 6, Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter", Price = 968m, DateCreated = staticCreatedDate, CreatedBy = 1 }
+             );
+
         }
     }
 }
