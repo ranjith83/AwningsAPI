@@ -4,6 +4,7 @@ using AwningsAPI.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AwningsAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251030102010_addValanceStyle")]
+    partial class addValanceStyle
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -905,109 +908,6 @@ namespace AwningsAPI.Migrations
                         });
                 });
 
-            modelBuilder.Entity("AwningsAPI.Model.Products.NonStandardRALColours", b =>
-                {
-                    b.Property<int>("RALColourId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RALColourId"));
-
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("DateUpdated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UpdatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<int>("WidthCm")
-                        .HasColumnType("int");
-
-                    b.HasKey("RALColourId");
-
-                    b.ToTable("nonStandardRALColours");
-
-                    b.HasData(
-                        new
-                        {
-                            RALColourId = 1,
-                            CreatedBy = 1,
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Price = 319m,
-                            ProductId = 6,
-                            UpdatedBy = 0,
-                            WidthCm = 250
-                        },
-                        new
-                        {
-                            RALColourId = 2,
-                            CreatedBy = 1,
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Price = 342m,
-                            ProductId = 6,
-                            UpdatedBy = 0,
-                            WidthCm = 300
-                        },
-                        new
-                        {
-                            RALColourId = 3,
-                            CreatedBy = 1,
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Price = 360m,
-                            ProductId = 6,
-                            UpdatedBy = 0,
-                            WidthCm = 350
-                        },
-                        new
-                        {
-                            RALColourId = 4,
-                            CreatedBy = 1,
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Price = 377m,
-                            ProductId = 6,
-                            UpdatedBy = 0,
-                            WidthCm = 400
-                        },
-                        new
-                        {
-                            RALColourId = 5,
-                            CreatedBy = 1,
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Price = 394m,
-                            ProductId = 6,
-                            UpdatedBy = 0,
-                            WidthCm = 450
-                        },
-                        new
-                        {
-                            RALColourId = 6,
-                            CreatedBy = 1,
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Price = 411m,
-                            ProductId = 6,
-                            UpdatedBy = 0,
-                            WidthCm = 500
-                        });
-                });
-
             modelBuilder.Entity("AwningsAPI.Model.Products.Projections", b =>
                 {
                     b.Property<int>("ProjectionId")
@@ -1399,109 +1299,6 @@ namespace AwningsAPI.Migrations
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 130m,
-                            ProductId = 6,
-                            UpdatedBy = 0,
-                            WidthCm = 500
-                        });
-                });
-
-            modelBuilder.Entity("AwningsAPI.Model.Products.WallSealingProfile", b =>
-                {
-                    b.Property<int>("WallSealingProfileId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WallSealingProfileId"));
-
-                    b.Property<int>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("DateUpdated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UpdatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<int>("WidthCm")
-                        .HasColumnType("int");
-
-                    b.HasKey("WallSealingProfileId");
-
-                    b.ToTable("wallSealingProfiles");
-
-                    b.HasData(
-                        new
-                        {
-                            WallSealingProfileId = 1,
-                            CreatedBy = 1,
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Price = 87m,
-                            ProductId = 6,
-                            UpdatedBy = 0,
-                            WidthCm = 250
-                        },
-                        new
-                        {
-                            WallSealingProfileId = 2,
-                            CreatedBy = 1,
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Price = 101m,
-                            ProductId = 6,
-                            UpdatedBy = 0,
-                            WidthCm = 300
-                        },
-                        new
-                        {
-                            WallSealingProfileId = 3,
-                            CreatedBy = 1,
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Price = 110m,
-                            ProductId = 6,
-                            UpdatedBy = 0,
-                            WidthCm = 350
-                        },
-                        new
-                        {
-                            WallSealingProfileId = 4,
-                            CreatedBy = 1,
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Price = 126m,
-                            ProductId = 6,
-                            UpdatedBy = 0,
-                            WidthCm = 400
-                        },
-                        new
-                        {
-                            WallSealingProfileId = 5,
-                            CreatedBy = 1,
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Price = 141m,
-                            ProductId = 6,
-                            UpdatedBy = 0,
-                            WidthCm = 450
-                        },
-                        new
-                        {
-                            WallSealingProfileId = 6,
-                            CreatedBy = 1,
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Price = 157m,
                             ProductId = 6,
                             UpdatedBy = 0,
                             WidthCm = 500

@@ -19,5 +19,8 @@ namespace AwningsAPI.Interfaces
         Task<List<Brackets>> GeBracketsForProductAsync(int productId);
         Task<List<Arms>> GeArmsForProductAsync(int productId);
         Task<List<Motors>> GeMotorsForProductAsync(int productId);
+        Task<decimal> GeValanceStylePriceForProductAsync(int productId, int widthcm);
+        Task<decimal> GeNonStandardRALColourPriceForProductAsync(int productId, int widthcm);
+        Task<decimal> GeWallSealingProfilerPriceForProductAsync(int productId, int widthcm);
     }
 }

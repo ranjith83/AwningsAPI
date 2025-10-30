@@ -6,6 +6,7 @@ using AwningsAPI.Model.Products;
 using AwningsAPI.Model.Suppliers;
 using AwningsAPI.Model.Workflow;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
 
 namespace AwningsAPI.Services.WorkflowService
 {
@@ -157,5 +158,28 @@ namespace AwningsAPI.Services.WorkflowService
         {
             return await _context.Motors.Where(f => f.ProductId == productId).ToListAsync();
         }
+        public async Task<decimal> GeValanceStylePriceForProductAsync(int productId, int widthcm)
+        {
+            return await _context.valanceStyles
+                     .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
+                     .Select(p => p.Price)
+                     .FirstOrDefaultAsync();
+        }
+
+        public async Task<decimal> GeNonStandardRALColourPriceForProductAsync(int productId, int widthcm)
+        {
+            return await _context.nonStandardRALColours
+                     .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
+                     .Select(p => p.Price)
+                     .FirstOrDefaultAsync();
+        }
+
+        public async Task<decimal> GeWallSealingProfilerPriceForProductAsync(int productId, int widthcm)
+        {
+            return await _context.wallSealingProfiles
+                     .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
+                     .Select(p => p.Price)
+                     .FirstOrDefaultAsync();
+        }         
     }
 }
