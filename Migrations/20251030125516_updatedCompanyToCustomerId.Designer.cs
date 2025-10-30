@@ -4,6 +4,7 @@ using AwningsAPI.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AwningsAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251030125516_updatedCompanyToCustomerId")]
+    partial class updatedCompanyToCustomerId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -105,6 +108,7 @@ namespace AwningsAPI.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("UpdatedBy")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -212,6 +216,110 @@ namespace AwningsAPI.Migrations
                     b.ToTable("InvoicePayments", (string)null);
                 });
 
+            modelBuilder.Entity("AwningsAPI.Dto.Product.Motors", b =>
+                {
+                    b.Property<int>("MotorId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MotorId"));
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DateUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.HasKey("MotorId");
+
+                    b.ToTable("Motors");
+
+                    b.HasData(
+                        new
+                        {
+                            MotorId = 1,
+                            CreatedBy = 1,
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Surcharge for servo-assisted gear",
+                            Price = 72m,
+                            ProductId = 6,
+                            UpdatedBy = 0
+                        },
+                        new
+                        {
+                            MotorId = 2,
+                            CreatedBy = 1,
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Surcharge for hard-wired motor",
+                            Price = 470m,
+                            ProductId = 6,
+                            UpdatedBy = 0
+                        },
+                        new
+                        {
+                            MotorId = 3,
+                            CreatedBy = 1,
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Surcharge for radio-contr. motor io/RTS + 1 ch. transmitter",
+                            Price = 700m,
+                            ProductId = 6,
+                            UpdatedBy = 0
+                        },
+                        new
+                        {
+                            MotorId = 4,
+                            CreatedBy = 1,
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Surcharge for radio-contr. motor io/RTS w/o transmitter",
+                            Price = 586m,
+                            ProductId = 6,
+                            UpdatedBy = 0
+                        },
+                        new
+                        {
+                            MotorId = 5,
+                            CreatedBy = 1,
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter",
+                            Price = 1082m,
+                            ProductId = 6,
+                            UpdatedBy = 0
+                        },
+                        new
+                        {
+                            MotorId = 6,
+                            CreatedBy = 1,
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter",
+                            Price = 968m,
+                            ProductId = 6,
+                            UpdatedBy = 0
+                        });
+                });
+
             modelBuilder.Entity("AwningsAPI.Model.Customers.Customer", b =>
                 {
                     b.Property<int>("CustomerId")
@@ -238,8 +346,8 @@ namespace AwningsAPI.Migrations
                     b.Property<string>("County")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("DateCreated")
                         .HasColumnType("datetime2");
@@ -272,8 +380,8 @@ namespace AwningsAPI.Migrations
                     b.Property<string>("TaxNumber")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime2");
@@ -294,7 +402,7 @@ namespace AwningsAPI.Migrations
                             CompanyNumber = "ACME123",
                             CountryId = 1,
                             County = "Dublin",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Eircode = "D01XY12",
                             Email = "info@acme.ie",
@@ -316,8 +424,8 @@ namespace AwningsAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ContactId"));
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
@@ -349,8 +457,8 @@ namespace AwningsAPI.Migrations
                     b.Property<string>("Phone")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.HasKey("ContactId");
 
@@ -362,7 +470,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ContactId = 1,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             CustomerId = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             DateOfBirth = new DateTime(1985, 5, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -385,14 +493,13 @@ namespace AwningsAPI.Migrations
                     b.Property<int>("BfId")
                         .HasColumnType("int");
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateUpdated")
+                    b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
@@ -406,8 +513,8 @@ namespace AwningsAPI.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.HasKey("ArmId");
 
@@ -418,71 +525,85 @@ namespace AwningsAPI.Migrations
                         {
                             ArmId = 1,
                             BfId = 1,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for face fixture",
                             Price = 86m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ArmId = 2,
                             BfId = 3,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for face fixture incl. spreader plate A",
                             Price = 334m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ArmId = 3,
                             BfId = 2,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for face fixture incl. spreader plate B",
                             Price = 406m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ArmId = 4,
                             BfId = 2,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for top fixture",
                             Price = 86m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ArmId = 5,
                             BfId = 2,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for eaves fixture",
                             Price = 199m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ArmId = 6,
                             BfId = 0,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for arms with bionic tendon",
                             Price = 117m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ArmId = 7,
                             BfId = 0,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for bespoke arms",
                             Price = 177m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         });
                 });
 
@@ -494,14 +615,13 @@ namespace AwningsAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BFId"));
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateUpdated")
+                    b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
@@ -512,8 +632,8 @@ namespace AwningsAPI.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.HasKey("BFId");
 
@@ -523,26 +643,32 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             BFId = 1,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "BF 6",
-                            Price = 312.00m
+                            Price = 312.00m,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BFId = 2,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "BF 8",
-                            Price = 312.00m
+                            Price = 312.00m,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BFId = 3,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "BF 16",
-                            Price = 312.00m
+                            Price = 312.00m,
+                            UpdatedBy = 0
                         });
                 });
 
@@ -558,14 +684,13 @@ namespace AwningsAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateUpdated")
+                    b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("PartNumber")
@@ -579,8 +704,8 @@ namespace AwningsAPI.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.HasKey("BracketId");
 
@@ -593,161 +718,193 @@ namespace AwningsAPI.Migrations
                         {
                             BracketId = 1,
                             BracketName = "Face fixture bracket 150 mm / 3",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "71624",
                             Price = 42.70m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 2,
                             BracketName = "Face fixture bracket 300 mm left / 4",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "70617",
                             Price = 73.50m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 3,
                             BracketName = "Face fixture bracket 300 mm right / 4",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "70600",
                             Price = 73.50m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 4,
                             BracketName = "Stand-off bkt. 80-300 mm for face fixture for face fixture bracket 300 mm / 4",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "77968",
                             Price = 220.50m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 5,
                             BracketName = "Top fixture bracket 150 mm / 4",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "71625",
                             Price = 42.70m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 6,
                             BracketName = "Eaves fixture bracket 150mm, complete / 4",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "71669",
                             Price = 99.30m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 7,
                             BracketName = "Eaves fixture bracket 270 mm /4",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "71659",
                             Price = 77.00m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 8,
                             BracketName = "Angle and plate for eaves fixture (machine finish) / 4",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "716620",
                             Price = 125.20m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 9,
                             BracketName = "Additional eaves fixture plate 60x260x12 mm / 2",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "75383",
                             Price = 42.60m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 10,
                             BracketName = "Spreader plate A 430x160x12 mm / 8",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "75326",
                             Price = 124.10m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 11,
                             BracketName = "Spreader plate B 300x400x12 mm / 4",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "75325",
                             Price = 160.20m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 12,
                             BracketName = "Spacer block face or top fixt 136x150x20 mm / 3",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "716331",
                             Price = 5.50m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 13,
                             BracketName = "Spacer block face or top fixt 136x150x12 mm / 3",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "71644",
                             Price = 3.60m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 14,
                             BracketName = "Cover plate 230x210x2 mm",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "71843",
                             Price = 16.50m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 15,
                             BracketName = "Cover plate 290x210x2 mm",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "71841",
                             Price = 20.50m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             BracketId = 16,
                             BracketName = "Vertical fixture rail incl. fixing material 624291",
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PartNumber = "62421",
                             Price = 174.90m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         });
                 });
 
@@ -759,13 +916,13 @@ namespace AwningsAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("HeaterId"));
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateUpdated")
+                    b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
@@ -783,8 +940,8 @@ namespace AwningsAPI.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.HasKey("HeaterId");
 
@@ -794,105 +951,14 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             HeaterId = 1,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Markilux Infrared Heater 2500 watt Dimmable",
                             Price = 1393m,
                             PriceNonRALColour = 1635m,
-                            ProductId = 6
-                        });
-                });
-
-            modelBuilder.Entity("AwningsAPI.Model.Products.Motors", b =>
-                {
-                    b.Property<int>("MotorId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MotorId"));
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateUpdated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("MotorId");
-
-                    b.ToTable("Motors");
-
-                    b.HasData(
-                        new
-                        {
-                            MotorId = 1,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Surcharge for servo-assisted gear",
-                            Price = 72m,
-                            ProductId = 6
-                        },
-                        new
-                        {
-                            MotorId = 2,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Surcharge for hard-wired motor",
-                            Price = 470m,
-                            ProductId = 6
-                        },
-                        new
-                        {
-                            MotorId = 3,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Surcharge for radio-contr. motor io/RTS + 1 ch. transmitter",
-                            Price = 700m,
-                            ProductId = 6
-                        },
-                        new
-                        {
-                            MotorId = 4,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Surcharge for radio-contr. motor io/RTS w/o transmitter",
-                            Price = 586m,
-                            ProductId = 6
-                        },
-                        new
-                        {
-                            MotorId = 5,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter",
-                            Price = 1082m,
-                            ProductId = 6
-                        },
-                        new
-                        {
-                            MotorId = 6,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter",
-                            Price = 968m,
-                            ProductId = 6
+                            ProductId = 6,
+                            UpdatedBy = 0
                         });
                 });
 
@@ -904,13 +970,13 @@ namespace AwningsAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RALColourId"));
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateUpdated")
+                    b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("Price")
@@ -920,8 +986,8 @@ namespace AwningsAPI.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.Property<int>("WidthCm")
                         .HasColumnType("int");
@@ -934,55 +1000,67 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             RALColourId = 1,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 319m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 250
                         },
                         new
                         {
                             RALColourId = 2,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 342m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 300
                         },
                         new
                         {
                             RALColourId = 3,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 360m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 350
                         },
                         new
                         {
                             RALColourId = 4,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 377m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 400
                         },
                         new
                         {
                             RALColourId = 5,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 394m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 450
                         },
                         new
                         {
                             RALColourId = 6,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 411m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 500
                         });
                 });
@@ -995,14 +1073,13 @@ namespace AwningsAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProjectionId"));
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateUpdated")
+                    b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("Price")
@@ -1015,8 +1092,8 @@ namespace AwningsAPI.Migrations
                     b.Property<int>("Projection_cm")
                         .HasColumnType("int");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.Property<int>("Width_cm")
                         .HasColumnType("int");
@@ -1031,211 +1108,253 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 1,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 1873m,
                             ProductId = 6,
                             Projection_cm = 150,
+                            UpdatedBy = 0,
                             Width_cm = 250
                         },
                         new
                         {
                             ProjectionId = 2,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2023m,
                             ProductId = 6,
                             Projection_cm = 150,
+                            UpdatedBy = 0,
                             Width_cm = 300
                         },
                         new
                         {
                             ProjectionId = 3,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2229m,
                             ProductId = 6,
                             Projection_cm = 150,
+                            UpdatedBy = 0,
                             Width_cm = 350
                         },
                         new
                         {
                             ProjectionId = 4,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2397m,
                             ProductId = 6,
                             Projection_cm = 150,
+                            UpdatedBy = 0,
                             Width_cm = 400
                         },
                         new
                         {
                             ProjectionId = 5,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2554m,
                             ProductId = 6,
                             Projection_cm = 150,
+                            UpdatedBy = 0,
                             Width_cm = 450
                         },
                         new
                         {
                             ProjectionId = 6,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2730m,
                             ProductId = 6,
                             Projection_cm = 150,
+                            UpdatedBy = 0,
                             Width_cm = 500
                         },
                         new
                         {
                             ProjectionId = 7,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 1979m,
                             ProductId = 6,
                             Projection_cm = 200,
+                            UpdatedBy = 0,
                             Width_cm = 250
                         },
                         new
                         {
                             ProjectionId = 8,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2145m,
                             ProductId = 6,
                             Projection_cm = 200,
+                            UpdatedBy = 0,
                             Width_cm = 300
                         },
                         new
                         {
                             ProjectionId = 9,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2319m,
                             ProductId = 6,
                             Projection_cm = 200,
+                            UpdatedBy = 0,
                             Width_cm = 350
                         },
                         new
                         {
                             ProjectionId = 10,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2508m,
                             ProductId = 6,
                             Projection_cm = 200,
+                            UpdatedBy = 0,
                             Width_cm = 400
                         },
                         new
                         {
                             ProjectionId = 11,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2664m,
                             ProductId = 6,
                             Projection_cm = 200,
+                            UpdatedBy = 0,
                             Width_cm = 450
                         },
                         new
                         {
                             ProjectionId = 12,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2842m,
                             ProductId = 6,
                             Projection_cm = 200,
+                            UpdatedBy = 0,
                             Width_cm = 500
                         },
                         new
                         {
                             ProjectionId = 13,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2248m,
                             ProductId = 6,
                             Projection_cm = 250,
+                            UpdatedBy = 0,
                             Width_cm = 300
                         },
                         new
                         {
                             ProjectionId = 14,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2431m,
                             ProductId = 6,
                             Projection_cm = 250,
+                            UpdatedBy = 0,
                             Width_cm = 350
                         },
                         new
                         {
                             ProjectionId = 15,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2627m,
                             ProductId = 6,
                             Projection_cm = 250,
+                            UpdatedBy = 0,
                             Width_cm = 400
                         },
                         new
                         {
                             ProjectionId = 16,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2798m,
                             ProductId = 6,
                             Projection_cm = 250,
+                            UpdatedBy = 0,
                             Width_cm = 450
                         },
                         new
                         {
                             ProjectionId = 17,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2970m,
                             ProductId = 6,
                             Projection_cm = 250,
+                            UpdatedBy = 0,
                             Width_cm = 500
                         },
                         new
                         {
                             ProjectionId = 18,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2547m,
                             ProductId = 6,
                             Projection_cm = 300,
+                            UpdatedBy = 0,
                             Width_cm = 350
                         },
                         new
                         {
                             ProjectionId = 19,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2750m,
                             ProductId = 6,
                             Projection_cm = 300,
+                            UpdatedBy = 0,
                             Width_cm = 400
                         },
                         new
                         {
                             ProjectionId = 20,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2904m,
                             ProductId = 6,
                             Projection_cm = 300,
+                            UpdatedBy = 0,
                             Width_cm = 450
                         },
                         new
                         {
                             ProjectionId = 21,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 3084m,
                             ProductId = 6,
                             Projection_cm = 300,
+                            UpdatedBy = 0,
                             Width_cm = 500
                         });
                 });
@@ -1248,13 +1367,13 @@ namespace AwningsAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ValanceStyleId"));
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateUpdated")
+                    b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("Price")
@@ -1264,8 +1383,8 @@ namespace AwningsAPI.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.Property<int>("WidthCm")
                         .HasColumnType("int");
@@ -1278,55 +1397,67 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ValanceStyleId = 1,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 76m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 250
                         },
                         new
                         {
                             ValanceStyleId = 2,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 84m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 300
                         },
                         new
                         {
                             ValanceStyleId = 3,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 93m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 350
                         },
                         new
                         {
                             ValanceStyleId = 4,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 105m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 400
                         },
                         new
                         {
                             ValanceStyleId = 5,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 118m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 450
                         },
                         new
                         {
                             ValanceStyleId = 6,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 130m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 500
                         });
                 });
@@ -1339,14 +1470,13 @@ namespace AwningsAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WallSealingProfileId"));
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateUpdated")
+                    b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("Price")
@@ -1356,8 +1486,8 @@ namespace AwningsAPI.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.Property<int>("WidthCm")
                         .HasColumnType("int");
@@ -1370,55 +1500,67 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             WallSealingProfileId = 1,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 87m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 250
                         },
                         new
                         {
                             WallSealingProfileId = 2,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 101m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 300
                         },
                         new
                         {
                             WallSealingProfileId = 3,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 110m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 350
                         },
                         new
                         {
                             WallSealingProfileId = 4,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 126m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 400
                         },
                         new
                         {
                             WallSealingProfileId = 5,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 141m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 450
                         },
                         new
                         {
                             WallSealingProfileId = 6,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 157m,
                             ProductId = 6,
+                            UpdatedBy = 0,
                             WidthCm = 500
                         });
                 });
@@ -1431,14 +1573,13 @@ namespace AwningsAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductId"));
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateUpdated")
+                    b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
@@ -1451,8 +1592,8 @@ namespace AwningsAPI.Migrations
                     b.Property<int>("SupplierId")
                         .HasColumnType("int");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.HasKey("ProductId");
 
@@ -1466,101 +1607,123 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProductId = 1,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Markilux MX-1 compact",
                             ProductTypeId = 1,
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductId = 2,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Markilux MX-4",
                             ProductTypeId = 1,
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductId = 3,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Markilux MX-2",
                             ProductTypeId = 1,
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductId = 4,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Markilux 6000",
                             ProductTypeId = 1,
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductId = 5,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Markilux MX-3",
                             ProductTypeId = 1,
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductId = 6,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Markilux 990",
                             ProductTypeId = 1,
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductId = 7,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Markilux 970",
                             ProductTypeId = 1,
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductId = 8,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Markilux 5010",
                             ProductTypeId = 1,
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductId = 9,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Markilux 3300",
                             ProductTypeId = 1,
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductId = 10,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Markilux 1710",
                             ProductTypeId = 1,
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductId = 11,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Markilux 900",
                             ProductTypeId = 1,
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         });
                 });
 
@@ -1572,14 +1735,13 @@ namespace AwningsAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductTypeId"));
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateUpdated")
+                    b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
@@ -1589,8 +1751,8 @@ namespace AwningsAPI.Migrations
                     b.Property<int>("SupplierId")
                         .HasColumnType("int");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.HasKey("ProductTypeId");
 
@@ -1600,82 +1762,102 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProductTypeId = 1,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Folding-arm Cassette Awnings",
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductTypeId = 2,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Folding-arm Semi-cassette Awnings",
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductTypeId = 3,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Open Folding-arm Awnings",
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductTypeId = 4,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Stretch-Awnings",
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductTypeId = 5,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Wind Protection and Privacy",
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductTypeId = 6,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Awning Systems",
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductTypeId = 7,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Free-standing awning stand systems",
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductTypeId = 8,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Pergola awnings",
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductTypeId = 9,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Conservatory and Glass Canopy Awnings",
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         },
                         new
                         {
                             ProductTypeId = 10,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Vertical Roller Blinds and Awnings",
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         });
                 });
 
@@ -1687,22 +1869,21 @@ namespace AwningsAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierId"));
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateUpdated")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("SupplierName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("Updated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.HasKey("SupplierId");
 
@@ -1712,23 +1893,29 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             SupplierId = 1,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            SupplierName = "Markilux"
+                            SupplierName = "Markilux",
+                            Updated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = 0
                         },
                         new
                         {
                             SupplierId = 2,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            SupplierName = "Rensen"
+                            SupplierName = "Rensen",
+                            Updated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = 0
                         },
                         new
                         {
                             SupplierId = 3,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            SupplierName = "Practic"
+                            SupplierName = "Practic",
+                            Updated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UpdatedBy = 0
                         });
                 });
 
@@ -1744,14 +1931,13 @@ namespace AwningsAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateUpdated")
+                    b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
@@ -1762,8 +1948,8 @@ namespace AwningsAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.Property<int>("WorkflowId")
                         .HasColumnType("int");
@@ -1828,6 +2014,7 @@ namespace AwningsAPI.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("UpdatedBy")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -1894,9 +2081,8 @@ namespace AwningsAPI.Migrations
                     b.Property<bool>("CreateQuote")
                         .HasColumnType("bit");
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
@@ -1904,7 +2090,7 @@ namespace AwningsAPI.Migrations
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateUpdated")
+                    b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
@@ -1932,8 +2118,8 @@ namespace AwningsAPI.Migrations
                     b.Property<int>("SupplierId")
                         .HasColumnType("int");
 
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.HasKey("WorkflowId");
 
@@ -1946,9 +2132,10 @@ namespace AwningsAPI.Migrations
                         {
                             WorkflowId = 1,
                             CreateQuote = false,
-                            CreatedBy = "System",
+                            CreatedBy = 1,
                             CustomerId = 1,
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Markilux 990 for outside garden",
                             InitialEnquiry = false,
                             InviteShowRoom = false,
@@ -1956,7 +2143,8 @@ namespace AwningsAPI.Migrations
                             ProductId = 6,
                             ProductTypeId = 1,
                             SetupSiteVisit = false,
-                            SupplierId = 1
+                            SupplierId = 1,
+                            UpdatedBy = 0
                         });
                 });
 

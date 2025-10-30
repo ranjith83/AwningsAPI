@@ -11,9 +11,9 @@ namespace AwningsAPI.Model.Workflow
         public string Images { get; set; }
 
         public DateTime DateCreated { get; set; }
-        public int CreatedBy { get; set; }  
-        public DateTime DateUpdated { get; set; }
-        public int UpdatedBy { get; set; }  
+        public string CreatedBy { get; set; }  
+        public DateTime? DateUpdated { get; set; }
+        public string? UpdatedBy { get; set; }  
 
         //Navigation property to link to Workflow
         public int WorkflowId { get; set; } 

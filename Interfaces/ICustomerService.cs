@@ -9,10 +9,10 @@ namespace AwningsAPI.Interfaces
         Task<IEnumerable<Customer>> GetAllCustomersWithContactsAsync();
         Task<Customer> GetCustomerByIdAsync(int id);
 
-        Task<Customer> SaveCompanyWithContact(CompanyWithContactDto dto);
+        Task<Customer> SaveCompanyWithContact(CompanyWithContactDto dto, string currentUser);
 
-        Task<CustomerContact> SaveContactToCompany(ContactDto dto);
-        Task<Customer> UpdateCompany(int id, CompanyDto dto);
-        Task<CustomerContact> UpdateContactInCompany(int id, ContactDto dto);  
+        Task<CustomerContact> SaveContactToCompany(ContactDto dto, string currentUser);
+        Task<Customer> UpdateCompany(int id, CompanyDto dto, string currentUser);
+        Task<CustomerContact> UpdateContactInCompany(int id, ContactDto dto, string currentUser);  
     }
 }

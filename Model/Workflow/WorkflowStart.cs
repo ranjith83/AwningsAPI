@@ -14,12 +14,12 @@ namespace AwningsAPI.Model.Workflow
         public bool SetupSiteVisit { get; set; }    
         public bool InvoiceSent { get; set; }   
         public DateTime DateCreated { get; set; }   
-        public int CreatedBy { get; set; }  
-        public DateTime DateUpdated { get; set; }
-        public int UpdatedBy { get; set; }
+        public string CreatedBy { get; set; }  
+        public DateTime? DateUpdated { get; set; }
+        public string? UpdatedBy { get; set; }
 
         //Naviation Properties
-        public int CompanyId { get; set; }
+        public int CustomerId { get; set; }
         public int SupplierId { get; set; }
         public int ProductTypeId { get; set; }  
         public int ProductId { get; set; } 

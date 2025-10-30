@@ -1,6 +1,7 @@
 using AwningsAPI.Database;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Services.CustomerService;
+using AwningsAPI.Services.QuoteService;
 using AwningsAPI.Services.Suppliers;
 using AwningsAPI.Services.WorkflowService;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<IWorkflowService, WorkflowService>();
+builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddControllers();
 
 builder.Services.AddDbContext<AppDbContext>(options =>

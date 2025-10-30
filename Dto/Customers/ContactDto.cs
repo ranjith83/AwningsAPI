@@ -9,6 +9,5 @@
         public DateTime DateOfBirth { get; set; }
         public string Mobile { get; set; }
         public string Phone { get; set; }
-        public int UpdatedBy { get; set; }   
     }
 }
