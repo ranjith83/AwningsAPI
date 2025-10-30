@@ -155,5 +155,23 @@ namespace AwningsAPI.Controllers
 
             return Ok(motorsDto);
         }
+
+        [HttpGet("GeValanceStylePriceForProduct")]
+        public async Task<decimal> GeValanceStylePriceForProduct(int ProductId, int widthcm)
+        {
+            return await _workflowService.GeValanceStylePriceForProductAsync(ProductId, widthcm);
+        }
+
+        [HttpGet("GeNonStandardRALColourPriceForProduct")]
+        public async Task<decimal> GeNonStandardRALColourPriceForProduct(int ProductId, int widthcm)
+        {
+            return await _workflowService.GeNonStandardRALColourPriceForProductAsync(ProductId, widthcm);
+        }
+
+        [HttpGet("GeWallSealingProfilerPriceForProduct")]
+        public async Task<decimal> GeWallSealingProfilerPriceForProduct(int ProductId, int widthcm)
+        {
+            return await _workflowService.GeWallSealingProfilerPriceForProductAsync(ProductId, widthcm);
+        }
     }
 }

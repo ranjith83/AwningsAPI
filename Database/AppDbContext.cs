@@ -30,7 +30,10 @@ namespace AwningsAPI.Database
         public DbSet<InvoicePayment> InvoicePayments { get; set; }
         public DbSet<Arms>  Arms { get; set; }
         public DbSet<Motors> Motors { get; set; }
+        public DbSet<ValanceStyle> valanceStyles { get; set; }
+        public DbSet<NonStandardRALColours> nonStandardRALColours { get; set; }
 
+        public DbSet<WallSealingProfile> wallSealingProfiles { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configure one-to-many relationship
@@ -59,6 +62,18 @@ namespace AwningsAPI.Database
             modelBuilder.Entity<Motors>()
             .Property(p => p.Price)
             .HasPrecision(18, 4);
+
+            modelBuilder.Entity<ValanceStyle>()
+            .Property(p => p.Price)
+            .HasPrecision(18, 4);
+
+            modelBuilder.Entity<NonStandardRALColours>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 4);
+
+            modelBuilder.Entity<WallSealingProfile>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 4);
 
             // Invoice Configuration
             modelBuilder.Entity<Invoice>(entity =>
@@ -219,7 +234,33 @@ namespace AwningsAPI.Database
                 new Motors { MotorId = 5, ProductId = 6, Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter", Price = 1082m, DateCreated = staticCreatedDate, CreatedBy = 1 },
                 new Motors { MotorId = 6, ProductId = 6, Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter", Price = 968m, DateCreated = staticCreatedDate, CreatedBy = 1 }
              );
-
+            //ValanceStyle Data
+            modelBuilder.Entity<ValanceStyle>().HasData(
+                new ValanceStyle { ValanceStyleId = 1, ProductId = 6, WidthCm = 250, Price = 76m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new ValanceStyle { ValanceStyleId = 2, ProductId = 6, WidthCm = 300, Price = 84m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new ValanceStyle { ValanceStyleId = 3, ProductId = 6, WidthCm = 350, Price = 93m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new ValanceStyle { ValanceStyleId = 4, ProductId = 6, WidthCm = 400, Price = 105m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new ValanceStyle { ValanceStyleId = 5, ProductId = 6, WidthCm = 450, Price = 118m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new ValanceStyle { ValanceStyleId = 6, ProductId = 6, WidthCm = 500, Price = 130m, DateCreated = staticCreatedDate, CreatedBy = 1 }
+             );
+            //NonStandardRALColours Data
+            modelBuilder.Entity<NonStandardRALColours>().HasData(
+                new NonStandardRALColours { RALColourId = 1, ProductId = 6, WidthCm = 250, Price = 319m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new NonStandardRALColours { RALColourId = 2, ProductId = 6, WidthCm = 300, Price = 342m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new NonStandardRALColours { RALColourId = 3, ProductId = 6, WidthCm = 350, Price = 360m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new NonStandardRALColours { RALColourId = 4, ProductId = 6, WidthCm = 400, Price = 377m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new NonStandardRALColours { RALColourId = 5, ProductId = 6, WidthCm = 450, Price = 394m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new NonStandardRALColours { RALColourId = 6, ProductId = 6, WidthCm = 500, Price = 411m, DateCreated = staticCreatedDate, CreatedBy = 1 }
+             );
+            //WallSealingProfile Data
+            modelBuilder.Entity<WallSealingProfile>().HasData(
+                new WallSealingProfile { WallSealingProfileId = 1, ProductId = 6, WidthCm = 250, Price = 87m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new WallSealingProfile { WallSealingProfileId = 2, ProductId = 6, WidthCm = 300, Price = 101m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new WallSealingProfile { WallSealingProfileId = 3, ProductId = 6, WidthCm = 350, Price = 110m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new WallSealingProfile { WallSealingProfileId = 4, ProductId = 6, WidthCm = 400, Price = 126m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new WallSealingProfile { WallSealingProfileId = 5, ProductId = 6, WidthCm = 450, Price = 141m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new WallSealingProfile { WallSealingProfileId = 6, ProductId = 6, WidthCm = 500, Price = 157m, DateCreated = staticCreatedDate, CreatedBy = 1 }
+             );
         }
     }
 }
