@@ -5,7 +5,7 @@ namespace AwningsAPI.Model.Customers
     public class Customer
     {
         [Key]
-        public int CompanyId { get; set; }
+        public int CustomerId { get; set; }
         public string Name { get; set; }
         public string? CompanyNumber { get; set; }
         public bool? Residential { get; set; }
@@ -23,9 +23,9 @@ namespace AwningsAPI.Model.Customers
         public string? TaxNumber { get; set; }
         public string? Eircode { get; set; }
         public DateTime? DateCreated { get; set; }
-        public int? CreatedBy { get; set; }
+        public string? CreatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
-        public int? UpdatedBy { get; set; }
+        public string? UpdatedBy { get; set; }
         public ICollection<CustomerContact> CustomerContacts { get; set; }
     }
 }

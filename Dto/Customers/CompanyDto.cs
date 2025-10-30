@@ -2,7 +2,7 @@
 {
     public class CompanyDto
     {
-        public int CompanyId { get; set; }
+        public int CustomerId { get; set; }
         public string Name { get; set; }
         public string? CompanyNumber { get; set; }
         public bool? Residential { get; set; }

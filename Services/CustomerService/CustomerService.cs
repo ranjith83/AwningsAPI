@@ -24,19 +24,19 @@ namespace AwningsAPI.Services.CustomerService
             return await _context.Customers.Include(c => c.CustomerContacts).ToListAsync();
         }
 
-        public async Task<Customer> GetCustomerByIdAsync(int companyId)
+        public async Task<Customer> GetCustomerByIdAsync(int customerId)
         {
             var company = await _context.Customers
                 .Include(c => c.CustomerContacts)
-                .FirstOrDefaultAsync(c => c.CompanyId == companyId);
+                .FirstOrDefaultAsync(c => c.CustomerId == customerId);
 
             if (company is null)
-                throw new KeyNotFoundException($"Company with id {companyId} was not found.");
+                throw new KeyNotFoundException($"Company with id {customerId} was not found.");
 
             return company;
         }
 
-        public async Task<Customer> SaveCompanyWithContact(CompanyWithContactDto dto)
+        public async Task<Customer> SaveCompanyWithContact(CompanyWithContactDto dto, string currentUser)
         {
             var customer = new Model.Customers.Customer
             {
@@ -57,6 +57,7 @@ namespace AwningsAPI.Services.CustomerService
                 TaxNumber = dto.TaxNumber,
                 Eircode = dto.Eircode,
                 DateCreated = DateTime.UtcNow,
+                CreatedBy = currentUser,
                 CustomerContacts = dto.Contacts.Select(c => new CustomerContact
                 {
                     FirstName = c.FirstName,
@@ -73,15 +74,19 @@ namespace AwningsAPI.Services.CustomerService
             return customer;
         }
 
-        public async Task<CustomerContact> SaveContactToCompany(ContactDto dto)
+        public async Task<CustomerContact> SaveContactToCompany(ContactDto dto, string currentUser)
         {
             var customerContact = new CustomerContact
             {
-                CompanyId = dto.CompanyId,
+                CustomerId = dto.CompanyId,
                 FirstName = dto.FirstName,
                 LastName = dto.LastName,
                 Phone = dto.Phone,
-                Email = dto.Email
+                Email = dto.Email,
+                DateOfBirth = dto.DateOfBirth,
+                Mobile = dto.Mobile,
+                DateCreated = DateTime.UtcNow,
+                CreatedBy = currentUser                   
             };
 
             _context.CustomerContacts.Add(customerContact);
@@ -91,7 +96,7 @@ namespace AwningsAPI.Services.CustomerService
             return customerContact;
         }
 
-        public async Task<Customer> UpdateCompany(int CompanyId, CompanyDto dto)
+        public async Task<Customer> UpdateCompany(int CompanyId, CompanyDto dto, string currentUser)
         {
             var company = await _context.Customers.FindAsync(CompanyId);
 
@@ -117,13 +122,13 @@ namespace AwningsAPI.Services.CustomerService
             company.TaxNumber = dto.TaxNumber;
             company.Eircode = dto.Eircode;
             company.UpdatedDate = DateTime.UtcNow;
-            company.UpdatedBy = dto.UpdatedBy;
+            company.UpdatedBy = currentUser;
 
             await _context.SaveChangesAsync();
 
             return company;
         }
-        public async Task<CustomerContact> UpdateContactInCompany(int contactId, ContactDto dto)
+        public async Task<CustomerContact> UpdateContactInCompany(int contactId, ContactDto dto, string currentUser)
         {
             var contact = await _context.CustomerContacts.FindAsync(contactId);
             
@@ -138,7 +143,7 @@ namespace AwningsAPI.Services.CustomerService
             contact.Phone = dto.Phone;
             contact.DateOfBirth = dto.DateOfBirth;
             contact.DateUpdated = DateTime.UtcNow;
-            contact.UpdatedBy = dto.UpdatedBy;
+            contact.UpdatedBy = currentUser;
 
             await _context.SaveChangesAsync();
 
