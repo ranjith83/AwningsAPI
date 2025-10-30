@@ -14,12 +14,12 @@ namespace AwningsAPI.Model.Customers
         public string? Phone { get; set; }
         public string Email { get; set; }
         public DateTime? DateCreated { get; set; }
-        public int? CreatedBy { get; set; }
+        public string? CreatedBy { get; set; }
         public DateTime? DateUpdated { get; set; }
-        public int? UpdatedBy { get; set; }
+        public string? UpdatedBy { get; set; }
 
         //Navigation property
-        public int CompanyId { get; set; }
+        public int CustomerId { get; set; }
         [JsonIgnore]
         public Customer Customer { get; set; }
     }

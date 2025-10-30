@@ -12,7 +12,7 @@
         public bool InvoiceSent { get; set; }   
         public DateTime DateAdded { get; set; }
         public string AddedBy { get; set; }    
-        public int CompanyId { get; set; }
+        public int CustomerId { get; set; }
         public int SupplierId { get; set; } 
         public int ProductId { get; set; }  
         public int ProductTypeId { get; set; }  

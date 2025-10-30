@@ -1,5 +1,4 @@
 ﻿using AwningsAPI.Database;
-using AwningsAPI.Dto.Product;
 using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Products;
@@ -20,10 +19,10 @@ namespace AwningsAPI.Services.WorkflowService
         }
         public async Task<IEnumerable<WorkflowStart>> GetAllWorfflowsForCustomerAsync(int CustomerId)
         {
-            return await _context.WorkflowStarts.Include(p => p.Product).Where(w=>w.CompanyId==CustomerId).ToListAsync();
+            return await _context.WorkflowStarts.Include(p => p.Product).Where(w=>w.CustomerId==CustomerId).ToListAsync();
         }
 
-        public async Task<WorkflowStart> CreateWorkflow(WorkflowDto dto)
+        public async Task<WorkflowStart> CreateWorkflow(WorkflowDto dto, string currentUser)
         {
             var workflow = new WorkflowStart
             {
@@ -34,11 +33,11 @@ namespace AwningsAPI.Services.WorkflowService
                 SetupSiteVisit = dto.SetupSiteVisit,
                 InvoiceSent = dto.InvoiceSent,  
                 SupplierId = dto.SupplierId,
-                CompanyId = dto.CompanyId,
+                CustomerId = dto.CustomerId,
                 ProductId = dto.ProductId,
                 ProductTypeId = dto.ProductTypeId,  
                 DateCreated = DateTime.UtcNow,  
-                CreatedBy = 1 // To be replaced with actual user I
+                CreatedBy = currentUser
             };
 
             _context.WorkflowStarts.Add(workflow);
@@ -47,7 +46,7 @@ namespace AwningsAPI.Services.WorkflowService
             return workflow;
         }
 
-        public async Task<WorkflowStart> UpdateWorkflow(WorkflowDto dto)
+        public async Task<WorkflowStart> UpdateWorkflow(WorkflowDto dto, string currentUser)
         {
             var existingWorkflow = await _context.WorkflowStarts.FindAsync(dto.WorkflowId);
 
@@ -63,11 +62,11 @@ namespace AwningsAPI.Services.WorkflowService
             existingWorkflow.SetupSiteVisit = dto.SetupSiteVisit;
             existingWorkflow.InvoiceSent = dto.InvoiceSent;
             existingWorkflow.SupplierId = dto.SupplierId;
-            existingWorkflow.CompanyId = dto.CompanyId;
+            existingWorkflow.CustomerId = dto.CustomerId;
             existingWorkflow.ProductId = dto.ProductId;
             existingWorkflow.ProductTypeId = dto.ProductTypeId;
             existingWorkflow.DateUpdated = DateTime.UtcNow;
-            existingWorkflow.UpdatedBy = 1; // To be replaced with actual user I
+            existingWorkflow.UpdatedBy = currentUser;
 
             _context.WorkflowStarts.Update(existingWorkflow);
             await _context.SaveChangesAsync();
@@ -80,7 +79,7 @@ namespace AwningsAPI.Services.WorkflowService
             return await _context.InitialEnquiries.Where(w => w.WorkflowId == WorkflowId).ToListAsync();
         }
 
-        public async Task<InitialEnquiry> AddInitialEnquiry(InitialEnquiryDto dto)
+        public async Task<InitialEnquiry> AddInitialEnquiry(InitialEnquiryDto dto, string currentUser)
         {
             var initialEnquiry = new InitialEnquiry
             {
@@ -89,14 +88,14 @@ namespace AwningsAPI.Services.WorkflowService
                 Email = dto.Email,
                 Images = dto.Images,
                 DateCreated = DateTime.UtcNow,
-                CreatedBy = 1 // To be replaced with actual user I
+                CreatedBy = currentUser
             };
             _context.InitialEnquiries.Add(initialEnquiry);
             await _context.SaveChangesAsync();
             return initialEnquiry;
         }
 
-        public async Task<InitialEnquiry> UpdateInitialEnquiry(InitialEnquiryDto dto)
+        public async Task<InitialEnquiry> UpdateInitialEnquiry(InitialEnquiryDto dto, string currentUser)
         {
             var existingInquiry = await _context.InitialEnquiries.FindAsync(dto.EnquiryId);
 
@@ -110,7 +109,7 @@ namespace AwningsAPI.Services.WorkflowService
             existingInquiry.Images = dto.Images;
 
             existingInquiry.DateUpdated = DateTime.UtcNow;
-            existingInquiry.UpdatedBy = 1; // To be replaced with actual user I
+            existingInquiry.UpdatedBy = currentUser;
 
             _context.InitialEnquiries.Update(existingInquiry);
             await _context.SaveChangesAsync();

@@ -1,12 +1,7 @@
-﻿using AwningsAPI.Dto.Customers;
-using AwningsAPI.Dto.Product;
-using AwningsAPI.Dto.Supplier;
+﻿using AwningsAPI.Dto.Product;
 using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Interfaces;
-using AwningsAPI.Model.Suppliers;
 using AwningsAPI.Model.Workflow;
-using AwningsAPI.Services.CustomerService;
-using AwningsAPI.Services.Suppliers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AwningsAPI.Controllers
@@ -38,7 +33,7 @@ namespace AwningsAPI.Controllers
                 SetupSiteVisit = c.SetupSiteVisit,
                 InvoiceSent = c.InvoiceSent,
                 DateAdded = c.DateCreated,
-                AddedBy = "Michael" // To be implemented
+                AddedBy =  c.CreatedBy
             }).ToList();
 
             return Ok(workflowDtos);
@@ -47,15 +42,17 @@ namespace AwningsAPI.Controllers
         [HttpPost("CreateWorkflow")]
         public async Task<ActionResult<WorkflowStart>> CreateWorkflow([FromBody] WorkflowDto dto)
         {
-            var workflow = await _workflowService.CreateWorkflow(dto);
+            var currentUser = User?.Identity?.Name ?? "System";
+            var workflow = await _workflowService.CreateWorkflow(dto, currentUser);
 
-            return CreatedAtAction(nameof(CreateWorkflow), new { Id = workflow.CompanyId }, workflow);
+            return CreatedAtAction(nameof(CreateWorkflow), new { Id = workflow.CustomerId }, workflow);
         }
 
         [HttpPut("UpdateWorkflow")]
         public async Task<ActionResult<WorkflowStart>> UpdateWorkflow([FromBody] WorkflowDto dto)
         {
-            var workflow = await _workflowService.UpdateWorkflow(dto);
+            var currentUser = User?.Identity?.Name ?? "System";
+            var workflow = await _workflowService.UpdateWorkflow(dto, currentUser);
 
             return Ok(workflow);
         }
@@ -80,7 +77,8 @@ namespace AwningsAPI.Controllers
         [HttpPut("UpdateInitialEnquiry")]
         public async Task<ActionResult<IEnumerable<InitialEnquiry>>> UpdateInitialEnquiry([FromBody] InitialEnquiryDto dto)
         {
-            var initialEnquiry = await _workflowService.UpdateInitialEnquiry(dto);
+            var currentUser = User?.Identity?.Name ?? "System";
+            var initialEnquiry = await _workflowService.UpdateInitialEnquiry(dto, currentUser);
 
             return Ok(initialEnquiry);
         }
@@ -88,7 +86,8 @@ namespace AwningsAPI.Controllers
         [HttpPost("AddInitialEnquiry")]
         public async Task<ActionResult<InitialEnquiry>> AddInitialEnquiry([FromBody] InitialEnquiryDto dto)
         {
-            var initialEnquiry = await _workflowService.AddInitialEnquiry(dto);
+            var currentUser = User?.Identity?.Name ?? "System";
+            var initialEnquiry = await _workflowService.AddInitialEnquiry(dto, currentUser);
             return CreatedAtAction(nameof(AddInitialEnquiry), new { Id = initialEnquiry.EnquiryId }, initialEnquiry);
         }
 

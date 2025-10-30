@@ -70,7 +70,7 @@ namespace AwiningsIreland_WebAPI.Models
         public string CreatedBy { get; set; }
 
         [StringLength(100)]
-        public string UpdatedBy { get; set; }
+        public string? UpdatedBy { get; set; }
 
         // Navigation Properties
         public virtual ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();
