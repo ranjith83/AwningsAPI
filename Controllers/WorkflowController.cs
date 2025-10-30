@@ -124,5 +124,21 @@ namespace AwningsAPI.Controllers
 
             return Ok(bracketsDto);
         }
+
+        [HttpGet("GeArmsForProduct")]
+        public async Task<ActionResult<IEnumerable<ArmsDto>>> GeArmsForProduct(int ProductId)
+        {
+            var arms = await _workflowService.GeArmsForProductAsync(ProductId);
+
+            var armsDto = arms.Select(c => new ArmsDto
+            {
+                ArmId = c.ArmId,
+                Description = c.Description,
+                Price = c.Price,
+                BfId = c.BfId
+            }).ToList();
+
+            return Ok(armsDto);
+        }
     }
 }

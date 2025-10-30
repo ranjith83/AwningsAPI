@@ -146,6 +146,11 @@ namespace AwningsAPI.Services.WorkflowService
         {
             return await _context.Brackets.Where(b => b.ProductId == productId).ToListAsync();
         }
-     
+
+        public async Task<List<Arms>> GeArmsForProductAsync(int productId)
+        {
+            return await _context.Arms.Where(f => f.ProductId == productId).ToListAsync();
+        }
+
     }
 }

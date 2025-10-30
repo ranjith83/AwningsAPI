@@ -16,5 +16,6 @@ namespace AwningsAPI.Interfaces
         Task<List<int>> GetProjectionWidthsForProductAsync(int productId);
         Task<decimal> GetProjectionPriceForProductAsync(int productId, int widthcm, int projectioncm);
         Task<List<Brackets>> GeBracketsForProductAsync(int productId);
+        Task<List<Arms>> GeArmsForProductAsync(int productId);
     }
 }

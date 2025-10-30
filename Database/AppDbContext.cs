@@ -27,6 +27,7 @@ namespace AwningsAPI.Database
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<InvoiceItem> InvoiceItems { get; set; }
         public DbSet<InvoicePayment> InvoicePayments { get; set; }
+        public DbSet<Arms>  Arms { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -48,6 +49,10 @@ namespace AwningsAPI.Database
             modelBuilder.Entity<BF>()
                 .Property(p => p.Price)
                 .HasPrecision(18, 4);
+
+            modelBuilder.Entity<Arms>()
+            .Property(p => p.Price)
+            .HasPrecision(18, 4);
 
             // Invoice Configuration
             modelBuilder.Entity<Invoice>(entity =>
@@ -188,6 +193,16 @@ namespace AwningsAPI.Database
                 new BF { BFId = 1, Description = "BF 6", Price = 312.00m, DateCreated = staticCreatedDate, CreatedBy = 1 },
                 new BF { BFId = 2, Description = "BF 8", Price = 312.00m, DateCreated = staticCreatedDate, CreatedBy = 1 },
                 new BF { BFId = 3, Description = "BF 16", Price = 312.00m, DateCreated = staticCreatedDate, CreatedBy = 1 }
+            );
+            //Arms Data
+            modelBuilder.Entity<Arms>().HasData(
+                new Arms { ArmId = 1, ProductId = 6, BfId=1, Description  = "Surcharge for face fixture", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new Arms { ArmId = 2, ProductId = 6, BfId=3, Description = "Surcharge for face fixture incl. spreader plate A", Price = 334m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new Arms { ArmId = 3, ProductId = 6, BfId=2, Description = "Surcharge for face fixture incl. spreader plate B", Price = 406m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new Arms { ArmId = 4, ProductId = 6, BfId=2, Description = "Surcharge for top fixture", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new Arms { ArmId = 5, ProductId = 6, BfId=2, Description = "Surcharge for eaves fixture", Price = 199m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new Arms { ArmId = 6, ProductId = 6, Description = "Surcharge for arms with bionic tendon", Price = 117m, DateCreated = staticCreatedDate, CreatedBy = 1 },
+                new Arms { ArmId = 7, ProductId = 6, Description = "Surcharge for bespoke arms", Price = 177m, DateCreated = staticCreatedDate, CreatedBy = 1 }
             );
         }
     }
