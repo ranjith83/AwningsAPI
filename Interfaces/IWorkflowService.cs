@@ -22,5 +22,6 @@ namespace AwningsAPI.Interfaces
         Task<decimal> GeValanceStylePriceForProductAsync(int productId, int widthcm);
         Task<decimal> GeNonStandardRALColourPriceForProductAsync(int productId, int widthcm);
         Task<decimal> GeWallSealingProfilerPriceForProductAsync(int productId, int widthcm);
+        Task<List<Heaters>> GeHeatersForProductAsync(int productId);
     }
 }

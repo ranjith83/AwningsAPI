@@ -173,5 +173,21 @@ namespace AwningsAPI.Controllers
         {
             return await _workflowService.GeWallSealingProfilerPriceForProductAsync(ProductId, widthcm);
         }
+
+        [HttpGet("GeHeatersForProduct")]
+        public async Task<ActionResult<IEnumerable<HeatersDto>>> GeHeatersForProduct(int ProductId)
+        {
+            var heaters = await _workflowService.GeHeatersForProductAsync(ProductId);
+
+            var heatersDto = heaters.Select(c => new HeatersDto
+            {
+                HeaterId = c.HeaterId,
+                Description = c.Description,
+                Price = c.Price,                
+                PriceNonRALColour = c.PriceNonRALColour
+            }).ToList();
+
+            return Ok(heatersDto);
+        }
     }
 }
