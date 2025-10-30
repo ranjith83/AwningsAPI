@@ -3,6 +3,7 @@ using AwningsAPI.Dto.Product;
 using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Products;
+using AwningsAPI.Model.Suppliers;
 using AwningsAPI.Model.Workflow;
 using Microsoft.EntityFrameworkCore;
 
@@ -152,5 +153,9 @@ namespace AwningsAPI.Services.WorkflowService
             return await _context.Arms.Where(f => f.ProductId == productId).ToListAsync();
         }
 
+        public async Task<List<Motors>> GeMotorsForProductAsync(int productId)
+        {
+            return await _context.Motors.Where(f => f.ProductId == productId).ToListAsync();
+        }
     }
 }
