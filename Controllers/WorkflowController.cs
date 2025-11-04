@@ -33,7 +33,12 @@ namespace AwningsAPI.Controllers
                 SetupSiteVisit = c.SetupSiteVisit,
                 InvoiceSent = c.InvoiceSent,
                 DateAdded = c.DateCreated,
-                AddedBy =  c.CreatedBy
+                AddedBy =  c.CreatedBy,
+                CompanyId = c.CompanyId,
+                SupplierId = c.SupplierId,
+                ProductId = c.ProductId,
+                ProductTypeId = c.ProductTypeId,
+                CustomerId = c.CustomerId
             }).ToList();
 
             return Ok(workflowDtos);

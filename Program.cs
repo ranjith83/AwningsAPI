@@ -26,12 +26,24 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new() { Title = "Awnings Of Ireland API", Version = "v1" });
 });
 
+// Add CORS policy
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngularDev",
+        policy => policy
+            .WithOrigins("http://localhost:4200") // Angular dev server
+            .AllowAnyMethod()
+            .AllowAnyHeader());
+});
+
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    // Enable CORS
+    app.UseCors("AllowAngularDev");
     app.UseSwagger();
     app.UseSwaggerUI();
     app.MapControllers();
