@@ -15,6 +15,8 @@
         public int CustomerId { get; set; }
         public int SupplierId { get; set; } 
         public int ProductId { get; set; }  
-        public int ProductTypeId { get; set; }  
+        public int ProductTypeId { get; set; }
+
+        public int CompanyId { get; set; }
     }
 }

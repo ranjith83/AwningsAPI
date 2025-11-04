@@ -1891,6 +1891,9 @@ namespace AwningsAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WorkflowId"));
 
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("CreateQuote")
                         .HasColumnType("bit");
 
@@ -1945,6 +1948,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             WorkflowId = 1,
+                            CompanyId = 0,
                             CreateQuote = false,
                             CreatedBy = "System",
                             CustomerId = 1,
