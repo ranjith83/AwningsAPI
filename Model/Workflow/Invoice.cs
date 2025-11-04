@@ -28,19 +28,6 @@ namespace AwiningsIreland_WebAPI.Models
         [Required]
         public int CustomerId { get; set; }
 
-        [Required]
-        [StringLength(200)]
-        public string CustomerName { get; set; }
-
-        [StringLength(500)]
-        public string CustomerAddress { get; set; }
-
-        [StringLength(100)]
-        public string CustomerEmail { get; set; }
-
-        [StringLength(20)]
-        public string CustomerPhone { get; set; }
-
         [Column(TypeName = "decimal(18,2)")]
         public decimal SubTotal { get; set; }
 
