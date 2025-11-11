@@ -100,5 +100,19 @@ namespace AwningsAPI.Controllers
             }
             return Ok(customer);
         }
+
+
+        [HttpPost("delete-customer")]
+        public async Task<IActionResult> DeleteCustomerWithContact([FromBody] int customerId)
+        {
+            var currentUser = User?.Identity?.Name ?? "System";
+            var customer = await _customerService.DeleteCompanyWithContact(customerId, currentUser);
+            if (customer == null)
+            {
+                return NotFound();
+            }
+            return Ok(customer);
+        }
+
     }
 }
