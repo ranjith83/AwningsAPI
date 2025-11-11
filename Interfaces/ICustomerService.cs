@@ -13,6 +13,8 @@ namespace AwningsAPI.Interfaces
 
         Task<CustomerContact> SaveContactToCompany(ContactDto dto, string currentUser);
         Task<Customer> UpdateCompany(int id, CompanyDto dto, string currentUser);
-        Task<CustomerContact> UpdateContactInCompany(int id, ContactDto dto, string currentUser);  
+        Task<CustomerContact> UpdateContactInCompany(int id, ContactDto dto, string currentUser);
+
+        Task<bool> DeleteCompanyWithContact(int customerId, string currentUser);
     }
 }

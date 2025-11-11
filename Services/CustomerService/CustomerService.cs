@@ -149,5 +149,23 @@ namespace AwningsAPI.Services.CustomerService
 
             return contact;
         }
+
+        public async Task<bool> DeleteCompanyWithContact(int customerId, string currentUser)
+        {
+
+            var customer = await _context.Customers.FindAsync(customerId);
+
+            if (customer == null)
+            {
+                throw new KeyNotFoundException($"Customer Id {customerId} not found.");
+                return false;
+            }
+
+            _context.Customers.Remove(customer);
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
     }
 }
