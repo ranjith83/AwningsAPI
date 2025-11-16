@@ -71,30 +71,17 @@ builder.Services.AddCors(options =>
 
 
 var app = builder.Build();
-
-// Configure the HTTP request pipeline
-// ⚠️ IMPORTANT: Order matters! CORS must be before Authentication/Authorization
-
-// 1. CORS (must be first)
 app.UseCors("AllowAngularDev");
-
-// 2. Development-specific middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// 3. HTTPS Redirection
 app.UseHttpsRedirection();
 
-// 4. Authentication (must be before Authorization)
 app.UseAuthentication();
-
-// 5. Authorization
 app.UseAuthorization();
-
-// 6. Map Controllers (must be last)
 app.MapControllers();
 
 /*
