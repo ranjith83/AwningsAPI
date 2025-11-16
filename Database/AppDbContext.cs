@@ -1,4 +1,5 @@
 ﻿using AwiningsIreland_WebAPI.Models;
+using AwningsAPI.Model.Auth;
 using AwningsAPI.Model.Customers;
 using AwningsAPI.Model.Products;
 using AwningsAPI.Model.Suppliers;
@@ -32,6 +33,9 @@ namespace AwningsAPI.Database
         public DbSet<Heaters> Heaters { get; set; }
         public DbSet<Quote> Quotes { get; set; }
         public DbSet<QuoteItem> QuoteItems { get; set; }
+
+        public DbSet<User> Users { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configure one-to-many relationship
@@ -145,6 +149,54 @@ namespace AwningsAPI.Database
                 entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalPrice).HasColumnType("decimal(18,2)");
             });
+
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.ToTable("Users");
+                entity.HasKey(e => e.UserId);
+                entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
+                entity.HasIndex(e => e.Email).IsUnique();
+                entity.Property(e => e.Username).IsRequired().HasMaxLength(20);
+                entity.HasIndex(e => e.Username).IsUnique();
+                entity.Property(e => e.PasswordHash).IsRequired();
+                entity.Property(e => e.Role).HasDefaultValue("User");
+                entity.Property(e => e.IsActive).HasDefaultValue(true);
+
+                entity.HasMany(e => e.RefreshTokens)
+                    .WithOne(rt => rt.User)
+                    .HasForeignKey(rt => rt.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // RefreshToken Configuration
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.ToTable("RefreshTokens");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Token).IsRequired();
+                entity.HasIndex(e => e.Token);
+                entity.Property(e => e.IsRevoked).HasDefaultValue(false);
+            });
+
+            // Seed Admin User
+            var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123");
+            modelBuilder.Entity<User>().HasData(
+             new User
+                 {
+                     UserId = 1,
+                     FirstName = "System",
+                     LastName = "Admin",
+                     Email = "admin@awnings.ie",
+                     Username = "admin",
+                     PasswordHash = "$2a$11$lB5zG4AjL5L2gP2V22pquu8HbsUyF6q7Q8HqZQrjO2KQhkXj6nFlO", // ✔ static
+                     Role = "Admin",
+                     Department = "IT",
+                     IsActive = true,
+                     DateCreated = new DateTime(2023, 1, 1, 12, 0, 0),
+                     CreatedBy = "System"
+                 }
+             );
+
 
             base.OnModelCreating(modelBuilder);
 

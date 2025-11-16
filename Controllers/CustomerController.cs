@@ -1,6 +1,7 @@
 ﻿using AwningsAPI.Dto.Customers;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Customers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AwningsAPI.Controllers
@@ -16,6 +17,7 @@ namespace AwningsAPI.Controllers
             _customerService = customerService;
         }
 
+       [Authorize]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Customer>>> GetAllCustomersWithContacts()
         {
