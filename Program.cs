@@ -1,10 +1,13 @@
-using AwningsAPI.Database;
+﻿using AwningsAPI.Database;
 using AwningsAPI.Interfaces;
+using AwningsAPI.Services.Auth;
 using AwningsAPI.Services.CustomerService;
 using AwningsAPI.Services.QuoteService;
 using AwningsAPI.Services.Suppliers;
 using AwningsAPI.Services.WorkflowService;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +20,34 @@ builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<IWorkflowService, WorkflowService>();
 builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IAuthService, AuthService>(); // Add this line
+
+// JWT Authentication Configuration
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"];
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secretKey!)),
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+builder.Services.AddAuthorization();
+
 builder.Services.AddControllers();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -27,31 +58,44 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new() { Title = "Awnings Of Ireland API", Version = "v1" });
 });
 
-// Add CORS policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngularDev",
         policy => policy
-            .WithOrigins("http://localhost:4200") // Angular dev server
-            .AllowAnyMethod()
-            .AllowAnyHeader());
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod()           // includes OPTIONS
+            .AllowCredentials());       // REQUIRED for [Authorize] endpoints
 });
+
 
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline
+// ⚠️ IMPORTANT: Order matters! CORS must be before Authentication/Authorization
+
+// 1. CORS (must be first)
+app.UseCors("AllowAngularDev");
+
+// 2. Development-specific middleware
 if (app.Environment.IsDevelopment())
 {
-    // Enable CORS
-    app.UseCors("AllowAngularDev");
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.MapControllers();
-    //app.MapOpenApi();
 }
 
+// 3. HTTPS Redirection
 app.UseHttpsRedirection();
+
+// 4. Authentication (must be before Authorization)
+app.UseAuthentication();
+
+// 5. Authorization
+app.UseAuthorization();
+
+// 6. Map Controllers (must be last)
+app.MapControllers();
 
 /*
 var summaries = new[]
