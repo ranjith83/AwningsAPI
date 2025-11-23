@@ -138,7 +138,7 @@ namespace AwningsAPI.Controllers
                     Role = user.Role ?? "User",
                     Department = user.Department,
                     IsActive = user.IsActive,
-                    LastLogin = user.LastLogin
+                   // LastLogin = user.LastLogin
                 };
 
                 return Ok(userDto);
@@ -161,6 +161,126 @@ namespace AwningsAPI.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred", error = ex.Message });
+            }
+        }
+
+
+
+        /// <summary>
+        /// Get user by ID (Admin only)
+        /// </summary>
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{id}")]
+        public async Task<ActionResult<UserDto>> GetUserById(int id)
+        {
+            try
+            {
+                var user = await _authService.GetUserByIdAsync(id);
+
+                if (user == null)
+                {
+                    return NotFound(new { message = $"User with ID {id} not found" });
+                }
+
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving user", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Update user information (Admin only)
+        /// </summary>
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{id}")]
+        public async Task<ActionResult<UserDto>> UpdateUser(int id, [FromBody] UpdateUserDto dto)
+        {
+            try
+            {
+                var user = await _authService.UpdateUserAsync(id, dto);
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                if (ex.Message.Contains("not found"))
+                {
+                    return NotFound(new { message = ex.Message });
+                }
+                return StatusCode(500, new { message = "Error updating user", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Deactivate user (Admin only)
+        /// </summary>
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id}/deactivate")]
+        public async Task<ActionResult> DeactivateUser(int id)
+        {
+            try
+            {
+                var result = await _authService.DeactivateUserAsync(id);
+
+                if (!result)
+                {
+                    return NotFound(new { message = $"User with ID {id} not found" });
+                }
+
+                return Ok(new { message = "User deactivated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error deactivating user", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Activate user (Admin only)
+        /// </summary>
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id}/activate")]
+        public async Task<ActionResult> ActivateUser(int id)
+        {
+            try
+            {
+                var result = await _authService.ActivateUserAsync(id);
+
+                if (!result)
+                {
+                    return NotFound(new { message = $"User with ID {id} not found" });
+                }
+
+                return Ok(new { message = "User activated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error activating user", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Delete user permanently (Admin only)
+        /// </summary>
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteUser(int id)
+        {
+            try
+            {
+                var result = await _authService.DeleteUserAsync(id);
+
+                if (!result)
+                {
+                    return NotFound(new { message = $"User with ID {id} not found" });
+                }
+
+                return Ok(new { message = "User deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error deleting user", error = ex.Message });
             }
         }
     }

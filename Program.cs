@@ -1,8 +1,11 @@
 ﻿using AwningsAPI.Database;
+using AwningsAPI.Interceptors;
 using AwningsAPI.Interfaces;
+using AwningsAPI.Services.AuditLogService;
 using AwningsAPI.Services.Auth;
 using AwningsAPI.Services.CustomerService;
 using AwningsAPI.Services.QuoteService;
+using AwningsAPI.Services.SiteVisitService;
 using AwningsAPI.Services.Suppliers;
 using AwningsAPI.Services.WorkflowService;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -20,7 +23,11 @@ builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<IWorkflowService, WorkflowService>();
 builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
-builder.Services.AddScoped<IAuthService, AuthService>(); // Add this line
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ISiteVisitService, SiteVisitService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuditInterceptor>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
 // JWT Authentication Configuration
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -50,8 +57,11 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddControllers();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()); 
+});
 
 builder.Services.AddSwaggerGen(options =>
 {

@@ -2,6 +2,7 @@
 using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Workflow;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AwningsAPI.Controllers
@@ -16,7 +17,7 @@ namespace AwningsAPI.Controllers
         {
             _workflowService = workflowService;
         }
-
+        [Authorize]
         [HttpGet("GetAllWorfflowsForCustomer")]
         public async Task<ActionResult<IEnumerable<WorkflowStart>>> GetAllWorfflowsForCustomer(int CustomerId)
         {
@@ -44,6 +45,7 @@ namespace AwningsAPI.Controllers
             return Ok(workflowDtos);
         }
 
+        [Authorize]
         [HttpPost("CreateWorkflow")]
         public async Task<ActionResult<WorkflowStart>> CreateWorkflow([FromBody] WorkflowDto dto)
         {
@@ -53,6 +55,7 @@ namespace AwningsAPI.Controllers
             return CreatedAtAction(nameof(CreateWorkflow), new { Id = workflow.CustomerId }, workflow);
         }
 
+        [Authorize]
         [HttpPut("UpdateWorkflow")]
         public async Task<ActionResult<WorkflowStart>> UpdateWorkflow([FromBody] WorkflowDto dto)
         {
