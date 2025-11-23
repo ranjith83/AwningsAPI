@@ -80,13 +80,24 @@ namespace AwningsAPI.Dto.Auth
     public class UserDto
     {
         public int UserId { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string Email { get; set; }
-        public string Username { get; set; }
-        public string Role { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
         public string? Department { get; set; }
         public bool IsActive { get; set; }
-        public DateTime? LastLogin { get; set; }
+        public DateTime DateCreated { get; set; }
+        public string CreatedBy { get; set; } = string.Empty;
+    }
+
+    public class UpdateUserDto
+    {
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Email { get; set; }
+        public string? Department { get; set; }
+        public string? Role { get; set; }
+        public bool? IsActive { get; set; }
     }
 }

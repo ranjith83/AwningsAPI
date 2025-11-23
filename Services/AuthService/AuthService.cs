@@ -205,33 +205,33 @@ namespace AwningsAPI.Services.Auth
             return true;
         }
 
-        public async Task<User?> GetUserByIdAsync(int userId)
-        {
-            return await _context.Users.FindAsync(userId);
-        }
+        //public async Task<User?> GetUserByIdAsync(int userId)
+        //{
+        //    return await _context.Users.FindAsync(userId);
+        //}
 
         public async Task<User?> GetUserByUsernameAsync(string username)
         {
             return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
         }
 
-        public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
-        {
-            return await _context.Users
-                .Select(u => new UserDto
-                {
-                    UserId = u.UserId,
-                    FirstName = u.FirstName,
-                    LastName = u.LastName,
-                    Email = u.Email,
-                    Username = u.Username,
-                    Role = u.Role ?? "User",
-                    Department = u.Department,
-                    IsActive = u.IsActive,
-                    LastLogin = u.LastLogin
-                })
-                .ToListAsync();
-        }
+        //public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
+        //{
+        //    return await _context.Users
+        //        .Select(u => new UserDto
+        //        {
+        //            UserId = u.UserId,
+        //            FirstName = u.FirstName,
+        //            LastName = u.LastName,
+        //            Email = u.Email,
+        //            Username = u.Username,
+        //            Role = u.Role ?? "User",
+        //            Department = u.Department,
+        //            IsActive = u.IsActive,
+        //            LastLogin = u.LastLogin
+        //        })
+        //        .ToListAsync();
+        //}
 
         public string GenerateJwtToken(User user)
         {
@@ -281,5 +281,159 @@ namespace AwningsAPI.Services.Auth
         {
             return BCrypt.Net.BCrypt.Verify(password, passwordHash);
         }
+
+
+        // Add these methods to your existing AuthService.cs
+
+        public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
+        {
+            var users = await _context.Users
+                .OrderBy(u => u.LastName)
+                .ThenBy(u => u.FirstName)
+                .ToListAsync();
+
+            return users.Select(u => new UserDto
+            {
+                UserId = u.UserId,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Email = u.Email,
+                Username = u.Username,
+                Role = u.Role,
+                Department = u.Department,
+                IsActive = u.IsActive,
+                DateCreated = u.DateCreated,
+                CreatedBy = u.CreatedBy
+            });
+        }
+
+        public async Task<UserDto?> GetUserByIdAsync(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            return new UserDto
+            {
+                UserId = user.UserId,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Username = user.Username,
+                Role = user.Role,
+                Department = user.Department,
+                IsActive = user.IsActive,
+                DateCreated = user.DateCreated,
+                CreatedBy = user.CreatedBy
+            };
+        }
+
+        public async Task<UserDto> UpdateUserAsync(int userId, UpdateUserDto dto)
+        {
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+            {
+                throw new Exception($"User with ID {userId} not found");
+            }
+
+            // Update only provided fields
+            if (!string.IsNullOrEmpty(dto.FirstName))
+                user.FirstName = dto.FirstName;
+
+            if (!string.IsNullOrEmpty(dto.LastName))
+                user.LastName = dto.LastName;
+
+            if (!string.IsNullOrEmpty(dto.Email))
+            {
+                // Check if email is already taken by another user
+                var existingUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == dto.Email && u.UserId != userId);
+
+                if (existingUser != null)
+                {
+                    throw new Exception("Email is already in use");
+                }
+                user.Email = dto.Email;
+            }
+
+            if (!string.IsNullOrEmpty(dto.Department))
+                user.Department = dto.Department;
+
+            if (!string.IsNullOrEmpty(dto.Role))
+                user.Role = dto.Role;
+
+            if (dto.IsActive.HasValue)
+                user.IsActive = dto.IsActive.Value;
+
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            return new UserDto
+            {
+                UserId = user.UserId,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Username = user.Username,
+                Role = user.Role,
+                Department = user.Department,
+                IsActive = user.IsActive,
+                DateCreated = user.DateCreated,
+                CreatedBy = user.CreatedBy
+            };
+        }
+
+        public async Task<bool> DeactivateUserAsync(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+            {
+                return false;
+            }
+
+            user.IsActive = false;
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> ActivateUserAsync(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+            {
+                return false;
+            }
+
+            user.IsActive = true;
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> DeleteUserAsync(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+            {
+                return false;
+            }
+
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+
     }
 }

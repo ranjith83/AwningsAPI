@@ -1,10 +1,17 @@
 ﻿using AwiningsIreland_WebAPI.Models;
+using AwningsAPI.Model.Audit;
 using AwningsAPI.Model.Auth;
 using AwningsAPI.Model.Customers;
 using AwningsAPI.Model.Products;
+using AwningsAPI.Model.SiteVisit;
 using AwningsAPI.Model.Suppliers;
 using AwningsAPI.Model.Workflow;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.Extensions.Configuration;
+using System.Text.Json;
+
 
 namespace AwningsAPI.Database
 {
@@ -33,9 +40,12 @@ namespace AwningsAPI.Database
         public DbSet<Heaters> Heaters { get; set; }
         public DbSet<Quote> Quotes { get; set; }
         public DbSet<QuoteItem> QuoteItems { get; set; }
-
+        public DbSet<SiteVisit> SiteVisits { get; set; }
+        public DbSet<SiteVisitValues> SiteVisitValues { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configure one-to-many relationship
@@ -150,6 +160,24 @@ namespace AwningsAPI.Database
                 entity.Property(e => e.TotalPrice).HasColumnType("decimal(18,2)");
             });
 
+            // In OnModelCreating method, add:
+            modelBuilder.Entity<SiteVisit>(entity =>
+            {
+                entity.ToTable("SiteVisits");
+                entity.HasKey(e => e.SiteVisitId);
+
+                entity.Property(e => e.ProductModelType).IsRequired();
+                entity.Property(e => e.CreatedBy).IsRequired();
+                entity.Property(e => e.DateCreated).IsRequired();
+
+                entity.HasOne(e => e.Workflow)
+                .WithMany()
+                .HasForeignKey(e => e.WorkflowId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.WorkflowId);
+            });
+
             modelBuilder.Entity<User>(entity =>
             {
                 entity.ToTable("Users");
@@ -177,6 +205,45 @@ namespace AwningsAPI.Database
                 entity.HasIndex(e => e.Token);
                 entity.Property(e => e.IsRevoked).HasDefaultValue(false);
             });
+
+            modelBuilder.Entity<SiteVisitValues>(entity =>
+            {
+                entity.ToTable("SiteVisitValues");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.Category, e.Value }).IsUnique();
+                entity.HasIndex(e => e.Category);
+            });
+
+
+            // AuditLog Configuration
+            modelBuilder.Entity<AuditLog>(entity =>
+            {
+                entity.ToTable("AuditLogs");
+                entity.HasKey(e => e.AuditId);
+
+                entity.Property(e => e.EntityType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.EntityId).IsRequired();
+                entity.Property(e => e.Action).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.PerformedByName).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.PerformedAt).IsRequired();
+
+                // Indexes for performance
+                entity.HasIndex(e => new { e.EntityType, e.EntityId })
+                    .HasDatabaseName("IX_AuditLogs_Entity");
+
+                entity.HasIndex(e => e.PerformedAt)
+                    .HasDatabaseName("IX_AuditLogs_PerformedAt")
+                    .IsDescending();
+
+                entity.HasIndex(e => e.PerformedBy)
+                    .HasDatabaseName("IX_AuditLogs_PerformedBy");
+
+                entity.HasIndex(e => e.Action)
+                    .HasDatabaseName("IX_AuditLogs_Action");
+            });
+
+
+
 
             // Seed Admin User
             var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123");
@@ -347,7 +414,114 @@ namespace AwningsAPI.Database
             //Heaters Data
             modelBuilder.Entity<Heaters>().HasData(
                 new Heaters { HeaterId = 1, ProductId = 6, Description = "Markilux Infrared Heater 2500 watt Dimmable",Price = 1393m, PriceNonRALColour = 1635m, DateCreated = staticCreatedDate, CreatedBy = "System" }
-             ); 
+             );
+
+
+            // Seed SiteVisitValues
+            modelBuilder.Entity<SiteVisitValues>().HasData(
+                // Model
+                new SiteVisitValues { Id = 1, Category = "Model", Value = "Renson", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 2, Category = "Model", Value = "Practic", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 3, Category = "Model", Value = "Markilux", DisplayOrder = 3, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Structure
+                new SiteVisitValues { Id = 4, Category = "Structure", Value = "Free Standing", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 5, Category = "Structure", Value = "Mounted to Building", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Wall Type
+                new SiteVisitValues { Id = 6, Category = "WallType", Value = "Red Brick", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 7, Category = "WallType", Value = "Block", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 8, Category = "WallType", Value = "External Insulation", DisplayOrder = 3, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // External Insulation
+                new SiteVisitValues { Id = 9, Category = "ExternalInsulation", Value = "Yes", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 10, Category = "ExternalInsulation", Value = "No", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Wall Finish
+                new SiteVisitValues { Id = 11, Category = "WallFinish", Value = "Rendered", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 12, Category = "WallFinish", Value = "Smooth", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 13, Category = "WallFinish", Value = "Pebbledash", DisplayOrder = 3, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Flashing Required
+                new SiteVisitValues { Id = 14, Category = "FlashingRequired", Value = "Yes", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 15, Category = "FlashingRequired", Value = "No", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Stand of Brackets
+                new SiteVisitValues { Id = 16, Category = "StandOfBrackets", Value = "Yes", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 17, Category = "StandOfBrackets", Value = "No", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Electrician
+                new SiteVisitValues { Id = 18, Category = "Electrician", Value = "Ours", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 19, Category = "Electrician", Value = "Own", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Electrical Connection
+                new SiteVisitValues { Id = 20, Category = "ElectricalConnection", Value = "Plug in", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 21, Category = "ElectricalConnection", Value = "Hard Wired", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Fixture Type
+                new SiteVisitValues { Id = 22, Category = "FixtureType", Value = "Face Fix", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 23, Category = "FixtureType", Value = "Top Fix", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 24, Category = "FixtureType", Value = "Recess", DisplayOrder = 3, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Operation
+                new SiteVisitValues { Id = 25, Category = "Operation", Value = "Manual", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 26, Category = "Operation", Value = "Motorised", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Operation Side
+                new SiteVisitValues { Id = 27, Category = "OperationSide", Value = "Right", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 28, Category = "OperationSide", Value = "Left", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Valance Choice
+                new SiteVisitValues { Id = 29, Category = "ValanceChoice", Value = "Yes", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 30, Category = "ValanceChoice", Value = "No", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Wind Sensor
+                new SiteVisitValues { Id = 31, Category = "WindSensor", Value = "Vibrabox", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 32, Category = "WindSensor", Value = "Anemometer", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // ShadePlus Required
+                new SiteVisitValues { Id = 33, Category = "ShadePlusRequired", Value = "Yes", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 34, Category = "ShadePlusRequired", Value = "No", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Shade Type
+                new SiteVisitValues { Id = 35, Category = "ShadeType", Value = "Manual", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 36, Category = "ShadeType", Value = "Motorised", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Lights
+                new SiteVisitValues { Id = 37, Category = "Lights", Value = "Yes", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 38, Category = "Lights", Value = "No", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Lights Type
+                new SiteVisitValues { Id = 39, Category = "LightsType", Value = "Spot Lights", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 40, Category = "LightsType", Value = "LED Line", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 41, Category = "LightsType", Value = "Other", DisplayOrder = 3, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Heater
+                new SiteVisitValues { Id = 42, Category = "Heater", Value = "Yes", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 43, Category = "Heater", Value = "No", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Heater Manufacturer
+                new SiteVisitValues { Id = 44, Category = "HeaterManufacturer", Value = "Markilux", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 45, Category = "HeaterManufacturer", Value = "Bromic", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 46, Category = "HeaterManufacturer", Value = "Other", DisplayOrder = 3, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Heater Output
+                new SiteVisitValues { Id = 47, Category = "HeaterOutput", Value = "2kw", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 48, Category = "HeaterOutput", Value = "2.5kw", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 49, Category = "HeaterOutput", Value = "3kw", DisplayOrder = 3, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 50, Category = "HeaterOutput", Value = "4kw", DisplayOrder = 4, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 51, Category = "HeaterOutput", Value = "6kw", DisplayOrder = 5, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 52, Category = "HeaterOutput", Value = "Other", DisplayOrder = 6, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Remote Control
+                new SiteVisitValues { Id = 53, Category = "RemoteControl", Value = "Handheld", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 54, Category = "RemoteControl", Value = "Wall Mounted", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Controller Box
+                new SiteVisitValues { Id = 55, Category = "ControllerBox", Value = "On", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 56, Category = "ControllerBox", Value = "Off", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 57, Category = "ControllerBox", Value = "Dimmable", DisplayOrder = 3, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" }
+            );
         }
     }
 }
