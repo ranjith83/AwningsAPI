@@ -3,11 +3,6 @@ using AwningsAPI.Database;
 using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
 
 namespace AwningsAPI.Services.WorkflowService
 {
@@ -37,6 +32,18 @@ namespace AwningsAPI.Services.WorkflowService
                 .Include(i => i.InvoiceItems)
                 .Include(i => i.InvoicePayments)
                 .Where(i => i.WorkflowId == workflowId)
+                .OrderByDescending(i => i.CreatedAt)
+                .ToListAsync();
+
+            return invoices.Select(MapToDto);
+        }
+
+        public async Task<IEnumerable<InvoiceDto>> GetInvoicesByCustomerIdAsync(int customerId)
+        {
+            var invoices = await _context.Invoices
+                .Include(i => i.InvoiceItems)
+                .Include(i => i.InvoicePayments)
+                .Where(i => i.CustomerId == customerId)
                 .OrderByDescending(i => i.CreatedAt)
                 .ToListAsync();
 

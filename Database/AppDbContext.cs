@@ -45,7 +45,7 @@ namespace AwningsAPI.Database
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
-
+        public DbSet<PaymentSchedule> PaymentSchedules { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configure one-to-many relationship
@@ -242,7 +242,20 @@ namespace AwningsAPI.Database
                     .HasDatabaseName("IX_AuditLogs_Action");
             });
 
+            // Payment Schedule Configuration
+            modelBuilder.Entity<PaymentSchedule>(entity =>
+            {
+                entity.ToTable("PaymentSchedules");
+                entity.HasKey(e => e.Id);
 
+                entity.HasOne(e => e.Invoice)
+                    .WithMany()
+                    .HasForeignKey(e => e.InvoiceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.InvoiceId);
+                entity.HasIndex(e => new { e.InvoiceId, e.SortOrder });
+            });
 
 
             // Seed Admin User
@@ -263,6 +276,8 @@ namespace AwningsAPI.Database
                      CreatedBy = "System"
                  }
              );
+
+
 
 
             base.OnModelCreating(modelBuilder);

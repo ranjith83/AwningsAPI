@@ -58,6 +58,27 @@ namespace AwiningsIreland_WebAPI.Controllers
         }
 
         /// <summary>
+        /// Get invoices by customer ID
+        /// </summary>
+        /// <param name="customerId">Customer ID</param>
+        /// <returns>List of invoices for the customer</returns>
+        [HttpGet("customer/{customerId}")]
+        [ProducesResponseType(typeof(IEnumerable<InvoiceDto>), 200)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<IEnumerable<InvoiceDto>>> GetInvoicesByCustomerId(int customerId)
+        {
+            try
+            {
+                var invoices = await _invoiceService.GetInvoicesByCustomerIdAsync(customerId);
+                return Ok(invoices);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving invoices", error = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Get invoice by ID
         /// </summary>
         /// <param name="id">Invoice ID</param>

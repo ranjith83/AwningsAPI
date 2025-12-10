@@ -28,6 +28,7 @@ builder.Services.AddScoped<ISiteVisitService, SiteVisitService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditInterceptor>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IPaymentScheduleService, PaymentScheduleService>();
 
 // JWT Authentication Configuration
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
