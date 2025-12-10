@@ -8,6 +8,7 @@ namespace AwningsAPI.Interfaces
     {
         Task<IEnumerable<InvoiceDto>> GetAllInvoicesAsync();
         Task<IEnumerable<InvoiceDto>> GetInvoicesByWorkflowIdAsync(int workflowId);
+        Task<IEnumerable<InvoiceDto>> GetInvoicesByCustomerIdAsync(int customerId);
         Task<InvoiceDto> GetInvoiceByIdAsync(int id);
         Task<InvoiceDto> CreateInvoiceAsync(CreateInvoiceDto createDto, string currentUser);
         Task<InvoiceDto> UpdateInvoiceAsync(int id, UpdateInvoiceDto updateDto, string currentUser);
