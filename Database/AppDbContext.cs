@@ -3,6 +3,7 @@ using AwningsAPI.Model.Audit;
 using AwningsAPI.Model.Auth;
 using AwningsAPI.Model.Customers;
 using AwningsAPI.Model.Products;
+using AwningsAPI.Model.Showroom;
 using AwningsAPI.Model.SiteVisit;
 using AwningsAPI.Model.Suppliers;
 using AwningsAPI.Model.Workflow;
@@ -46,6 +47,8 @@ namespace AwningsAPI.Database
         public DbSet<User> Users { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<PaymentSchedule> PaymentSchedules { get; set; }
+        public DbSet<ShowroomInvite> ShowroomInvites { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configure one-to-many relationship

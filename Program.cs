@@ -4,6 +4,7 @@ using AwningsAPI.Interfaces;
 using AwningsAPI.Services.AuditLogService;
 using AwningsAPI.Services.Auth;
 using AwningsAPI.Services.CustomerService;
+using AwningsAPI.Services.OutlookService;
 using AwningsAPI.Services.QuoteService;
 using AwningsAPI.Services.SiteVisitService;
 using AwningsAPI.Services.Suppliers;
@@ -29,6 +30,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditInterceptor>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IPaymentScheduleService, PaymentScheduleService>();
+builder.Services.AddScoped<IOutlookService, OutlookService>();
 
 // JWT Authentication Configuration
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
