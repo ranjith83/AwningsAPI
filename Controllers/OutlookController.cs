@@ -10,6 +10,7 @@ namespace AwningsAPI.Controllers
     [Authorize]
     public class OutlookController : ControllerBase
     {
+
         private readonly IOutlookService _outlookService;
         private readonly ILogger<OutlookController> _logger;
 
