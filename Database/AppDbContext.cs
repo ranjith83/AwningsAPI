@@ -299,7 +299,7 @@ namespace AwningsAPI.Database
             });
             // Seed ProductTypes
             modelBuilder.Entity<ProductType>().HasData(
-                new ProductType { ProductTypeId = 1, SupplierId=1, Description = "Folding-arm Cassette Awnings", DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new ProductType { ProductTypeId = 1, SupplierId = 1, Description = "Folding-arm Cassette Awnings", DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new ProductType { ProductTypeId = 2, SupplierId = 1, Description = "Folding-arm Semi-cassette Awnings", DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new ProductType { ProductTypeId = 3, SupplierId = 1, Description = "Open Folding-arm Awnings", DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new ProductType { ProductTypeId = 4, SupplierId = 1, Description = "Stretch-Awnings", DateCreated = staticCreatedDate, CreatedBy = "System" },
@@ -336,27 +336,27 @@ namespace AwningsAPI.Database
             );
             //Projection Data
             modelBuilder.Entity<Projections>().HasData(
-                new Projections { ProjectionId = 1, ProductId = 6, Width_cm = 250, Projection_cm = 150, Price = 1873, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 2, ProductId = 6, Width_cm = 300, Projection_cm = 150, Price = 2023, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 3, ProductId = 6, Width_cm = 350, Projection_cm = 150, Price = 2229, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 4, ProductId = 6, Width_cm = 400, Projection_cm = 150, Price = 2397, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 5, ProductId = 6, Width_cm = 450, Projection_cm = 150, Price = 2554, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 6, ProductId = 6, Width_cm = 500, Projection_cm = 150, Price = 2730, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 7, ProductId = 6, Width_cm = 250, Projection_cm = 200, Price = 1979, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 8, ProductId = 6, Width_cm = 300, Projection_cm = 200, Price = 2145, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 9, ProductId = 6, Width_cm = 350, Projection_cm = 200, Price = 2319, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 10, ProductId = 6, Width_cm = 400, Projection_cm = 200, Price = 2508, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 11, ProductId = 6, Width_cm = 450, Projection_cm = 200, Price = 2664, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 12, ProductId = 6, Width_cm = 500, Projection_cm = 200, Price = 2842, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 13, ProductId = 6, Width_cm = 300, Projection_cm = 250, Price = 2248, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 14, ProductId = 6, Width_cm = 350, Projection_cm = 250, Price = 2431, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 15, ProductId = 6, Width_cm = 400, Projection_cm = 250, Price = 2627, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 16, ProductId = 6, Width_cm = 450, Projection_cm = 250, Price = 2798, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 17, ProductId = 6, Width_cm = 500, Projection_cm = 250, Price = 2970, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 18, ProductId = 6, Width_cm = 350, Projection_cm = 300, Price = 2547, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 19, ProductId = 6, Width_cm = 400, Projection_cm = 300, Price = 2750, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 20, ProductId = 6, Width_cm = 450, Projection_cm = 300, Price = 2904, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Projections { ProjectionId = 21, ProductId = 6, Width_cm = 500, Projection_cm = 300, Price = 3084, DateCreated = staticCreatedDate, CreatedBy = "System" }
+                new Projections { ProjectionId = 1, ProductId = 6, ArmTypeId = 1, Width_cm = 250, Projection_cm = 150, Price = 1873, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 2, ProductId = 6, ArmTypeId = 1, Width_cm = 300, Projection_cm = 150, Price = 2023, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 3, ProductId = 6, ArmTypeId = 1, Width_cm = 350, Projection_cm = 150, Price = 2229, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 4, ProductId = 6, ArmTypeId = 1, Width_cm = 400, Projection_cm = 150, Price = 2397, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 5, ProductId = 6, ArmTypeId = 1, Width_cm = 450, Projection_cm = 150, Price = 2554, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 6, ProductId = 6, ArmTypeId = 1, Width_cm = 500, Projection_cm = 150, Price = 2730, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 7, ProductId = 6, ArmTypeId = 1, Width_cm = 250, Projection_cm = 200, Price = 1979, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 8, ProductId = 6, ArmTypeId = 1, Width_cm = 300, Projection_cm = 200, Price = 2145, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 9, ProductId = 6, ArmTypeId = 1, Width_cm = 350, Projection_cm = 200, Price = 2319, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 10, ProductId = 6, ArmTypeId = 1, Width_cm = 400, Projection_cm = 200, Price = 2508, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 11, ProductId = 6, ArmTypeId = 1, Width_cm = 450, Projection_cm = 200, Price = 2664, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 12, ProductId = 6, ArmTypeId = 1, Width_cm = 500, Projection_cm = 200, Price = 2842, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 13, ProductId = 6, ArmTypeId = 1, Width_cm = 300, Projection_cm = 250, Price = 2248, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 14, ProductId = 6, ArmTypeId = 1, Width_cm = 350, Projection_cm = 250, Price = 2431, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 15, ProductId = 6, ArmTypeId = 1, Width_cm = 400, Projection_cm = 250, Price = 2627, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 16, ProductId = 6, ArmTypeId = 1, Width_cm = 450, Projection_cm = 250, Price = 2798, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 17, ProductId = 6, ArmTypeId = 1, Width_cm = 500, Projection_cm = 250, Price = 2970, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 18, ProductId = 6, ArmTypeId = 1, Width_cm = 350, Projection_cm = 300, Price = 2547, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 19, ProductId = 6, ArmTypeId = 1, Width_cm = 400, Projection_cm = 300, Price = 2750, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 20, ProductId = 6, ArmTypeId = 1, Width_cm = 450, Projection_cm = 300, Price = 2904, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Projections { ProjectionId = 21, ProductId = 6, ArmTypeId = 1, Width_cm = 500, Projection_cm = 300, Price = 3084, DateCreated = staticCreatedDate, CreatedBy = "System" }
             );
             //Bracket Data
             modelBuilder.Entity<Brackets>().HasData(
@@ -385,13 +385,13 @@ namespace AwningsAPI.Database
             );
             //Arms Data
             modelBuilder.Entity<Arms>().HasData(
-                new Arms { ArmId = 1, ProductId = 6, BfId=1, Description  = "Surcharge for face fixture", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Arms { ArmId = 2, ProductId = 6, BfId=3, Description = "Surcharge for face fixture incl. spreader plate A", Price = 334m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Arms { ArmId = 3, ProductId = 6, BfId=2, Description = "Surcharge for face fixture incl. spreader plate B", Price = 406m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Arms { ArmId = 4, ProductId = 6, BfId=2, Description = "Surcharge for top fixture", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Arms { ArmId = 5, ProductId = 6, BfId=2, Description = "Surcharge for eaves fixture", Price = 199m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Arms { ArmId = 6, ProductId = 6, Description = "Surcharge for arms with bionic tendon", Price = 117m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Arms { ArmId = 7, ProductId = 6, Description = "Surcharge for bespoke arms", Price = 177m, DateCreated = staticCreatedDate, CreatedBy = "System" }
+                new Arms { ArmId = 1, ProductId = 6, ArmTypeId=1, BfId=1, Description  = "Surcharge for face fixture", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Arms { ArmId = 2, ProductId = 6, ArmTypeId = 1, BfId =3, Description = "Surcharge for face fixture incl. spreader plate A", Price = 334m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Arms { ArmId = 3, ProductId = 6, ArmTypeId = 1, BfId =2, Description = "Surcharge for face fixture incl. spreader plate B", Price = 406m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Arms { ArmId = 4, ProductId = 6, ArmTypeId = 1, BfId =2, Description = "Surcharge for top fixture", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Arms { ArmId = 5, ProductId = 6, ArmTypeId = 1, BfId =2, Description = "Surcharge for eaves fixture", Price = 199m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Arms { ArmId = 6, ProductId = 6, ArmTypeId = 1, Description = "Surcharge for arms with bionic tendon", Price = 117m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Arms { ArmId = 7, ProductId = 6, ArmTypeId = 1, Description = "Surcharge for bespoke arms", Price = 177m, DateCreated = staticCreatedDate, CreatedBy = "System" }
             );
             //Motors Data
             modelBuilder.Entity<Motors>().HasData(
@@ -539,6 +539,12 @@ namespace AwningsAPI.Database
                 new SiteVisitValues { Id = 55, Category = "ControllerBox", Value = "On", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new SiteVisitValues { Id = 56, Category = "ControllerBox", Value = "Off", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new SiteVisitValues { Id = 57, Category = "ControllerBox", Value = "Dimmable", DisplayOrder = 3, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" }
+            );
+            //Arms Type
+            modelBuilder.Entity<ArmsType>().HasData(
+                 new ArmsType { ArmTypeId = 1, Description = "2-0-2", DateCreated = staticCreatedDate, CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 2, Description = "2-1-3", DateCreated = staticCreatedDate, CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 3, Description = "3-2-4", DateCreated = staticCreatedDate, CreatedBy = "System" }
             );
         }
     }
