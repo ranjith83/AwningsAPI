@@ -4,6 +4,7 @@ using AwningsAPI.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AwningsAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260120154722_addedArmTypeId")]
+    partial class addedArmTypeId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -596,7 +599,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ArmId = 1,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             BfId = 1,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
@@ -607,7 +610,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ArmId = 2,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             BfId = 3,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
@@ -618,7 +621,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ArmId = 3,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             BfId = 2,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
@@ -629,7 +632,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ArmId = 4,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             BfId = 2,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
@@ -640,7 +643,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ArmId = 5,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             BfId = 2,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
@@ -651,7 +654,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ArmId = 6,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             BfId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
@@ -662,66 +665,13 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ArmId = 7,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             BfId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for bespoke arms",
                             Price = 177m,
                             ProductId = 6
-                        });
-                });
-
-            modelBuilder.Entity("AwningsAPI.Model.Products.ArmsType", b =>
-                {
-                    b.Property<int>("ArmTypeId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ArmTypeId"));
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateUpdated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("ArmTypeId");
-
-                    b.ToTable("ArmsType");
-
-                    b.HasData(
-                        new
-                        {
-                            ArmTypeId = 1,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "2-0-2"
-                        },
-                        new
-                        {
-                            ArmTypeId = 2,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "2-1-3"
-                        },
-                        new
-                        {
-                            ArmTypeId = 3,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "3-2-4"
                         });
                 });
 
@@ -1273,7 +1223,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 1,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 1873m,
@@ -1284,7 +1234,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 2,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2023m,
@@ -1295,7 +1245,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 3,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2229m,
@@ -1306,7 +1256,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 4,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2397m,
@@ -1317,7 +1267,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 5,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2554m,
@@ -1328,7 +1278,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 6,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2730m,
@@ -1339,7 +1289,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 7,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 1979m,
@@ -1350,7 +1300,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 8,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2145m,
@@ -1361,7 +1311,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 9,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2319m,
@@ -1372,7 +1322,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 10,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2508m,
@@ -1383,7 +1333,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 11,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2664m,
@@ -1394,7 +1344,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 12,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2842m,
@@ -1405,7 +1355,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 13,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2248m,
@@ -1416,7 +1366,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 14,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2431m,
@@ -1427,7 +1377,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 15,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2627m,
@@ -1438,7 +1388,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 16,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2798m,
@@ -1449,7 +1399,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 17,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2970m,
@@ -1460,7 +1410,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 18,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2547m,
@@ -1471,7 +1421,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 19,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2750m,
@@ -1482,7 +1432,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 20,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 2904m,
@@ -1493,7 +1443,7 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             ProjectionId = 21,
-                            ArmTypeId = 1,
+                            ArmTypeId = 0,
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Price = 3084m,

@@ -16,6 +16,7 @@ namespace AwningsAPI.Model.Products
         public string? UpdatedBy { get; set; }
 
         //Navigation property to Product
+        public int ArmTypeId { get; set; }
         public int ProductId { get; set; }  
         public Product Product { get; set; }
 
