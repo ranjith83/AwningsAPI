@@ -49,6 +49,9 @@ namespace AwningsAPI.Database
         public DbSet<PaymentSchedule> PaymentSchedules { get; set; }
         public DbSet<ShowroomInvite> ShowroomInvites { get; set; }
 
+        public DbSet<ArmsType> armsTypes { get; set; }
+        public DbSet<RadioControlledMotors> radioControlledMotors { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configure one-to-many relationship
@@ -545,6 +548,19 @@ namespace AwningsAPI.Database
                  new ArmsType { ArmTypeId = 1, Description = "2-0-2", DateCreated = staticCreatedDate, CreatedBy = "System" },
                  new ArmsType { ArmTypeId = 2, Description = "2-1-3", DateCreated = staticCreatedDate, CreatedBy = "System" },
                  new ArmsType { ArmTypeId = 3, Description = "3-2-4", DateCreated = staticCreatedDate, CreatedBy = "System" }
+            );
+            //RadioControlled Motors
+            modelBuilder.Entity<RadioControlledMotors>().HasData(
+                 new RadioControlledMotors { RadioMotorId = 1, Description = "RadioControlled Motor",Width_cm = 250, Price=1547, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
+                 new RadioControlledMotors { RadioMotorId = 2, Description = "RadioControlled Motor", Width_cm = 300, Price = 1603, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
+                 new RadioControlledMotors { RadioMotorId = 3, Description = "RadioControlled Motor", Width_cm = 350, Price = 1678, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
+                 new RadioControlledMotors { RadioMotorId = 4, Description = "RadioControlled Motor", Width_cm = 400, Price = 1763, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
+                 new RadioControlledMotors { RadioMotorId = 5, Description = "RadioControlled Motor", Width_cm = 450, Price = 1822, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
+                 new RadioControlledMotors { RadioMotorId = 6, Description = "RadioControlled Motor", Width_cm = 500, Price = 1896, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
+                 new RadioControlledMotors { RadioMotorId = 7, Description = "RadioControlled Motor", Width_cm = 550, Price = 1986, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
+                 new RadioControlledMotors { RadioMotorId = 8, Description = "RadioControlled Motor", Width_cm = 600, Price = 2068, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
+                 new RadioControlledMotors { RadioMotorId = 9, Description = "RadioControlled Motor", Width_cm = 650, Price = 2143, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
+                 new RadioControlledMotors { RadioMotorId = 10, Description = "RadioControlled Motor", Width_cm = 700, Price = 2219, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 }
             );
         }
     }
