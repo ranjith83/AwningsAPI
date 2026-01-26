@@ -7,28 +7,19 @@ namespace AwningsAPI.Dto.Workflow
     {
         public int QuoteId { get; set; }
         public int WorkflowId { get; set; }
-
         public string QuoteNumber { get; set; }
-
         public DateTime QuoteDate { get; set; }
         public DateTime FollowUpDate { get; set; }
-
         public decimal SubTotal { get; set; }
-
         public decimal TaxAmount { get; set; }
-
         public decimal DiscountAmount { get; set; }
+        public string DiscountType { get; set; }
+        public decimal DiscountValue { get; set; }
         public decimal TotalAmount { get; set; }
-
         public DateTime CreatedAt { get; set; }
-
         public DateTime? UpdatedAt { get; set; }
-
         public string CreatedBy { get; set; }
-
         public string UpdatedBy { get; set; }
-
-        // Navigation Properties
         public virtual ICollection<QuoteItemDto> QuoteItems { get; set; } = new List<QuoteItemDto>();
         public int CustomerId { get; set; }
     }
@@ -40,14 +31,11 @@ namespace AwningsAPI.Dto.Workflow
         public string Description { get; set; }
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
-
-        public decimal TaxRate { get; set; } 
-        public decimal DiscountPercentage { get; set; } 
+        public decimal TaxRate { get; set; }
+        public decimal DiscountPercentage { get; set; }
         public decimal TotalPrice { get; set; }
-
         public int SortOrder { get; set; }
 
-        // Navigation Property
         [ForeignKey("QuoteId")]
         public virtual QuoteDto Quote { get; set; }
     }
@@ -68,6 +56,8 @@ namespace AwningsAPI.Dto.Workflow
 
         public string Notes { get; set; }
         public string Terms { get; set; }
+        public string DiscountType { get; set; } // 'Percentage' or 'Fixed'
+        public decimal DiscountValue { get; set; } = 0;
 
         [Required]
         public List<CreateQuoteItemDto> QuoteItems { get; set; } = new List<CreateQuoteItemDto>();
@@ -96,6 +86,8 @@ namespace AwningsAPI.Dto.Workflow
         public DateTime? FollowUpDate { get; set; }
         public string Notes { get; set; }
         public string Terms { get; set; }
+        public string DiscountType { get; set; }
+        public decimal? DiscountValue { get; set; }
         public List<UpdateQuoteItemDto> QuoteItems { get; set; }
     }
 

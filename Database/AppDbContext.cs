@@ -54,12 +54,61 @@ namespace AwningsAPI.Database
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Configure one-to-many relationship
-            modelBuilder.Entity<Customer>()
-                .HasMany(c => c.CustomerContacts)
-                .WithOne(cc => cc.Customer)
-                .HasForeignKey(cc => cc.CustomerId)
-                .OnDelete(DeleteBehavior.Cascade); // Optional: cascade delete
+            // Customer Configuration
+            modelBuilder.Entity<Customer>(entity =>
+            {
+                entity.ToTable("Customers");
+                entity.HasKey(e => e.CustomerId);
+
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.CompanyNumber).HasMaxLength(50);
+                entity.Property(e => e.Residential).HasDefaultValue(false);
+                entity.Property(e => e.VATNumber).HasMaxLength(50);
+                entity.Property(e => e.TaxNumber).HasMaxLength(50);
+                entity.Property(e => e.Address1).HasMaxLength(255);
+                entity.Property(e => e.Address2).HasMaxLength(255);
+                entity.Property(e => e.Address3).HasMaxLength(255);
+                entity.Property(e => e.County).HasMaxLength(100);
+                entity.Property(e => e.Phone).HasMaxLength(20);
+                entity.Property(e => e.Mobile).HasMaxLength(20);
+                entity.Property(e => e.Email).HasMaxLength(255);
+                entity.Property(e => e.Eircode).HasMaxLength(10);
+
+                // Salesperson fields
+                entity.Property(e => e.AssignedSalespersonId).IsRequired(false);
+                entity.Property(e => e.AssignedSalespersonName).HasMaxLength(255).IsRequired(false);
+
+                // Audit fields
+                entity.Property(e => e.CreatedBy).HasMaxLength(255);
+                entity.Property(e => e.UpdatedBy).HasMaxLength(255);
+
+                // Relationships
+                entity.HasMany(c => c.CustomerContacts)
+                    .WithOne(cc => cc.Customer)
+                    .HasForeignKey(cc => cc.CustomerId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Indexes
+                entity.HasIndex(e => e.Name);
+                entity.HasIndex(e => e.Email);
+                entity.HasIndex(e => e.AssignedSalespersonId);
+            });
+
+            // CustomerContact Configuration
+            modelBuilder.Entity<CustomerContact>(entity =>
+            {
+                entity.ToTable("CustomerContacts");
+                entity.HasKey(e => e.ContactId);
+
+                entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Email).HasMaxLength(255);
+                entity.Property(e => e.Phone).HasMaxLength(20);
+                entity.Property(e => e.Mobile).HasMaxLength(20);
+
+                entity.HasIndex(e => e.CustomerId);
+                entity.HasIndex(e => e.Email);
+            });
 
             modelBuilder.Entity<Projections>()
                 .Property(p => p.Price)
@@ -291,15 +340,50 @@ namespace AwningsAPI.Database
             var staticCreatedDate = new DateTime(2023, 01, 01, 12, 00, 00);
             var staticUpdatedDate = new DateTime(2023, 01, 02, 12, 00, 00);
 
-            // Seed Customer
+            // Seed Customer with Salesperson
             modelBuilder.Entity<Customer>().HasData(
-                new Customer{CustomerId = 1, Name = "Acme Corporation",CompanyNumber = "ACME123", Residential = false, RegistrationNumber = "REG456789", VATNumber = "VAT987654",Address1 = "123 Main Street",Address2 = "Suite 100",Address3 = null,County = "Dublin",CountryId = 1,Phone = "+35312345678",Fax = null,Mobile = "+35387654321",Email = "info@acme.ie",TaxNumber = "TAX123456",Eircode = "D01XY12",DateCreated = staticCreatedDate,CreatedBy = "System"
-            });
+                new Customer
+                {
+                    CustomerId = 1,
+                    Name = "Acme Corporation",
+                    CompanyNumber = "ACME123",
+                    Residential = false,
+                    RegistrationNumber = "REG456789",
+                    VATNumber = "VAT987654",
+                    Address1 = "123 Main Street",
+                    Address2 = "Suite 100",
+                    Address3 = null,
+                    County = "Dublin",
+                    CountryId = 1,
+                    Phone = "+35312345678",
+                    Fax = null,
+                    Mobile = "+35387654321",
+                    Email = "info@acme.ie",
+                    TaxNumber = "TAX123456",
+                    Eircode = "D01XY12",
+                    AssignedSalespersonId = 1,
+                    AssignedSalespersonName = "System Admin",
+                    DateCreated = staticCreatedDate,
+                    CreatedBy = "System"
+                }
+            );
+
             // Seed CustomerContact
             modelBuilder.Entity<CustomerContact>().HasData(
-                new CustomerContact{ContactId = 1,FirstName = "John",LastName = "Doe",DateOfBirth = new DateTime(1985, 5, 20),Mobile = "+35387654322",Phone = "+35312345679",Email = "john.doe@acme.ie",DateCreated = staticCreatedDate,CreatedBy = "System",
-                    CustomerId = 1 // Foreign key to Customer
-            });
+                new CustomerContact
+                {
+                    ContactId = 1,
+                    FirstName = "John",
+                    LastName = "Doe",
+                    DateOfBirth = new DateTime(1985, 5, 20),
+                    Mobile = "+35387654322",
+                    Phone = "+35312345679",
+                    Email = "john.doe@acme.ie",
+                    DateCreated = staticCreatedDate,
+                    CreatedBy = "System",
+                    CustomerId = 1
+                }
+            );
             // Seed ProductTypes
             modelBuilder.Entity<ProductType>().HasData(
                 new ProductType { ProductTypeId = 1, SupplierId = 1, Description = "Folding-arm Cassette Awnings", DateCreated = staticCreatedDate, CreatedBy = "System" },

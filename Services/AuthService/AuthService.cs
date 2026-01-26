@@ -434,6 +434,20 @@ namespace AwningsAPI.Services.Auth
             return true;
         }
 
+        public async Task<IEnumerable<SalespersonDto>> GetSalespeopleAsync()
+        {
+            var salespeople = await _context.Users
+                .Where(u => u.Department == "Sales" && u.IsActive)
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
+                .ToListAsync();
+
+            return salespeople.Select(u => new SalespersonDto
+            {
+                UserId = u.UserId,
+                Name = $"{u.FirstName} {u.LastName}"
+            });
+        }
 
     }
 }

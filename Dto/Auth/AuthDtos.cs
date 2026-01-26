@@ -100,4 +100,10 @@ namespace AwningsAPI.Dto.Auth
         public string? Role { get; set; }
         public bool? IsActive { get; set; }
     }
+
+    public class SalespersonDto
+    {
+        public int UserId { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
 }

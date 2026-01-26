@@ -22,10 +22,18 @@ namespace AwningsAPI.Model.Customers
         public string? Email { get; set; }
         public string? TaxNumber { get; set; }
         public string? Eircode { get; set; }
+
+        // Salesperson Assignment
+        public int? AssignedSalespersonId { get; set; }
+        public string? AssignedSalespersonName { get; set; }
+
+        // Audit Fields
         public DateTime? DateCreated { get; set; }
         public string? CreatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }
         public string? UpdatedBy { get; set; }
+
+        // Navigation
         public ICollection<CustomerContact> CustomerContacts { get; set; }
     }
 }

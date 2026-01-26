@@ -19,6 +19,8 @@
         public string? Email { get; set; }
         public string? TaxNumber { get; set; }
         public string? Eircode { get; set; }
+        public int? AssignedSalespersonId { get; set; }
+        public string? AssignedSalespersonName { get; set; }
         public DateTime? UpdatedDate { get; set; }
         public int? UpdatedBy { get; set; }
     }

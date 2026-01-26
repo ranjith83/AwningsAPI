@@ -29,6 +29,12 @@ namespace AwningsAPI.Model.Workflow
         [Column(TypeName = "decimal(18,2)")]
         public decimal DiscountAmount { get; set; }
 
+        [StringLength(20)]
+        public string DiscountType { get; set; } // 'Percentage' or 'Fixed'
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal DiscountValue { get; set; } = 0;
+
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
 
@@ -37,6 +43,7 @@ namespace AwningsAPI.Model.Workflow
 
         [StringLength(2000)]
         public string Terms { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; set; }
@@ -49,6 +56,7 @@ namespace AwningsAPI.Model.Workflow
 
         // Navigation Properties
         public virtual ICollection<QuoteItem> QuoteItems { get; set; } = new List<QuoteItem>();
+
         [Required]
         public int CustomerId { get; set; }
     }

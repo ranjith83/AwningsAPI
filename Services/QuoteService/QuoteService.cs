@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AwningsAPI.Services.QuoteService
 {
-    public class QuoteService: IQuoteService
+    public class QuoteService : IQuoteService
     {
         private readonly AppDbContext _context;
 
@@ -15,6 +15,7 @@ namespace AwningsAPI.Services.QuoteService
         {
             _context = context;
         }
+
         public async Task<IEnumerable<QuoteDto>> GetAllQuotesAsync()
         {
             var quotes = await _context.Quotes
@@ -24,6 +25,7 @@ namespace AwningsAPI.Services.QuoteService
 
             return quotes.Select(MapToDto);
         }
+
         public async Task<IEnumerable<QuoteDto>> GetQuotesByWorkflowIdAsync(int workflowId)
         {
             var quotes = await _context.Quotes
@@ -57,11 +59,13 @@ namespace AwningsAPI.Services.QuoteService
                 CustomerId = createDto.CustomerId,
                 Notes = createDto.Notes,
                 Terms = createDto.Terms,
+                DiscountType = createDto.DiscountType,
+                DiscountValue = createDto.DiscountValue,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser
             };
 
-            // Add invoice items
+            // Add quote items
             var sortOrder = 1;
             foreach (var itemDto in createDto.QuoteItems)
             {
@@ -115,7 +119,13 @@ namespace AwningsAPI.Services.QuoteService
             if (updateDto.Terms != null)
                 quote.Terms = updateDto.Terms;
 
-            // Update invoice items if provided
+            if (updateDto.DiscountType != null)
+                quote.DiscountType = updateDto.DiscountType;
+
+            if (updateDto.DiscountValue.HasValue)
+                quote.DiscountValue = updateDto.DiscountValue.Value;
+
+            // Update quote items if provided
             if (updateDto.QuoteItems != null && updateDto.QuoteItems.Any())
             {
                 // Remove existing items
@@ -168,15 +178,37 @@ namespace AwningsAPI.Services.QuoteService
             await _context.SaveChangesAsync();
             return true;
         }
+
         private void CalculateQuoteTotals(Quote quote)
         {
+            // Calculate subtotal from all items
             quote.SubTotal = quote.QuoteItems.Sum(i => i.Quantity * i.UnitPrice);
 
-            var totalDiscount = quote.QuoteItems.Sum(i =>
+            // Calculate item-level discounts
+            var itemLevelDiscount = quote.QuoteItems.Sum(i =>
                 (i.Quantity * i.UnitPrice) * (i.DiscountPercentage / 100));
-            quote.DiscountAmount = totalDiscount;
 
-            var taxableAmount = quote.SubTotal - totalDiscount;
+            // Calculate quote-level discount
+            decimal quoteLevelDiscount = 0;
+            if (!string.IsNullOrEmpty(quote.DiscountType) && quote.DiscountValue > 0)
+            {
+                if (quote.DiscountType == "Percentage")
+                {
+                    quoteLevelDiscount = quote.SubTotal * (quote.DiscountValue / 100);
+                }
+                else if (quote.DiscountType == "Fixed")
+                {
+                    quoteLevelDiscount = quote.DiscountValue;
+                }
+            }
+
+            // Total discount amount
+            quote.DiscountAmount = itemLevelDiscount + quoteLevelDiscount;
+
+            // Calculate tax on discounted amount
+            var subtotalAfterItemDiscount = quote.SubTotal - itemLevelDiscount;
+            var subtotalAfterAllDiscounts = subtotalAfterItemDiscount - quoteLevelDiscount;
+
             quote.TaxAmount = quote.QuoteItems.Sum(i =>
             {
                 var itemSubtotal = i.Quantity * i.UnitPrice;
@@ -185,8 +217,17 @@ namespace AwningsAPI.Services.QuoteService
                 return itemTaxable * (i.TaxRate / 100);
             });
 
-            quote.TotalAmount = quote.QuoteItems.Sum(i => i.TotalPrice);
+            // Apply quote-level discount proportion to tax
+            if (quoteLevelDiscount > 0 && subtotalAfterItemDiscount > 0)
+            {
+                var discountRatio = quoteLevelDiscount / subtotalAfterItemDiscount;
+                quote.TaxAmount = quote.TaxAmount * (1 - discountRatio);
+            }
+
+            // Calculate total
+            quote.TotalAmount = subtotalAfterAllDiscounts + quote.TaxAmount;
         }
+
         private QuoteDto MapToDto(Quote quote)
         {
             return new QuoteDto
@@ -200,6 +241,8 @@ namespace AwningsAPI.Services.QuoteService
                 SubTotal = quote.SubTotal,
                 TaxAmount = quote.TaxAmount,
                 DiscountAmount = quote.DiscountAmount,
+                DiscountType = quote.DiscountType,
+                DiscountValue = quote.DiscountValue,
                 TotalAmount = quote.TotalAmount,
                 CreatedAt = quote.CreatedAt,
                 CreatedBy = quote.CreatedBy,

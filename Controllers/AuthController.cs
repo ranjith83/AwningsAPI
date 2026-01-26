@@ -283,5 +283,23 @@ namespace AwningsAPI.Controllers
                 return StatusCode(500, new { message = "Error deleting user", error = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Get all salespeople (users with department "Sales")
+        /// </summary>
+        [Authorize]
+        [HttpGet("salespeople")]
+        public async Task<ActionResult<IEnumerable<SalespersonDto>>> GetSalespeople()
+        {
+            try
+            {
+                var salespeople = await _authService.GetSalespeopleAsync();
+                return Ok(salespeople);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while fetching salespeople", error = ex.Message });
+            }
+        }
     }
 }

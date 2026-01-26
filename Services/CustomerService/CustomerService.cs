@@ -56,6 +56,8 @@ namespace AwningsAPI.Services.CustomerService
                 Email = dto.Email,
                 TaxNumber = dto.TaxNumber,
                 Eircode = dto.Eircode,
+                AssignedSalespersonId = dto.AssignedSalespersonId,
+                AssignedSalespersonName = dto.AssignedSalespersonName,
                 DateCreated = DateTime.UtcNow,
                 CreatedBy = currentUser,
                 CustomerContacts = dto.Contacts.Select(c => new CustomerContact
@@ -63,7 +65,9 @@ namespace AwningsAPI.Services.CustomerService
                     FirstName = c.FirstName,
                     LastName = c.LastName,
                     Phone = c.Phone,
-                    Email = c.Email
+                    Email = c.Email,
+                    DateCreated = DateTime.UtcNow,
+                    CreatedBy = currentUser
                 }).ToList()
             };
 
@@ -86,7 +90,7 @@ namespace AwningsAPI.Services.CustomerService
                 DateOfBirth = dto.DateOfBirth,
                 Mobile = dto.Mobile,
                 DateCreated = DateTime.UtcNow,
-                CreatedBy = currentUser                   
+                CreatedBy = currentUser
             };
 
             _context.CustomerContacts.Add(customerContact);
@@ -109,7 +113,7 @@ namespace AwningsAPI.Services.CustomerService
             company.CompanyNumber = dto.CompanyNumber;
             company.Residential = dto.Residential;
             company.RegistrationNumber = dto.RegistrationNumber;
-            company.VATNumber = dto.VATNumber;  
+            company.VATNumber = dto.VATNumber;
             company.Address1 = dto.Address1;
             company.Address2 = dto.Address2;
             company.Address3 = dto.Address3;
@@ -118,9 +122,11 @@ namespace AwningsAPI.Services.CustomerService
             company.Phone = dto.Phone;
             company.Fax = dto.Fax;
             company.Mobile = dto.Mobile;
-            company.Email = dto.Email;  
+            company.Email = dto.Email;
             company.TaxNumber = dto.TaxNumber;
             company.Eircode = dto.Eircode;
+            company.AssignedSalespersonId = dto.AssignedSalespersonId;
+            company.AssignedSalespersonName = dto.AssignedSalespersonName;
             company.UpdatedDate = DateTime.UtcNow;
             company.UpdatedBy = currentUser;
 
@@ -128,10 +134,11 @@ namespace AwningsAPI.Services.CustomerService
 
             return company;
         }
+
         public async Task<CustomerContact> UpdateContactInCompany(int contactId, ContactDto dto, string currentUser)
         {
             var contact = await _context.CustomerContacts.FindAsync(contactId);
-            
+
             if (contact == null)
             {
                 throw new KeyNotFoundException($"Contact with ID {contactId} not found.");
@@ -152,13 +159,11 @@ namespace AwningsAPI.Services.CustomerService
 
         public async Task<bool> DeleteCompanyWithContact(int customerId, string currentUser)
         {
-
             var customer = await _context.Customers.FindAsync(customerId);
 
             if (customer == null)
             {
                 throw new KeyNotFoundException($"Customer Id {customerId} not found.");
-                return false;
             }
 
             _context.Customers.Remove(customer);

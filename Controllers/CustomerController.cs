@@ -17,7 +17,7 @@ namespace AwningsAPI.Controllers
             _customerService = customerService;
         }
 
-       [Authorize]
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Customer>>> GetAllCustomersWithContacts()
         {
@@ -25,15 +25,16 @@ namespace AwningsAPI.Controllers
 
             var customerDtos = customers.Select(c => new CustomerMainViewDto
             {
-                CompanyId = c.CustomerId,
+                CustomerId = c.CustomerId,
                 CompanyName = c.Name ?? string.Empty,
-                ContactName = c.CustomerContacts?.FirstOrDefault()?.FirstName + ' ' + c.CustomerContacts?.FirstOrDefault()?.LastName ?? string.Empty,
+                ContactName = c.CustomerContacts?.FirstOrDefault()?.FirstName + " " +
+                             c.CustomerContacts?.FirstOrDefault()?.LastName ?? string.Empty,
                 ContactEmail = c.CustomerContacts?.FirstOrDefault()?.Email ?? string.Empty,
                 MobilePhone = c.Mobile ?? string.Empty,
                 SiteAddress = string.Join(", ", new[] { c.Address1, c.Address2, c.Address3 }
-                              .Where(a => !string.IsNullOrWhiteSpace(a)))
+                              .Where(a => !string.IsNullOrWhiteSpace(a))),
+                AssignedSalesperson = c.AssignedSalespersonName ?? string.Empty
             }).ToList();
-
 
             return Ok(customerDtos);
         }
@@ -103,7 +104,6 @@ namespace AwningsAPI.Controllers
             return Ok(customer);
         }
 
-
         [HttpPost("delete-customer")]
         public async Task<IActionResult> DeleteCustomerWithContact([FromBody] int customerId)
         {
@@ -115,6 +115,5 @@ namespace AwningsAPI.Controllers
             }
             return Ok(customer);
         }
-
     }
 }

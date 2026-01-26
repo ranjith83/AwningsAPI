@@ -21,6 +21,8 @@ namespace AwningsAPI.Dto.Customers
         public string? Email { get; set; }
         public string? TaxNumber { get; set; }
         public string? Eircode { get; set; }
+        public int? AssignedSalespersonId { get; set; }
+        public string? AssignedSalespersonName { get; set; }
         public DateTime? DateCreated { get; set; }
         public int? CreatedBy { get; set; }
         public DateTime? UpdatedDate { get; set; }

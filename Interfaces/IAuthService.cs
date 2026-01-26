@@ -27,5 +27,7 @@ namespace AwningsAPI.Interfaces
         Task<bool> ActivateUserAsync(int userId);
         Task<bool> DeleteUserAsync(int userId);
 
+        Task<IEnumerable<SalespersonDto>> GetSalespeopleAsync();
+
     }
 }
