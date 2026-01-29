@@ -622,11 +622,17 @@ namespace AwningsAPI.Database
                 new SiteVisitValues { Id = 53, Category = "RemoteControl", Value = "Handheld", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new SiteVisitValues { Id = 54, Category = "RemoteControl", Value = "Wall Mounted", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
 
-                // Controller Box
-                new SiteVisitValues { Id = 55, Category = "ControllerBox", Value = "On", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new SiteVisitValues { Id = 56, Category = "ControllerBox", Value = "Off", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new SiteVisitValues { Id = 57, Category = "ControllerBox", Value = "Dimmable", DisplayOrder = 3, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" }
+                // Controller Box (MODIFIED - "On" changed to "On Off", "Off" removed, DisplayOrder adjusted)
+                new SiteVisitValues { Id = 55, Category = "ControllerBox", Value = "On Off", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 57, Category = "ControllerBox", Value = "Dimmable", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // Side Infills (NEW CATEGORY)
+                new SiteVisitValues { Id = 58, Category = "SideInfills", Value = "P1", DisplayOrder = 1, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 59, Category = "SideInfills", Value = "P2", DisplayOrder = 2, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 60, Category = "SideInfills", Value = "S1", DisplayOrder = 3, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new SiteVisitValues { Id = 61, Category = "SideInfills", Value = "S2", DisplayOrder = 4, IsActive = true, DateCreated = staticCreatedDate, CreatedBy = "System" }
             );
+
             //Arms Type
             modelBuilder.Entity<ArmsType>().HasData(
                  new ArmsType { ArmTypeId = 1, Description = "2-0-2", DateCreated = staticCreatedDate, CreatedBy = "System" },
