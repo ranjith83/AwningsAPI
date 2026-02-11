@@ -2,10 +2,12 @@
 using AwningsAPI.Model.Audit;
 using AwningsAPI.Model.Auth;
 using AwningsAPI.Model.Customers;
+using AwningsAPI.Model.Email;
 using AwningsAPI.Model.Products;
 using AwningsAPI.Model.Showroom;
 using AwningsAPI.Model.SiteVisit;
 using AwningsAPI.Model.Suppliers;
+using AwningsAPI.Model.Tasks;
 using AwningsAPI.Model.Workflow;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -51,6 +53,13 @@ namespace AwningsAPI.Database
 
         public DbSet<ArmsType> armsTypes { get; set; }
         public DbSet<RadioControlledMotors> radioControlledMotors { get; set; }
+        public DbSet<IncomingEmail> IncomingEmails { get; set; }
+        public DbSet<EmailAttachment> EmailAttachments { get; set; }
+        public DbSet<EmailTask> EmailTasks { get; set; }
+        public DbSet<TaskComment> TaskComments { get; set; }
+        public DbSet<TaskAttachment> TaskAttachments { get; set; }
+        public DbSet<TaskHistory> TaskHistories { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -333,6 +342,117 @@ namespace AwningsAPI.Database
              );
 
 
+            // EmailTask Configuration
+            modelBuilder.Entity<EmailTask>(entity =>
+            {
+                entity.ToTable("EmailTasks");
+                entity.HasKey(e => e.TaskId);
+
+                // The properties FromName, FromEmail, Subject, and Category already have
+                // [Required] and [StringLength] attributes in the model, so we don't need
+                // to configure them again here. EF Core will read those attributes.
+
+                // Configure relationships
+                entity.HasMany(t => t.TaskComments)
+                    .WithOne(c => c.EmailTask)
+                    .HasForeignKey(c => c.TaskId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(t => t.TaskAttachments)
+                    .WithOne(a => a.EmailTask)
+                    .HasForeignKey(a => a.TaskId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(t => t.TaskHistories)
+                    .WithOne(h => h.EmailTask)
+                    .HasForeignKey(h => h.TaskId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Indexes for better query performance
+                entity.HasIndex(e => e.IncomingEmailId)
+                    .HasDatabaseName("IX_EmailTasks_IncomingEmailId");
+
+                entity.HasIndex(e => e.Status)
+                    .HasDatabaseName("IX_EmailTasks_Status");
+
+                entity.HasIndex(e => e.Category)
+                    .HasDatabaseName("IX_EmailTasks_Category");
+
+                entity.HasIndex(e => e.AssignedToUserId)
+                    .HasDatabaseName("IX_EmailTasks_AssignedToUserId");
+
+                entity.HasIndex(e => e.DateAdded)
+                    .HasDatabaseName("IX_EmailTasks_DateAdded");
+
+                entity.HasIndex(e => e.CustomerId)
+                    .HasDatabaseName("IX_EmailTasks_CustomerId");
+
+                entity.HasIndex(e => new { e.Status, e.DateAdded })
+                    .HasDatabaseName("IX_EmailTasks_Status_DateAdded");
+            });
+
+            // TaskComment Configuration
+            modelBuilder.Entity<TaskComment>(entity =>
+            {
+                entity.ToTable("TaskComments");
+                entity.HasKey(e => e.CommentId);
+
+                entity.Property(e => e.CommentText)
+                    .IsRequired()
+                    .HasColumnType("nvarchar(MAX)");
+
+                entity.HasIndex(e => e.TaskId)
+                    .HasDatabaseName("IX_TaskComments_TaskId");
+
+                entity.HasIndex(e => e.DateCreated)
+                    .HasDatabaseName("IX_TaskComments_DateCreated");
+
+                entity.HasIndex(e => e.UserId)
+                    .HasDatabaseName("IX_TaskComments_UserId");
+            });
+
+            // TaskAttachment Configuration
+            modelBuilder.Entity<TaskAttachment>(entity =>
+            {
+                entity.ToTable("TaskAttachments");
+                entity.HasKey(e => e.AttachmentId);
+
+                entity.Property(e => e.FileName)
+                    .IsRequired()
+                    .HasMaxLength(255);
+
+                entity.Property(e => e.ExtractedText)
+                    .HasColumnType("nvarchar(MAX)");
+
+                entity.HasIndex(e => e.TaskId)
+                    .HasDatabaseName("IX_TaskAttachments_TaskId");
+
+                entity.HasIndex(e => e.EmailAttachmentId)
+                    .HasDatabaseName("IX_TaskAttachments_EmailAttachmentId");
+            });
+
+            // TaskHistory Configuration
+            modelBuilder.Entity<TaskHistory>(entity =>
+            {
+                entity.ToTable("TaskHistories");
+                entity.HasKey(e => e.HistoryId);
+
+                entity.Property(e => e.Action)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.Details)
+                    .HasColumnType("nvarchar(MAX)");
+
+                entity.HasIndex(e => e.TaskId)
+                    .HasDatabaseName("IX_TaskHistories_TaskId");
+
+                entity.HasIndex(e => e.DateCreated)
+                    .HasDatabaseName("IX_TaskHistories_DateCreated");
+
+                entity.HasIndex(e => new { e.TaskId, e.DateCreated })
+                    .HasDatabaseName("IX_TaskHistories_TaskId_DateCreated");
+            });
 
 
             base.OnModelCreating(modelBuilder);

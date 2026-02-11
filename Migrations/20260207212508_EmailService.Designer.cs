@@ -4,6 +4,7 @@ using AwningsAPI.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AwningsAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260207212508_EmailService")]
+    partial class EmailService
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3254,312 +3257,6 @@ namespace AwningsAPI.Migrations
                         });
                 });
 
-            modelBuilder.Entity("AwningsAPI.Model.Tasks.EmailTask", b =>
-                {
-                    b.Property<int>("TaskId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TaskId"));
-
-                    b.Property<double?>("AIConfidence")
-                        .HasColumnType("float");
-
-                    b.Property<string>("AIReasoning")
-                        .HasColumnType("nvarchar(MAX)");
-
-                    b.Property<int?>("AssignedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("AssignedByUserName")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<int?>("AssignedToUserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("AssignedToUserName")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("CompanyNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("CompletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("CompletedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CompletionNotes")
-                        .HasColumnType("nvarchar(MAX)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("CustomerEmail")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<int?>("CustomerId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CustomerName")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<DateTime>("DateAdded")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateProcessed")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateUpdated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DueDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("EmailBody")
-                        .HasColumnType("nvarchar(MAX)");
-
-                    b.Property<string>("ExtractedData")
-                        .HasColumnType("nvarchar(MAX)");
-
-                    b.Property<string>("FromEmail")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("FromName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<bool>("HasAttachments")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("IncomingEmailId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Priority")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("ProcessedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("SelectedAction")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Subject")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("TaskType")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("WorkflowId")
-                        .HasColumnType("int");
-
-                    b.HasKey("TaskId");
-
-                    b.HasIndex("AssignedToUserId")
-                        .HasDatabaseName("IX_EmailTasks_AssignedToUserId");
-
-                    b.HasIndex("Category")
-                        .HasDatabaseName("IX_EmailTasks_Category");
-
-                    b.HasIndex("CustomerId")
-                        .HasDatabaseName("IX_EmailTasks_CustomerId");
-
-                    b.HasIndex("DateAdded")
-                        .HasDatabaseName("IX_EmailTasks_DateAdded");
-
-                    b.HasIndex("IncomingEmailId")
-                        .HasDatabaseName("IX_EmailTasks_IncomingEmailId");
-
-                    b.HasIndex("Status")
-                        .HasDatabaseName("IX_EmailTasks_Status");
-
-                    b.HasIndex("Status", "DateAdded")
-                        .HasDatabaseName("IX_EmailTasks_Status_DateAdded");
-
-                    b.ToTable("EmailTasks", (string)null);
-                });
-
-            modelBuilder.Entity("AwningsAPI.Model.Tasks.TaskAttachment", b =>
-                {
-                    b.Property<int>("AttachmentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttachmentId"));
-
-                    b.Property<string>("BlobUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("DateUploaded")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("EmailAttachmentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ExtractedText")
-                        .HasColumnType("nvarchar(MAX)");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("FilePath")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<long>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FileType")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("TaskId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UploadedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("AttachmentId");
-
-                    b.HasIndex("EmailAttachmentId")
-                        .HasDatabaseName("IX_TaskAttachments_EmailAttachmentId");
-
-                    b.HasIndex("TaskId")
-                        .HasDatabaseName("IX_TaskAttachments_TaskId");
-
-                    b.ToTable("TaskAttachments", (string)null);
-                });
-
-            modelBuilder.Entity("AwningsAPI.Model.Tasks.TaskComment", b =>
-                {
-                    b.Property<int>("CommentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CommentId"));
-
-                    b.Property<string>("CommentText")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(MAX)");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateUpdated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsEdited")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("TaskId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserName")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.HasKey("CommentId");
-
-                    b.HasIndex("DateCreated")
-                        .HasDatabaseName("IX_TaskComments_DateCreated");
-
-                    b.HasIndex("TaskId")
-                        .HasDatabaseName("IX_TaskComments_TaskId");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_TaskComments_UserId");
-
-                    b.ToTable("TaskComments", (string)null);
-                });
-
-            modelBuilder.Entity("AwningsAPI.Model.Tasks.TaskHistory", b =>
-                {
-                    b.Property<int>("HistoryId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("HistoryId"));
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Details")
-                        .HasColumnType("nvarchar(MAX)");
-
-                    b.Property<string>("NewValue")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("OldValue")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("TaskId")
-                        .HasColumnType("int");
-
-                    b.HasKey("HistoryId");
-
-                    b.HasIndex("DateCreated")
-                        .HasDatabaseName("IX_TaskHistories_DateCreated");
-
-                    b.HasIndex("TaskId")
-                        .HasDatabaseName("IX_TaskHistories_TaskId");
-
-                    b.HasIndex("TaskId", "DateCreated")
-                        .HasDatabaseName("IX_TaskHistories_TaskId_DateCreated");
-
-                    b.ToTable("TaskHistories", (string)null);
-                });
-
             modelBuilder.Entity("AwningsAPI.Model.Workflow.InitialEnquiry", b =>
                 {
                     b.Property<int>("EnquiryId")
@@ -3996,39 +3693,6 @@ namespace AwningsAPI.Migrations
                     b.Navigation("Supplier");
                 });
 
-            modelBuilder.Entity("AwningsAPI.Model.Tasks.TaskAttachment", b =>
-                {
-                    b.HasOne("AwningsAPI.Model.Tasks.EmailTask", "EmailTask")
-                        .WithMany("TaskAttachments")
-                        .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("EmailTask");
-                });
-
-            modelBuilder.Entity("AwningsAPI.Model.Tasks.TaskComment", b =>
-                {
-                    b.HasOne("AwningsAPI.Model.Tasks.EmailTask", "EmailTask")
-                        .WithMany("TaskComments")
-                        .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("EmailTask");
-                });
-
-            modelBuilder.Entity("AwningsAPI.Model.Tasks.TaskHistory", b =>
-                {
-                    b.HasOne("AwningsAPI.Model.Tasks.EmailTask", "EmailTask")
-                        .WithMany("TaskHistories")
-                        .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("EmailTask");
-                });
-
             modelBuilder.Entity("AwningsAPI.Model.Workflow.PaymentSchedule", b =>
                 {
                     b.HasOne("AwiningsIreland_WebAPI.Models.Invoice", "Invoice")
@@ -4092,15 +3756,6 @@ namespace AwningsAPI.Migrations
             modelBuilder.Entity("AwningsAPI.Model.Suppliers.Supplier", b =>
                 {
                     b.Navigation("Products");
-                });
-
-            modelBuilder.Entity("AwningsAPI.Model.Tasks.EmailTask", b =>
-                {
-                    b.Navigation("TaskAttachments");
-
-                    b.Navigation("TaskComments");
-
-                    b.Navigation("TaskHistories");
                 });
 
             modelBuilder.Entity("AwningsAPI.Model.Workflow.Quote", b =>

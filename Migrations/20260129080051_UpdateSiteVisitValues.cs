@@ -52,7 +52,7 @@ namespace AwningsAPI.Migrations
                 keyColumn: "Id",
                 keyValue: 58);
 
-            migrationBuilder.DeleteData(
+            migrationBuilder.DeleteData(    
                 table: "SiteVisitValues",
                 keyColumn: "Id",
                 keyValue: 59);

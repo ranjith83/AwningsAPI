@@ -4,13 +4,17 @@ using AwningsAPI.Interfaces;
 using AwningsAPI.Services.AuditLogService;
 using AwningsAPI.Services.Auth;
 using AwningsAPI.Services.CustomerService;
+using AwningsAPI.Services.Email;
 using AwningsAPI.Services.OutlookService;
 using AwningsAPI.Services.QuoteService;
 using AwningsAPI.Services.SiteVisitService;
 using AwningsAPI.Services.Suppliers;
+using AwningsAPI.Services.Tasks;
 using AwningsAPI.Services.WorkflowService;
+using Azure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Graph;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,6 +35,36 @@ builder.Services.AddScoped<AuditInterceptor>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IPaymentScheduleService, PaymentScheduleService>();
 builder.Services.AddScoped<IOutlookService, OutlookService>();
+
+// Configure HttpClient
+builder.Services.AddHttpClient();
+
+
+// Register Microsoft Graph Service Client as Singleton
+builder.Services.AddSingleton<GraphServiceClient>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var tenantId = configuration["AzureAd:TenantId"];
+    var clientId = configuration["AzureAd:ClientId"];
+    var clientSecret = configuration["AzureAd:ClientSecret"];
+
+    var options = new ClientSecretCredentialOptions
+    {
+        AuthorityHost = AzureAuthorityHosts.AzurePublicCloud,
+    };
+
+    var clientSecretCredential = new ClientSecretCredential(
+        tenantId, clientId, clientSecret, options);
+
+    return new GraphServiceClient(clientSecretCredential);
+});
+
+// Email Services
+builder.Services.AddScoped<IEmailReaderService, EmailReaderService>();
+builder.Services.AddScoped<IEmailAnalysisService, EmailAnalysisService>();
+builder.Services.AddScoped<IEmailProcessorService, EmailProcessorService>();
+// Task Service
+builder.Services.AddScoped<ITaskService, TaskService>();
 
 // JWT Authentication Configuration
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
