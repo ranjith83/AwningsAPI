@@ -157,16 +157,16 @@ namespace AwningsAPI.Dto.Tasks
 
     public class TaskFilterDto
     {
-        public string Status { get; set; }
-        public string TaskType { get; set; }
-        public string Priority { get; set; }
+        public string? Status { get; set; }
+        public string? TaskType { get; set; } 
+        public string? Priority { get; set; } 
         public int? AssignedToUserId { get; set; }
         public int? CustomerId { get; set; }
         public DateTime? DueDateFrom { get; set; }
         public DateTime? DueDateTo { get; set; }
         public DateTime? CreatedDateFrom { get; set; }
         public DateTime? CreatedDateTo { get; set; }
-        public string SearchTerm { get; set; }
+        public string? SearchTerm { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 20;
         public string SortBy { get; set; } = "DateAdded";

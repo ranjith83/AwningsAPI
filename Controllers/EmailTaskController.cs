@@ -1,35 +1,36 @@
-﻿using AwningsAPI.Database;
-using AwningsAPI.Dto.Tasks;
+﻿using AwningsAPI.Dto.Tasks;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace AwningsAPI.Controllers
 {
+    /// <summary>
+    /// Controller for managing email-derived tasks
+    /// All business logic and database access is delegated to ITaskService
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
     public class EmailTaskController : ControllerBase
     {
-        private readonly AppDbContext _context;
         private readonly ITaskService _taskService;
         private readonly ILogger<EmailTaskController> _logger;
 
         public EmailTaskController(
-            AppDbContext context,
             ITaskService taskService,
             ILogger<EmailTaskController> logger)
         {
-            _context = context;
             _taskService = taskService;
             _logger = logger;
         }
+
+        #region GET Endpoints
 
         /// <summary>
         /// Get all tasks by status (Pending, Processed, Junk)
@@ -39,49 +40,46 @@ namespace AwningsAPI.Controllers
         {
             try
             {
-                var tasks = await _context.EmailTasks
-                    .Include(t => t.TaskAttachments)
-                    .Include(t => t.TaskComments)
-                    .Where(t => t.Status == status)
-                    .OrderByDescending(t => t.DateAdded)
-                    .ToListAsync();
+                var filter = new TaskFilterDto
+                {
+                    Status = status,
+                    SortBy = "DateAdded",
+                    SortDirection = "DESC",
+                    Page = 1,
+                    PageSize = 1000 // Large number to get all
+                };
 
-                var taskDtos = tasks.Select(t => MapToDto(t)).ToList();
-                return Ok(taskDtos);
+                var (tasks, totalCount) = await _taskService.GetTasksWithFiltersAsync(filter);
+                return Ok(tasks);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error retrieving tasks with status: {status}");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = "An error occurred while retrieving tasks", details = ex.Message });
             }
         }
 
         /// <summary>
-        /// Get a specific task by ID
+        /// Get a specific task by ID with all related data
         /// </summary>
         [HttpGet("{taskId}")]
         public async Task<ActionResult<EmailTaskDto>> GetTaskById(int taskId)
         {
             try
             {
-                var task = await _context.EmailTasks
-                    .Include(t => t.TaskAttachments)
-                    .Include(t => t.TaskComments)
-                    .Include(t => t.TaskHistories)
-                    .FirstOrDefaultAsync(t => t.TaskId == taskId);
+                var task = await _taskService.GetTaskByIdAsync(taskId);
 
                 if (task == null)
                 {
                     return NotFound(new { error = "Task not found" });
                 }
 
-                var taskDto = MapToDto(task);
-                return Ok(taskDto);
+                return Ok(task);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error retrieving task {taskId}");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = "An error occurred while retrieving the task", details = ex.Message });
             }
         }
 
@@ -93,19 +91,37 @@ namespace AwningsAPI.Controllers
         {
             try
             {
-                var tasks = await _context.EmailTasks
-                    .Include(t => t.TaskAttachments)
-                    .Where(t => t.AssignedToUserId == userId)
-                    .OrderByDescending(t => t.DateAdded)
-                    .ToListAsync();
-
-                var taskDtos = tasks.Select(t => MapToDto(t)).ToList();
-                return Ok(taskDtos);
+                var tasks = await _taskService.GetTasksByUserAsync(userId);
+                return Ok(tasks);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error retrieving tasks for user {userId}");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = "An error occurred while retrieving user tasks", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get tasks assigned to the current authenticated user
+        /// </summary>
+        [HttpGet("my-tasks")]
+        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetMyTasks()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                if (userId == 0)
+                {
+                    return BadRequest(new { error = "User ID not found in authentication context" });
+                }
+
+                var tasks = await _taskService.GetTasksByUserAsync(userId);
+                return Ok(tasks);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving current user's tasks");
+                return StatusCode(500, new { error = "An error occurred while retrieving your tasks", details = ex.Message });
             }
         }
 
@@ -117,21 +133,126 @@ namespace AwningsAPI.Controllers
         {
             try
             {
-                var tasks = await _context.EmailTasks
-                    .Include(t => t.TaskAttachments)
-                    .Where(t => t.Category == category)
-                    .OrderByDescending(t => t.DateAdded)
-                    .ToListAsync();
+                var filter = new TaskFilterDto
+                {
+                    SearchTerm = category, // Use search term for category filtering
+                    SortBy = "DateAdded",
+                    SortDirection = "DESC",
+                    Page = 1,
+                    PageSize = 1000
+                };
 
-                var taskDtos = tasks.Select(t => MapToDto(t)).ToList();
-                return Ok(taskDtos);
+                var (tasks, totalCount) = await _taskService.GetTasksWithFiltersAsync(filter);
+                return Ok(tasks);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error retrieving tasks for category {category}");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = "An error occurred while retrieving category tasks", details = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Get tasks by task type
+        /// </summary>
+        [HttpGet("type/{taskType}")]
+        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetTasksByType(string taskType)
+        {
+            try
+            {
+                var tasks = await _taskService.GetTasksByTypeAsync(taskType);
+                return Ok(tasks);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving tasks for type {taskType}");
+                return StatusCode(500, new { error = "An error occurred while retrieving tasks by type", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get tasks for a specific customer
+        /// </summary>
+        [HttpGet("customer/{customerId}")]
+        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetTasksByCustomer(int customerId)
+        {
+            try
+            {
+                var tasks = await _taskService.GetTasksByCustomerAsync(customerId);
+                return Ok(tasks);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving tasks for customer {customerId}");
+                return StatusCode(500, new { error = "An error occurred while retrieving customer tasks", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get overdue tasks
+        /// </summary>
+        [HttpGet("overdue")]
+        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetOverdueTasks()
+        {
+            try
+            {
+                var tasks = await _taskService.GetOverdueTasksAsync();
+                return Ok(tasks);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving overdue tasks");
+                return StatusCode(500, new { error = "An error occurred while retrieving overdue tasks", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get tasks due today
+        /// </summary>
+        [HttpGet("due-today")]
+        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetTasksDueToday()
+        {
+            try
+            {
+                var tasks = await _taskService.GetTasksDueTodayAsync();
+                return Ok(tasks);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving tasks due today");
+                return StatusCode(500, new { error = "An error occurred while retrieving tasks due today", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Search and filter tasks with pagination
+        /// </summary>
+        [HttpPost("search")]
+        public async Task<ActionResult> SearchTasks([FromBody] TaskFilterDto filter)
+        {
+            try
+            {
+                var (tasks, totalCount) = await _taskService.GetTasksWithFiltersAsync(filter);
+
+                return Ok(new
+                {
+                    page = filter.Page,
+                    pageSize = filter.PageSize,
+                    totalCount = totalCount,
+                    totalPages = (int)Math.Ceiling(totalCount / (double)filter.PageSize),
+                    tasks = tasks
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching tasks");
+                return StatusCode(500, new { error = "An error occurred while searching tasks", details = ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region POST Endpoints
 
         /// <summary>
         /// Create a new task manually
@@ -142,42 +263,45 @@ namespace AwningsAPI.Controllers
             try
             {
                 var currentUser = GetCurrentUserName();
+                var task = await _taskService.CreateTaskAsync(createDto, currentUser);
 
-                var task = new EmailTask
-                {
-                    IncomingEmailId = createDto.IncomingEmailId,
-                    FromName = createDto.FromName,
-                    FromEmail = createDto.FromEmail,
-                    Subject = createDto.Subject,
-                    Category = createDto.Category,
-                    EmailBody = createDto.EmailBody,
-                    CompanyNumber = createDto.CompanyNumber,
-                    Priority = createDto.Priority ?? "Normal",
-                    DueDate = createDto.DueDate,
-                    AssignedToUserId = createDto.AssignedToUserId,
-                    CustomerId = createDto.CustomerId,
-                    WorkflowId = createDto.WorkflowId,
-                    Status = "Pending",
-                    DateAdded = DateTime.UtcNow,
-                    DateCreated = DateTime.UtcNow,
-                    CreatedBy = currentUser
-                };
-
-                _context.EmailTasks.Add(task);
-                await _context.SaveChangesAsync();
-
-                // Add history entry
-                await AddHistoryEntry(task.TaskId, "Created", null, null, "Task created manually", currentUser);
-
-                var taskDto = MapToDto(task);
-                return CreatedAtAction(nameof(GetTaskById), new { taskId = task.TaskId }, taskDto);
+                return CreatedAtAction(nameof(GetTaskById), new { taskId = task.TaskId }, task);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating task");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = "An error occurred while creating the task", details = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Create a task from an existing email
+        /// </summary>
+        [HttpPost("from-email/{incomingEmailId}")]
+        public async Task<ActionResult<EmailTaskDto>> CreateTaskFromEmail(int incomingEmailId)
+        {
+            try
+            {
+                var currentUser = GetCurrentUserName();
+                var task = await _taskService.CreateTaskFromEmailAsync(incomingEmailId, currentUser);
+
+                if (task == null)
+                {
+                    return NotFound(new { error = "Email not found or task could not be created" });
+                }
+
+                return CreatedAtAction(nameof(GetTaskById), new { taskId = task.TaskId }, task);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error creating task from email {incomingEmailId}");
+                return StatusCode(500, new { error = "An error occurred while creating task from email", details = ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region PUT Endpoints
 
         /// <summary>
         /// Update a task
@@ -187,231 +311,170 @@ namespace AwningsAPI.Controllers
         {
             try
             {
-                var task = await _context.EmailTasks.FindAsync(taskId);
+                var currentUser = GetCurrentUserName();
+                var task = await _taskService.UpdateTaskAsync(taskId, updateDto, currentUser);
+
                 if (task == null)
                 {
                     return NotFound(new { error = "Task not found" });
                 }
 
-                var currentUser = GetCurrentUserName();
-                var changes = new List<string>();
-
-                // Track changes for history
-                if (updateDto.Status != null && task.Status != updateDto.Status)
-                {
-                    await AddHistoryEntry(taskId, "StatusChanged", task.Status, updateDto.Status,
-                        $"Status changed from {task.Status} to {updateDto.Status}", currentUser);
-                    task.Status = updateDto.Status;
-                    changes.Add("Status");
-                }
-
-                if (updateDto.Priority != null && task.Priority != updateDto.Priority)
-                {
-                    await AddHistoryEntry(taskId, "Updated", task.Priority, updateDto.Priority,
-                        $"Priority changed from {task.Priority} to {updateDto.Priority}", currentUser);
-                    task.Priority = updateDto.Priority;
-                    changes.Add("Priority");
-                }
-
-                if (updateDto.DueDate.HasValue && task.DueDate != updateDto.DueDate)
-                {
-                    task.DueDate = updateDto.DueDate;
-                    changes.Add("DueDate");
-                }
-
-                if (updateDto.AssignedToUserId.HasValue && task.AssignedToUserId != updateDto.AssignedToUserId)
-                {
-                    var oldUser = task.AssignedToUserName;
-                    task.AssignedToUserId = updateDto.AssignedToUserId;
-                    task.AssignedByUserId = GetCurrentUserId();
-                    task.AssignedByUserName = currentUser;
-
-                    // Get new assignee name
-                    var newUser = await _context.Users.FindAsync(updateDto.AssignedToUserId);
-                    task.AssignedToUserName = newUser?.FirstName;
-
-                    await AddHistoryEntry(taskId, "Assigned", oldUser, task.AssignedToUserName,
-                        $"Task assigned to {task.AssignedToUserName}", currentUser);
-                    changes.Add("Assignment");
-                }
-
-                if (updateDto.SelectedAction != null)
-                {
-                    task.SelectedAction = updateDto.SelectedAction;
-                    changes.Add("SelectedAction");
-                }
-
-                if (updateDto.CustomerId.HasValue)
-                {
-                    task.CustomerId = updateDto.CustomerId;
-                    changes.Add("CustomerId");
-                }
-
-                if (updateDto.WorkflowId.HasValue)
-                {
-                    task.WorkflowId = updateDto.WorkflowId;
-                    changes.Add("WorkflowId");
-                }
-
-                if (!string.IsNullOrEmpty(updateDto.CompanyNumber))
-                {
-                    task.CompanyNumber = updateDto.CompanyNumber;
-                    changes.Add("CompanyNumber");
-                }
-
-                task.DateUpdated = DateTime.UtcNow;
-                task.UpdatedBy = currentUser;
-
-                await _context.SaveChangesAsync();
-
-                if (changes.Any())
-                {
-                    await AddHistoryEntry(taskId, "Updated", null, null,
-                        $"Task updated: {string.Join(", ", changes)}", currentUser);
-                }
-
-                var taskDto = MapToDto(task);
-                return Ok(taskDto);
+                return Ok(task);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error updating task {taskId}");
-                return StatusCode(500, new { error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Assign a task to a user
-        /// </summary>
-        [HttpPost("{taskId}/assign")]
-        public async Task<IActionResult> AssignTask(int taskId, [FromBody] AssignTaskDto assignDto)
-        {
-            try
-            {
-                var task = await _context.EmailTasks.FindAsync(taskId);
-                if (task == null)
-                {
-                    return NotFound(new { error = "Task not found" });
-                }
-
-                var currentUser = GetCurrentUserName();
-                var currentUserId = GetCurrentUserId();
-
-                // Get assignee details
-                var assignee = await _context.Users.FindAsync(assignDto.AssignedToUserId);
-                if (assignee == null)
-                {
-                    return BadRequest(new { error = "User not found" });
-                }
-
-                var oldAssignee = task.AssignedToUserName;
-
-                task.AssignedToUserId = assignDto.AssignedToUserId;
-                task.AssignedToUserName = assignee.FirstName;
-                task.AssignedByUserId = currentUserId;
-                task.AssignedByUserName = currentUser;
-                task.DateUpdated = DateTime.UtcNow;
-                task.UpdatedBy = currentUser;
-
-                await _context.SaveChangesAsync();
-
-                // Add history entry
-                var details = string.IsNullOrEmpty(assignDto.Notes)
-                    ? $"Task assigned to {assignee.FirstName}"
-                    : $"Task assigned to {assignee.FirstName}. Notes: {assignDto.Notes}";
-
-                await AddHistoryEntry(taskId, "Assigned", oldAssignee, assignee.FirstName, details, currentUser);
-
-                return Ok(new { message = "Task assigned successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error assigning task {taskId}");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = "An error occurred while updating the task", details = ex.Message });
             }
         }
 
         /// <summary>
         /// Update task status
         /// </summary>
-        [HttpPatch("{taskId}/status")]
-        public async Task<IActionResult> UpdateTaskStatus(int taskId, [FromBody] UpdateTaskStatusDto statusDto)
+        [HttpPut("{taskId}/status")]
+        public async Task<ActionResult<EmailTaskDto>> UpdateTaskStatus(int taskId, [FromBody] UpdateTaskStatusDto statusDto)
         {
             try
             {
-                var task = await _context.EmailTasks.FindAsync(taskId);
+                var currentUser = GetCurrentUserName();
+                var task = await _taskService.UpdateTaskStatusAsync(taskId, statusDto, currentUser);
+
                 if (task == null)
                 {
                     return NotFound(new { error = "Task not found" });
                 }
 
-                var currentUser = GetCurrentUserName();
-                var oldStatus = task.Status;
-
-                task.Status = statusDto.Status;
-                task.DateUpdated = DateTime.UtcNow;
-                task.UpdatedBy = currentUser;
-
-                if (statusDto.Status == "Processed")
-                {
-                    task.DateProcessed = DateTime.UtcNow;
-                    task.ProcessedBy = currentUser;
-                    task.CompletedDate = DateTime.UtcNow;
-                    task.CompletedBy = currentUser;
-                    task.CompletionNotes = statusDto.CompletionNotes;
-                }
-
-                await _context.SaveChangesAsync();
-
-                // Add history entry
-                await AddHistoryEntry(taskId, "StatusChanged", oldStatus, statusDto.Status,
-                    $"Status changed from {oldStatus} to {statusDto.Status}", currentUser);
-
-                return Ok(new { message = "Task status updated successfully" });
+                return Ok(task);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error updating task status {taskId}");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = "An error occurred while updating task status", details = ex.Message });
             }
         }
 
         /// <summary>
-        /// Execute an action on a task
+        /// Complete a task
         /// </summary>
-        [HttpPost("{taskId}/action/{action}")]
-        public async Task<IActionResult> ExecuteAction(int taskId, string action, [FromBody] object data)
+        [HttpPut("{taskId}/complete")]
+        public async Task<ActionResult<EmailTaskDto>> CompleteTask(int taskId, [FromBody] string completionNotes = null)
         {
             try
             {
-                var task = await _context.EmailTasks.FindAsync(taskId);
+                var currentUser = GetCurrentUserName();
+                var task = await _taskService.CompleteTaskAsync(taskId, completionNotes, currentUser);
+
                 if (task == null)
                 {
                     return NotFound(new { error = "Task not found" });
                 }
 
-                var currentUser = GetCurrentUserName();
-
-                // Store the selected action
-                task.SelectedAction = action;
-                task.DateUpdated = DateTime.UtcNow;
-                task.UpdatedBy = currentUser;
-
-                // Add history entry
-                await AddHistoryEntry(taskId, "Updated", null, action,
-                    $"Action '{action}' executed", currentUser);
-
-                await _context.SaveChangesAsync();
-
-                // Delegate to task service for actual action execution
-                var result = await _taskService.ExecuteTaskActionAsync(taskId, action, data);
-
-                return Ok(result);
+                return Ok(task);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error executing action {action} on task {taskId}");
-                return StatusCode(500, new { error = ex.Message });
+                _logger.LogError(ex, $"Error completing task {taskId}");
+                return StatusCode(500, new { error = "An error occurred while completing the task", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Assign a task to a user
+        /// </summary>
+        [HttpPut("{taskId}/assign")]
+        public async Task<ActionResult<EmailTaskDto>> AssignTask(int taskId, [FromBody] AssignTaskDto assignDto)
+        {
+            try
+            {
+                var currentUser = GetCurrentUserName();
+                var task = await _taskService.AssignTaskAsync(taskId, assignDto, currentUser);
+
+                if (task == null)
+                {
+                    return NotFound(new { error = "Task not found" });
+                }
+
+                return Ok(task);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error assigning task {taskId}");
+                return StatusCode(500, new { error = "An error occurred while assigning the task", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Unassign a task
+        /// </summary>
+        [HttpPut("{taskId}/unassign")]
+        public async Task<ActionResult<EmailTaskDto>> UnassignTask(int taskId)
+        {
+            try
+            {
+                var currentUser = GetCurrentUserName();
+                var task = await _taskService.UnassignTaskAsync(taskId, currentUser);
+
+                if (task == null)
+                {
+                    return NotFound(new { error = "Task not found" });
+                }
+
+                return Ok(task);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error unassigning task {taskId}");
+                return StatusCode(500, new { error = "An error occurred while unassigning the task", details = ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region DELETE Endpoints
+
+        /// <summary>
+        /// Delete a task
+        /// </summary>
+        [HttpDelete("{taskId}")]
+        public async Task<ActionResult> DeleteTask(int taskId)
+        {
+            try
+            {
+                var result = await _taskService.DeleteTaskAsync(taskId);
+
+                if (!result)
+                {
+                    return NotFound(new { error = "Task not found" });
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting task {taskId}");
+                return StatusCode(500, new { error = "An error occurred while deleting the task", details = ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region Comments
+
+        /// <summary>
+        /// Get comments for a task
+        /// </summary>
+        [HttpGet("{taskId}/comments")]
+        public async Task<ActionResult<IEnumerable<TaskCommentDto>>> GetTaskComments(int taskId)
+        {
+            try
+            {
+                var comments = await _taskService.GetTaskCommentsAsync(taskId);
+                return Ok(comments);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving comments for task {taskId}");
+                return StatusCode(500, new { error = "An error occurred while retrieving comments", details = ex.Message });
             }
         }
 
@@ -423,407 +486,182 @@ namespace AwningsAPI.Controllers
         {
             try
             {
-                var task = await _context.EmailTasks.FindAsync(taskId);
-                if (task == null)
+                var currentUser = GetCurrentUserName();
+                var comment = await _taskService.AddCommentAsync(taskId, commentDto, currentUser);
+
+                if (comment == null)
                 {
                     return NotFound(new { error = "Task not found" });
                 }
 
-                var currentUser = GetCurrentUserName();
-                var currentUserId = GetCurrentUserId();
-
-                var comment = new TaskComment
-                {
-                    TaskId = taskId,
-                    CommentText = commentDto.CommentText,
-                    UserId = currentUserId,
-                    UserName = currentUser,
-                    DateCreated = DateTime.UtcNow
-                };
-
-                _context.TaskComments.Add(comment);
-                await _context.SaveChangesAsync();
-
-                // Add history entry
-                await AddHistoryEntry(taskId, "Commented", null, null,
-                    $"Comment added by {currentUser}", currentUser);
-
-                var commentDtoResult = new TaskCommentDto
-                {
-                    CommentId = comment.CommentId,
-                    TaskId = comment.TaskId,
-                    CommentText = comment.CommentText,
-                    UserId = comment.UserId,
-                    UserName = comment.UserName,
-                    DateCreated = comment.DateCreated,
-                    IsEdited = comment.IsEdited
-                };
-
-                return Ok(commentDtoResult);
+                return CreatedAtAction(nameof(GetTaskComments), new { taskId = taskId }, comment);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error adding comment to task {taskId}");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = "An error occurred while adding the comment", details = ex.Message });
             }
         }
 
         /// <summary>
-        /// Get task history
+        /// Delete a comment
+        /// </summary>
+        [HttpDelete("comments/{commentId}")]
+        public async Task<ActionResult> DeleteComment(int commentId)
+        {
+            try
+            {
+                var result = await _taskService.DeleteCommentAsync(commentId);
+
+                if (!result)
+                {
+                    return NotFound(new { error = "Comment not found" });
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting comment {commentId}");
+                return StatusCode(500, new { error = "An error occurred while deleting the comment", details = ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region History
+
+        /// <summary>
+        /// Get history for a task
         /// </summary>
         [HttpGet("{taskId}/history")]
         public async Task<ActionResult<IEnumerable<TaskHistoryDto>>> GetTaskHistory(int taskId)
         {
             try
             {
-                var history = await _context.TaskHistories
-                    .Where(h => h.TaskId == taskId)
-                    .OrderByDescending(h => h.DateCreated)
-                    .Select(h => new TaskHistoryDto
-                    {
-                        HistoryId = h.HistoryId,
-                        TaskId = h.TaskId,
-                        Action = h.Action,
-                        OldValue = h.OldValue,
-                        NewValue = h.NewValue,
-                        Details = h.Details,
-                        DateCreated = h.DateCreated,
-                        CreatedBy = h.CreatedBy
-                    })
-                    .ToListAsync();
-
+                var history = await _taskService.GetTaskHistoryAsync(taskId);
                 return Ok(history);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error retrieving history for task {taskId}");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = "An error occurred while retrieving task history", details = ex.Message });
             }
         }
 
-        /// <summary>
-        /// Delete a task
-        /// </summary>
-        [HttpDelete("{taskId}")]
-        public async Task<IActionResult> DeleteTask(int taskId)
-        {
-            try
-            {
-                var task = await _context.EmailTasks
-                    .Include(t => t.TaskComments)
-                    .Include(t => t.TaskAttachments)
-                    .Include(t => t.TaskHistories)
-                    .FirstOrDefaultAsync(t => t.TaskId == taskId);
+        #endregion
 
-                if (task == null)
-                {
-                    return NotFound(new { error = "Task not found" });
-                }
-
-                _context.EmailTasks.Remove(task);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Task deleted successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error deleting task {taskId}");
-                return StatusCode(500, new { error = ex.Message });
-            }
-        }
+        #region Statistics
 
         /// <summary>
-        /// Get task statistics
+        /// Get overall task statistics
         /// </summary>
         [HttpGet("statistics")]
-        public async Task<ActionResult<TaskStatistics>> GetStatistics()
+        public async Task<ActionResult<TaskStatistics>> GetTaskStatistics()
         {
             try
             {
-                var tasks = await _context.EmailTasks.ToListAsync();
-
-                var stats = new TaskStatistics
-                {
-                    TotalTasks = tasks.Count,
-                    PendingTasks = tasks.Count(t => t.Status == "Pending"),
-                    InProgressTasks = tasks.Count(t => t.Status == "InProgress"),
-                    CompletedTasks = tasks.Count(t => t.Status == "Processed"),
-                    OverdueTasks = tasks.Count(t => t.DueDate.HasValue && t.DueDate < DateTime.UtcNow && t.Status != "Processed"),
-                    HighPriorityTasks = tasks.Count(t => t.Priority == "High"),
-                    UrgentTasks = tasks.Count(t => t.Priority == "Urgent"),
-                    TasksByType = tasks
-                        .Where(t => !string.IsNullOrEmpty(t.TaskType))
-                        .GroupBy(t => t.TaskType)
-                        .ToDictionary(g => g.Key, g => g.Count()),
-                    TasksByAssignee = tasks
-                        .Where(t => !string.IsNullOrEmpty(t.AssignedToUserName))
-                        .GroupBy(t => t.AssignedToUserName)
-                        .ToDictionary(g => g.Key, g => g.Count())
-                };
-
+                var stats = await _taskService.GetTaskStatisticsAsync();
                 return Ok(stats);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving task statistics");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = "An error occurred while retrieving statistics", details = ex.Message });
             }
         }
 
         /// <summary>
-        /// Get statistics for a specific user
+        /// Get task statistics for a specific user
         /// </summary>
         [HttpGet("statistics/user/{userId}")]
-        public async Task<ActionResult<TaskStatistics>> GetUserStatistics(int userId)
+        public async Task<ActionResult<TaskStatistics>> GetUserTaskStatistics(int userId)
         {
             try
             {
-                var tasks = await _context.EmailTasks
-                    .Where(t => t.AssignedToUserId == userId)
-                    .ToListAsync();
-
-                var stats = new TaskStatistics
-                {
-                    TotalTasks = tasks.Count,
-                    PendingTasks = tasks.Count(t => t.Status == "Pending"),
-                    InProgressTasks = tasks.Count(t => t.Status == "InProgress"),
-                    CompletedTasks = tasks.Count(t => t.Status == "Processed"),
-                    OverdueTasks = tasks.Count(t => t.DueDate.HasValue && t.DueDate < DateTime.UtcNow && t.Status != "Processed"),
-                    HighPriorityTasks = tasks.Count(t => t.Priority == "High"),
-                    UrgentTasks = tasks.Count(t => t.Priority == "Urgent"),
-                    TasksByType = tasks
-                        .Where(t => !string.IsNullOrEmpty(t.TaskType))
-                        .GroupBy(t => t.TaskType)
-                        .ToDictionary(g => g.Key, g => g.Count())
-                };
-
+                var stats = await _taskService.GetUserTaskStatisticsAsync(userId);
                 return Ok(stats);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error retrieving statistics for user {userId}");
-                return StatusCode(500, new { error = ex.Message });
+                return StatusCode(500, new { error = "An error occurred while retrieving user statistics", details = ex.Message });
             }
         }
 
         /// <summary>
-        /// Search and filter tasks
+        /// Get task statistics for the current user
         /// </summary>
-        [HttpPost("search")]
-        public async Task<ActionResult<object>> SearchTasks([FromBody] TaskFilterDto filter)
+        [HttpGet("statistics/my-stats")]
+        public async Task<ActionResult<TaskStatistics>> GetMyTaskStatistics()
         {
             try
             {
-                var query = _context.EmailTasks
-                    .Include(t => t.TaskAttachments)
-                    .AsQueryable();
-
-                // Apply filters
-                if (!string.IsNullOrEmpty(filter.Status))
+                var userId = GetCurrentUserId();
+                if (userId == 0)
                 {
-                    query = query.Where(t => t.Status == filter.Status);
+                    return BadRequest(new { error = "User ID not found in authentication context" });
                 }
 
-                if (!string.IsNullOrEmpty(filter.TaskType))
-                {
-                    query = query.Where(t => t.TaskType == filter.TaskType);
-                }
-
-                if (!string.IsNullOrEmpty(filter.Priority))
-                {
-                    query = query.Where(t => t.Priority == filter.Priority);
-                }
-
-                if (filter.AssignedToUserId.HasValue)
-                {
-                    query = query.Where(t => t.AssignedToUserId == filter.AssignedToUserId);
-                }
-
-                if (filter.CustomerId.HasValue)
-                {
-                    query = query.Where(t => t.CustomerId == filter.CustomerId);
-                }
-
-                if (filter.DueDateFrom.HasValue)
-                {
-                    query = query.Where(t => t.DueDate >= filter.DueDateFrom);
-                }
-
-                if (filter.DueDateTo.HasValue)
-                {
-                    query = query.Where(t => t.DueDate <= filter.DueDateTo);
-                }
-
-                if (filter.CreatedDateFrom.HasValue)
-                {
-                    query = query.Where(t => t.DateCreated >= filter.CreatedDateFrom);
-                }
-
-                if (filter.CreatedDateTo.HasValue)
-                {
-                    query = query.Where(t => t.DateCreated <= filter.CreatedDateTo);
-                }
-
-                if (!string.IsNullOrEmpty(filter.SearchTerm))
-                {
-                    query = query.Where(t =>
-                        t.Subject.Contains(filter.SearchTerm) ||
-                        t.FromName.Contains(filter.SearchTerm) ||
-                        t.FromEmail.Contains(filter.SearchTerm) ||
-                        t.EmailBody.Contains(filter.SearchTerm)
-                    );
-                }
-
-                // Get total count
-                var totalCount = await query.CountAsync();
-
-                // Apply sorting
-                query = filter.SortBy?.ToLower() switch
-                {
-                    "dateadded" => filter.SortDirection?.ToUpper() == "ASC"
-                        ? query.OrderBy(t => t.DateAdded)
-                        : query.OrderByDescending(t => t.DateAdded),
-                    "subject" => filter.SortDirection?.ToUpper() == "ASC"
-                        ? query.OrderBy(t => t.Subject)
-                        : query.OrderByDescending(t => t.Subject),
-                    "priority" => filter.SortDirection?.ToUpper() == "ASC"
-                        ? query.OrderBy(t => t.Priority)
-                        : query.OrderByDescending(t => t.Priority),
-                    _ => query.OrderByDescending(t => t.DateAdded)
-                };
-
-                // Apply pagination
-                var tasks = await query
-                    .Skip((filter.Page - 1) * filter.PageSize)
-                    .Take(filter.PageSize)
-                    .ToListAsync();
-
-                var taskDtos = tasks.Select(t => MapToDto(t)).ToList();
-
-                return Ok(new
-                {
-                    page = filter.Page,
-                    pageSize = filter.PageSize,
-                    totalCount = totalCount,
-                    totalPages = (int)Math.Ceiling(totalCount / (double)filter.PageSize),
-                    tasks = taskDtos
-                });
+                var stats = await _taskService.GetUserTaskStatisticsAsync(userId);
+                return Ok(stats);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error searching tasks");
-                return StatusCode(500, new { error = ex.Message });
+                _logger.LogError(ex, "Error retrieving current user's statistics");
+                return StatusCode(500, new { error = "An error occurred while retrieving your statistics", details = ex.Message });
             }
         }
 
+        #endregion
+
+        #region Task Actions
+
+        /// <summary>
+        /// Execute a specific action on a task (add_company, generate_quote, etc.)
+        /// </summary>
+        [HttpPost("{taskId}/action/{action}")]
+        public async Task<ActionResult<object>> ExecuteTaskAction(
+            int taskId, string action,
+            [FromBody] TaskActionRequest request)
+        {
+            try
+            {
+                var result = await _taskService.ExecuteTaskActionAsync(taskId, action, request.Data);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error executing action on task {taskId}");
+                return StatusCode(500, new { error = "An error occurred while executing the action", details = ex.Message });
+            }
+        }
+
+        #endregion
+
         #region Helper Methods
-
-        private EmailTaskDto MapToDto(EmailTask task)
-        {
-            return new EmailTaskDto
-            {
-                TaskId = task.TaskId,
-                IncomingEmailId = task.IncomingEmailId,
-                FromName = task.FromName,
-                FromEmail = task.FromEmail,
-                Subject = task.Subject,
-                Category = task.Category,
-                DateAdded = task.DateAdded,
-                Status = task.Status,
-                TaskType = task.TaskType,
-                Priority = task.Priority,
-                AssignedToUserId = task.AssignedToUserId,
-                AssignedToUserName = task.AssignedToUserName,
-                AssignedByUserId = task.AssignedByUserId,
-                AssignedByUserName = task.AssignedByUserName,
-                CompanyNumber = task.CompanyNumber,
-                EmailBody = task.EmailBody,
-                HasAttachments = task.HasAttachments,
-                SelectedAction = task.SelectedAction,
-                CustomerId = task.CustomerId,
-                CustomerName = task.CustomerName,
-                CustomerEmail = task.CustomerEmail,
-                WorkflowId = task.WorkflowId,
-                DueDate = task.DueDate,
-                DateProcessed = task.DateProcessed,
-                ProcessedBy = task.ProcessedBy,
-                CompletedDate = task.CompletedDate,
-                CompletedBy = task.CompletedBy,
-                CompletionNotes = task.CompletionNotes,
-                ExtractedData = task.ExtractedData,
-                AIConfidence = task.AIConfidence,
-                AIReasoning = task.AIReasoning,
-                DateCreated = task.DateCreated,
-                DateUpdated = task.DateUpdated,
-                CreatedBy = task.CreatedBy,
-                UpdatedBy = task.UpdatedBy,
-                Attachments = task.TaskAttachments?.Select(a => new TaskAttachmentDto
-                {
-                    AttachmentId = a.AttachmentId,
-                    TaskId = a.TaskId,
-                    FileName = a.FileName,
-                    FileType = a.FileType,
-                    FileSize = a.FileSize,
-                    FilePath = a.FilePath,
-                    BlobUrl = a.BlobUrl,
-                    DateUploaded = a.DateUploaded,
-                    UploadedBy = a.UploadedBy
-                }).ToList() ?? new List<TaskAttachmentDto>(),
-                Comments = task.TaskComments?.Select(c => new TaskCommentDto
-                {
-                    CommentId = c.CommentId,
-                    TaskId = c.TaskId,
-                    CommentText = c.CommentText,
-                    UserId = c.UserId,
-                    UserName = c.UserName,
-                    DateCreated = c.DateCreated,
-                    DateUpdated = c.DateUpdated,
-                    IsEdited = c.IsEdited
-                }).ToList() ?? new List<TaskCommentDto>(),
-                History = task.TaskHistories?.Select(h => new TaskHistoryDto
-                {
-                    HistoryId = h.HistoryId,
-                    TaskId = h.TaskId,
-                    Action = h.Action,
-                    OldValue = h.OldValue,
-                    NewValue = h.NewValue,
-                    Details = h.Details,
-                    DateCreated = h.DateCreated,
-                    CreatedBy = h.CreatedBy
-                }).ToList() ?? new List<TaskHistoryDto>()
-            };
-        }
-
-        private async Task AddHistoryEntry(int taskId, string action, string oldValue, string newValue, string details, string createdBy)
-        {
-            var history = new TaskHistory
-            {
-                TaskId = taskId,
-                Action = action,
-                OldValue = oldValue,
-                NewValue = newValue,
-                Details = details,
-                DateCreated = DateTime.UtcNow,
-                CreatedBy = createdBy
-            };
-
-            _context.TaskHistories.Add(history);
-            await _context.SaveChangesAsync();
-        }
 
         private string GetCurrentUserName()
         {
-            // Get from claims or authentication context
             return User?.Identity?.Name ?? "System";
         }
 
         private int GetCurrentUserId()
         {
-            // Get from claims or authentication context
-            var userIdClaim = User?.FindFirst("userId")?.Value;
+            var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                           ?? User?.FindFirst("userId")?.Value;
             return int.TryParse(userIdClaim, out var userId) ? userId : 0;
         }
 
         #endregion
+    }
+
+    /// <summary>
+    /// Request model for executing task actions
+    /// </summary>
+    public class TaskActionRequest
+    {
+        public string Action { get; set; }
+        public object Data { get; set; }
     }
 }

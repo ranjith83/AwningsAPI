@@ -89,12 +89,18 @@ namespace AwningsAPI.Model.Email
     // DTO for AI analysis response
     public class EmailAnalysisResult
     {
-        public string Category { get; set; } = string.Empty;
+        public string Category { get; set; }
+        public string TaskType { get; set; }
+        public string Priority { get; set; }
+        public Dictionary<string, object> ExtractedData { get; set; }
         public double Confidence { get; set; }
-        public string Reasoning { get; set; } = string.Empty;
-        public Dictionary<string, object> ExtractedData { get; set; } = new();
-        public List<string> RequiredActions { get; set; } = new();
-        public string Priority { get; set; } = "Normal"; // Low, Normal, High, Urgent
+        public string Reasoning { get; set; }
+        public string CompanyNumber { get; set; }
+        public List<string> RequiredActions { get; set; }
+        public Dictionary<string, string> CustomerInfo { get; set; }
+        public bool IsSpam { get; set; }
+        public string Sentiment { get; set; }
+        public List<string> Warnings { get; set; }
     }
 
     // Categories enum for type safety
@@ -108,5 +114,15 @@ namespace AwningsAPI.Model.Email
         public const string ProductInquiry = "product_inquiry";
         public const string Complaint = "complaint";
         public const string Unknown = "unknown";
+    }
+
+    /// <summary>
+    /// Result of data validation
+    /// </summary>
+    public class ValidationResult
+    {
+        public bool IsValid { get; set; }
+        public List<string> Errors { get; set; }
+        public List<string> Warnings { get; set; }
     }
 }

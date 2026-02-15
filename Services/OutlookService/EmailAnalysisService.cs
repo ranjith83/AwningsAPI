@@ -1,638 +1,623 @@
-﻿using AwningsAPI.Interfaces;
+﻿using AwningsAPI.Database;
+using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Email;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using System.Text;
+using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+using System.Text.Json;
+using System.Net.Http;
+using System.Text;
 
 namespace AwningsAPI.Services.Email
 {
+    /// <summary>
+    /// Email Analysis Service with AI Provider
+    /// Uses AI (Claude/OpenAI) for intelligent categorization
+    /// Rules-based detection for junk emails
+    /// </summary>
     public class EmailAnalysisService : IEmailAnalysisService
     {
-        private readonly HttpClient _httpClient;
+        private readonly AppDbContext _context;
         private readonly ILogger<EmailAnalysisService> _logger;
         private readonly IConfiguration _configuration;
-        private readonly string _apiKey;
-        private readonly string _apiEndpoint;
-        private readonly string _aiProvider;
-        private readonly string _model;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         public EmailAnalysisService(
-            HttpClient httpClient,
+            AppDbContext context,
             ILogger<EmailAnalysisService> logger,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IHttpClientFactory httpClientFactory)
         {
-            _httpClient = httpClient;
+            _context = context;
             _logger = logger;
             _configuration = configuration;
-
-            // Determine which AI provider to use
-            _aiProvider = configuration["AI:Provider"] ?? "Claude";
-
-            switch (_aiProvider.ToLower())
-            {
-                case "azureopenai":
-                    _apiKey = configuration["AzureOpenAI:ApiKey"] ?? throw new Exception("Azure OpenAI API key not configured");
-                    _apiEndpoint = configuration["AzureOpenAI:Endpoint"] ?? throw new Exception("Azure OpenAI endpoint not configured");
-                    var deploymentName = configuration["AzureOpenAI:DeploymentName"] ?? "gpt-4";
-                    var apiVersion = configuration["AzureOpenAI:ApiVersion"] ?? "2024-02-15-preview";
-                    _apiEndpoint = $"{_apiEndpoint.TrimEnd('/')}/openai/deployments/{deploymentName}/chat/completions?api-version={apiVersion}";
-                    _model = deploymentName;
-                    _logger.LogInformation("Using Azure OpenAI provider");
-                    break;
-
-                case "openai":
-                    _apiKey = configuration["OpenAI:ApiKey"] ?? throw new Exception("OpenAI API key not configured");
-                    _apiEndpoint = "https://api.openai.com/v1/chat/completions";
-                    _model = configuration["OpenAI:Model"] ?? "gpt-4o";
-                    _logger.LogInformation("Using OpenAI provider");
-                    break;
-
-                case "claude":
-                default:
-                    _apiKey = configuration["Claude:ApiKey"] ?? throw new Exception("Claude API key not configured");
-                    _apiEndpoint = "https://api.anthropic.com/v1/messages";
-                    _model = "claude-sonnet-4-20250514";
-                    _logger.LogInformation("Using Claude API provider");
-                    break;
-            }
+            _httpClientFactory = httpClientFactory;
         }
+
+        #region IEmailAnalysisService Implementation
 
         public async Task<EmailAnalysisResult> AnalyzeEmailAsync(IncomingEmail email)
         {
             try
             {
-                _logger.LogInformation($"Analyzing email: {email.Subject} using {_aiProvider}");
+                var subject = email.Subject ?? "";
+                var body = email.BodyContent ?? "";
+                var fromEmail = email.FromEmail?.ToLower() ?? "";
 
-                // Prepare the email content for AI analysis
-                var emailContent = PrepareEmailContent(email);
-
-                // Call appropriate AI API
-                var analysisResult = _aiProvider.ToLower() switch
+                // Initialize result
+                var result = new EmailAnalysisResult
                 {
-                    "claude" => await CallClaudeAPIAsync(emailContent, email),
-                    "azureopenai" => await CallOpenAIAPIAsync(emailContent, email, isAzure: true),
-                    "openai" => await CallOpenAIAPIAsync(emailContent, email, isAzure: false),
-                    _ => throw new Exception($"Unknown AI provider: {_aiProvider}")
+                    ExtractedData = new Dictionary<string, object>(),
+                    RequiredActions = new List<string>(),
+                    CustomerInfo = new Dictionary<string, string>(),
+                    Warnings = new List<string>(),
+                    CompanyNumber = "",
+                    Sentiment = "Neutral"
                 };
 
-                _logger.LogInformation($"Email categorized as: {analysisResult.Category} (confidence: {analysisResult.Confidence:P})");
+                // 1. CHECK IF JUNK FIRST (Rules-based, fast)
+                if (IsJunkEmail(fromEmail, subject.ToLower(), body.ToLower()))
+                {
+                    result.Category = "junk";
+                    result.TaskType = "junk";
+                    result.Priority = "Low";
+                    result.Confidence = 0.95;
+                    result.Reasoning = "Automated system email: CRM contact update or Xero notification";
+                    result.IsSpam = true;
+                    result.RequiredActions = new List<string> { "mark_as_junk", "move_to_folder" };
 
-                return analysisResult;
+                    _logger.LogInformation($"JUNK EMAIL (Rules): {email.Subject} from {email.FromEmail}");
+                    return result;
+                }
+
+                // 2. USE AI PROVIDER FOR INTELLIGENT CATEGORIZATION ✨
+                var aiAnalysis = await AnalyzeEmailWithAIAsync(subject, body, fromEmail);
+
+                // 3. Extract additional data based on AI category
+                var extractedData = ExtractDataFromEmail(email, aiAnalysis.Category);
+
+                // 4. Build customer info
+                result.CustomerInfo = new Dictionary<string, string>
+                {
+                    { "fromName", email.FromName ?? "" },
+                    { "fromEmail", email.FromEmail ?? "" },
+                    { "phone", ExtractPhoneNumber(body) ?? "" },
+                    { "companyNumber", ExtractCompanyNumber(body) ?? "" }
+                };
+
+                // 5. Build final result using AI analysis
+                result.Category = aiAnalysis.Category;
+                result.TaskType = MapCategoryToTaskType(aiAnalysis.Category);
+                result.Priority = aiAnalysis.Priority;
+                result.Confidence = aiAnalysis.Confidence;
+                result.Reasoning = aiAnalysis.Reasoning;
+                result.ExtractedData = MergeExtractedData(aiAnalysis.ExtractedData, extractedData);
+                result.CompanyNumber = ExtractCompanyNumber(body) ?? "";
+                result.RequiredActions = DetermineRequiredActions(aiAnalysis.Category);
+                result.IsSpam = false;
+                result.Sentiment = aiAnalysis.Sentiment;
+
+                _logger.LogInformation($"AI ANALYSIS: Category={aiAnalysis.Category}, Confidence={aiAnalysis.Confidence:F2}");
+
+                return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error analyzing email with AI");
-
-                // Return a fallback result
-                return new EmailAnalysisResult
-                {
-                    Category = EmailCategory.Unknown,
-                    Confidence = 0.0,
-                    Reasoning = $"Error during analysis: {ex.Message}",
-                    Priority = "Normal"
-                };
+                _logger.LogError(ex, $"Error analyzing email {email.EmailId}");
+                throw;
             }
         }
 
-        private string PrepareEmailContent(IncomingEmail email)
+        public Task<string> ExtractTextFromImageAsync(byte[] imageContent)
         {
-            var sb = new StringBuilder();
-            sb.AppendLine($"Subject: {email.Subject}");
-            sb.AppendLine($"From: {email.FromName} <{email.FromEmail}>");
-            sb.AppendLine($"Received: {email.ReceivedDateTime:yyyy-MM-dd HH:mm:ss}");
-            sb.AppendLine($"Importance: {email.Importance}");
-            sb.AppendLine();
-
-            // Clean HTML if necessary
-            var bodyText = email.IsHtml ? StripHtml(email.BodyContent) : email.BodyContent;
-            sb.AppendLine("Body:");
-            sb.AppendLine(bodyText);
-
-            if (email.HasAttachments && email.Attachments.Any())
-            {
-                sb.AppendLine();
-                sb.AppendLine("Attachments:");
-                foreach (var attachment in email.Attachments)
-                {
-                    sb.AppendLine($"- {attachment.FileName} ({attachment.ContentType}, {attachment.Size} bytes)");
-
-                    // Include extracted text if available
-                    if (!string.IsNullOrEmpty(attachment.ExtractedText))
-                    {
-                        sb.AppendLine($"  Content preview: {attachment.ExtractedText.Substring(0, Math.Min(500, attachment.ExtractedText.Length))}...");
-                    }
-                }
-            }
-
-            return sb.ToString();
+            _logger.LogInformation("OCR extraction requested (not yet implemented)");
+            return Task.FromResult("");
         }
 
-        private async Task<EmailAnalysisResult> CallOpenAIAPIAsync(string emailContent, IncomingEmail email, bool isAzure)
+        public Task<string> ExtractTextFromPdfAsync(byte[] pdfContent)
+        {
+            _logger.LogInformation("PDF extraction requested (not yet implemented)");
+            return Task.FromResult("");
+        }
+
+        #endregion
+
+        #region AI Provider Integration
+
+        /// <summary>
+        /// Use AI (Claude/OpenAI) to intelligently categorize email
+        /// </summary>
+        private async Task<AIAnalysisResult> AnalyzeEmailWithAIAsync(string subject, string body, string fromEmail)
         {
             try
             {
-                var systemPrompt = GetSystemPrompt();
-                var userPrompt = $@"Analyze the following email and categorize it:
+                // Get AI provider settings
+                var aiProvider = _configuration["AI:Provider"] ?? "Claude"; // Claude or OpenAI
+                var apiKey = _configuration[$"{aiProvider}:ApiKey"];
 
-{emailContent}
-
-Please respond with a JSON object containing:
-- category: one of [invoice_creation, quote_creation, customer_creation, showroom_booking, product_inquiry, complaint, general_inquiry]
-- confidence: a number between 0 and 1
-- reasoning: brief explanation of why you chose this category
-- extractedData: object with relevant fields extracted from the email (e.g., customer name, amounts, product details)
-- requiredActions: array of strings describing what needs to be done
-- priority: one of [Low, Normal, High, Urgent]";
-
-                var requestBody = new
+                if (string.IsNullOrEmpty(apiKey))
                 {
-                    model = _model,
-                    messages = new[]
-                    {
-                        new { role = "system", content = systemPrompt },
-                        new { role = "user", content = userPrompt }
-                    },
-                    temperature = 0.3,
-                    response_format = new { type = "json_object" }
+                    _logger.LogWarning("AI API key not configured, falling back to rules-based categorization");
+                    return FallbackToDeterministicCategorization(subject, body);
+                }
+
+                // Build AI prompt
+                var prompt = BuildCategorizationPrompt(subject, body, fromEmail);
+
+                AIAnalysisResult aiResult;
+
+                if (aiProvider == "Claude")
+                {
+                    aiResult = await CallClaudeAPIAsync(prompt, apiKey);
+                }
+                else // OpenAI
+                {
+                    aiResult = await CallOpenAIAPIAsync(prompt, apiKey);
+                }
+
+                return aiResult;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling AI provider, falling back to rules-based");
+                return FallbackToDeterministicCategorization(subject, body);
+            }
+        }
+
+        private string BuildCategorizationPrompt(string subject, string body, string fromEmail)
+        {
+            return $@"You are an expert email categorization system for an awnings/pergola company.
+
+Analyze this email and categorize it into ONE of these categories:
+
+**Categories:**
+1. **initial_enquiry** - New customer enquiries about products, pricing, or general information
+   - Looking for awnings, pergolas, canopies, shade solutions
+   - Asking about products, models, prices
+   - Includes dimensions or specific requirements
+   - Example: ""Looking for 3x3m pergola for patio""
+
+2. **site_visit_meeting** - Requests for site visits, measurements, or meetings
+   - Keywords: site visit, site survey, visual inspection, meeting, appointment
+   - Scheduling requests
+   - Example: ""Can we schedule a site visit next Tuesday?""
+
+3. **invoice_due** - Payment reminders or invoice notifications
+   - Keywords: invoice due, payment due, overdue, payment reminder
+   - Example: ""Invoice #INV-001 due on 15/02/2024""
+
+4. **quote_creation** - Specific quote requests
+   - Direct quote requests with specifications
+   - Example: ""Please provide quote for 5.2m awning""
+
+5. **showroom_booking** - Showroom visit requests
+   - Want to see samples, visit showroom
+   - Example: ""Can I visit your showroom to see samples?""
+
+6. **complaint** - Customer complaints or issues
+   - Problems with products or service
+   - Example: ""The awning is not working properly""
+
+7. **general_inquiry** - Everything else
+
+**Email to analyze:**
+Subject: {subject}
+From: {fromEmail}
+Body: {body}
+
+**Respond ONLY with valid JSON in this exact format:**
+{{
+  ""category"": ""initial_enquiry"",
+  ""confidence"": 0.85,
+  ""priority"": ""Normal"",
+  ""sentiment"": ""Neutral"",
+  ""reasoning"": ""Email contains enquiry keywords and product dimensions"",
+  ""extractedData"": {{
+    ""productType"": ""pergola"",
+    ""dimensions"": ""3x3m"",
+    ""urgency"": ""normal""
+  }}
+}}
+
+**Rules:**
+- category must be one of: initial_enquiry, site_visit_meeting, invoice_due, quote_creation, showroom_booking, complaint, general_inquiry
+- confidence: 0.0 to 1.0
+- priority: ""Low"", ""Normal"", ""High"", or ""Urgent""
+- sentiment: ""Positive"", ""Neutral"", ""Negative"", or ""Urgent""
+- reasoning: Brief explanation (1 sentence)
+- extractedData: Any relevant structured data found
+
+Respond ONLY with the JSON object, no other text.";
+        }
+
+        private async Task<AIAnalysisResult> CallClaudeAPIAsync(string prompt, string apiKey)
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Add("x-api-key", apiKey);
+            client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+
+            var requestBody = new
+            {
+                model = "claude-3-5-sonnet-20241022",
+                max_tokens = 1024,
+                messages = new[]
+                {
+                    new { role = "user", content = prompt }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(requestBody);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync("https://api.anthropic.com/v1/messages", content);
+            response.EnsureSuccessStatusCode();
+
+            var responseJson = await response.Content.ReadAsStringAsync();
+            var claudeResponse = JsonSerializer.Deserialize<ClaudeResponse>(responseJson);
+
+            // Extract JSON from Claude's response
+            var aiResponseText = claudeResponse.content[0].text;
+
+            // Parse the JSON response
+            return ParseAIResponse(aiResponseText);
+        }
+
+        private async Task<AIAnalysisResult> CallOpenAIAPIAsync(string prompt, string apiKey)
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+
+            var requestBody = new
+            {
+                model = "gpt-4o",
+                messages = new[]
+                {
+                    new { role = "system", content = "You are an email categorization expert. Respond only with valid JSON." },
+                    new { role = "user", content = prompt }
+                },
+                temperature = 0.3
+            };
+
+            var json = JsonSerializer.Serialize(requestBody);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync("https://api.openai.com/v1/chat/completions", content);
+            response.EnsureSuccessStatusCode();
+
+            var responseJson = await response.Content.ReadAsStringAsync();
+            var openAIResponse = JsonSerializer.Deserialize<OpenAIResponse>(responseJson);
+
+            var aiResponseText = openAIResponse.choices[0].message.content;
+
+            return ParseAIResponse(aiResponseText);
+        }
+
+        private AIAnalysisResult ParseAIResponse(string aiResponseText)
+        {
+            try
+            {
+                // Clean up response - remove markdown code blocks if present
+                var cleanJson = aiResponseText.Trim();
+                if (cleanJson.StartsWith("```json"))
+                {
+                    cleanJson = cleanJson.Substring(7);
+                }
+                if (cleanJson.StartsWith("```"))
+                {
+                    cleanJson = cleanJson.Substring(3);
+                }
+                if (cleanJson.EndsWith("```"))
+                {
+                    cleanJson = cleanJson.Substring(0, cleanJson.Length - 3);
+                }
+                cleanJson = cleanJson.Trim();
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
                 };
 
-                var json = JsonConvert.SerializeObject(requestBody);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var result = JsonSerializer.Deserialize<AIAnalysisResult>(cleanJson, options);
 
-                _httpClient.DefaultRequestHeaders.Clear();
+                // Validate category
+                var validCategories = new[] { "initial_enquiry", "site_visit_meeting", "invoice_due",
+                    "quote_creation", "showroom_booking", "complaint", "general_inquiry" };
 
-                if (isAzure)
+                if (!validCategories.Contains(result.Category))
                 {
-                    _httpClient.DefaultRequestHeaders.Add("api-key", _apiKey);
-                }
-                else
-                {
-                    _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
-                }
-
-                var response = await _httpClient.PostAsync(_apiEndpoint, content);
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogError($"OpenAI API error: {response.StatusCode} - {responseContent}");
-                    throw new Exception($"OpenAI API returned {response.StatusCode}");
-                }
-
-                var apiResponse = JsonConvert.DeserializeObject<OpenAIResponse>(responseContent);
-
-                if (apiResponse?.Choices == null || !apiResponse.Choices.Any())
-                {
-                    throw new Exception("Empty response from OpenAI API");
-                }
-
-                var messageContent = apiResponse.Choices.First().Message?.Content;
-
-                if (string.IsNullOrEmpty(messageContent))
-                {
-                    throw new Exception("No content in OpenAI response");
-                }
-
-                // Parse JSON response
-                var result = JsonConvert.DeserializeObject<EmailAnalysisResult>(messageContent);
-
-                if (result == null)
-                {
-                    throw new Exception("Failed to parse OpenAI response");
+                    _logger.LogWarning($"AI returned invalid category: {result.Category}, defaulting to general_inquiry");
+                    result.Category = "general_inquiry";
                 }
 
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error calling OpenAI API");
+                _logger.LogError(ex, $"Error parsing AI response: {aiResponseText}");
                 throw;
             }
         }
 
-        private async Task<EmailAnalysisResult> CallClaudeAPIAsync(string emailContent, IncomingEmail email)
+        private AIAnalysisResult FallbackToDeterministicCategorization(string subject, string body)
         {
-            try
-            {
-                var systemPrompt = GetSystemPrompt();
-                var userPrompt = $@"Analyze the following email and categorize it:
+            var combined = $"{subject} {body}".ToLower();
 
-{emailContent}
-
-Please respond with a JSON object containing:
-- category: one of [invoice_creation, quote_creation, customer_creation, showroom_booking, product_inquiry, complaint, general_inquiry]
-- confidence: a number between 0 and 1
-- reasoning: brief explanation of why you chose this category
-- extractedData: object with relevant fields extracted from the email (e.g., customer name, amounts, product details)
-- requiredActions: array of strings describing what needs to be done
-- priority: one of [Low, Normal, High, Urgent]";
-
-                var requestBody = new
+            // Fallback to rules-based categorization
+            if (combined.Contains("site visit") || combined.Contains("site survey") || combined.Contains("visual"))
+                return new AIAnalysisResult
                 {
-                    model = _model,
-                    max_tokens = 2000,
-                    system = systemPrompt,
-                    messages = new[]
-                    {
-                        new
-                        {
-                            role = "user",
-                            content = userPrompt
-                        }
-                    }
+                    Category = "site_visit_meeting",
+                    Confidence = 0.75,
+                    Priority = "High",
+                    Sentiment = "Neutral",
+                    Reasoning = "Contains site visit keywords (fallback detection)",
+                    ExtractedData = new Dictionary<string, object>()
                 };
 
-                var json = JsonConvert.SerializeObject(requestBody);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Add("x-api-key", _apiKey);
-                _httpClient.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
-
-                var response = await _httpClient.PostAsync(_apiEndpoint, content);
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode)
+            if (combined.Contains("invoice") || combined.Contains("payment due"))
+                return new AIAnalysisResult
                 {
-                    _logger.LogError($"Claude API error: {response.StatusCode} - {responseContent}");
-                    throw new Exception($"Claude API returned {response.StatusCode}");
-                }
-
-                var apiResponse = JsonConvert.DeserializeObject<ClaudeResponse>(responseContent);
-
-                if (apiResponse?.Content == null || !apiResponse.Content.Any())
-                {
-                    throw new Exception("Empty response from Claude API");
-                }
-
-                var textContent = apiResponse.Content.First().Text;
-
-                // Extract JSON from the response (Claude might wrap it in markdown)
-                var jsonMatch = Regex.Match(textContent, @"```json\s*(\{[\s\S]*?\})\s*```");
-                var jsonString = jsonMatch.Success ? jsonMatch.Groups[1].Value : textContent;
-
-                // Try to parse as JSON
-                var result = JsonConvert.DeserializeObject<EmailAnalysisResult>(jsonString);
-
-                if (result == null)
-                {
-                    throw new Exception("Failed to parse AI response");
-                }
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error calling Claude API");
-                throw;
-            }
-        }
-
-        private string GetSystemPrompt()
-        {
-            return @"You are an intelligent email classification system for an awnings and outdoor products business. 
-
-Your job is to analyze incoming emails and categorize them accurately based on the customer's intent and the content of the message.
-
-Categories you can assign:
-1. invoice_creation - Customer is requesting an invoice, asking about billing, or needs an invoice sent
-2. quote_creation - Customer is requesting a price quote, asking for pricing, or needs a quotation
-3. customer_creation - New customer inquiry, someone asking to become a customer, or registration request
-4. showroom_booking - Customer wants to schedule a showroom visit, book an appointment, or view products in person
-5. product_inquiry - Questions about specific products, features, specifications, or availability
-6. complaint - Customer complaints, issues with service, product problems, or dissatisfaction
-7. general_inquiry - General questions that don't fit other categories
-
-For each email, extract relevant structured data such as:
-- Customer name
-- Contact information
-- Product names/types mentioned
-- Quantities
-- Amounts/prices mentioned
-- Dates mentioned
-- Urgency indicators
-
-Determine the priority level based on:
-- Urgent: Explicit urgent requests, complaints, time-sensitive matters
-- High: Quote requests, invoice requests, showroom bookings
-- Normal: Product inquiries, general questions
-- Low: Thank you emails, acknowledgments
-
-Be accurate and confident in your categorization. If an email is ambiguous, use context clues and make your best judgment.
-
-Always respond with valid JSON only, no additional text or markdown formatting.";
-        }
-
-        public async Task<string> ExtractTextFromPdfAsync(byte[] pdfContent)
-        {
-            try
-            {
-                _logger.LogInformation($"Extracting text from PDF using {_aiProvider}");
-
-                if (_aiProvider.ToLower() == "claude")
-                {
-                    return await ExtractTextFromPdfClaudeAsync(pdfContent);
-                }
-                else
-                {
-                    // For OpenAI, we would need to use a different approach
-                    // OpenAI doesn't support PDF directly, so we'd need to convert to text first
-                    _logger.LogWarning("PDF extraction with OpenAI not implemented. Consider using Claude or a dedicated PDF extraction library.");
-                    return string.Empty;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error extracting text from PDF");
-                return string.Empty;
-            }
-        }
-
-        private async Task<string> ExtractTextFromPdfClaudeAsync(byte[] pdfContent)
-        {
-            try
-            {
-                var base64Pdf = Convert.ToBase64String(pdfContent);
-
-                var requestBody = new
-                {
-                    model = "claude-sonnet-4-20250514",
-                    max_tokens = 4000,
-                    messages = new[]
-                    {
-                        new
-                        {
-                            role = "user",
-                            content = new object[]
-                            {
-                                new
-                                {
-                                    type = "document",
-                                    source = new
-                                    {
-                                        type = "base64",
-                                        media_type = "application/pdf",
-                                        data = base64Pdf
-                                    }
-                                },
-                                new
-                                {
-                                    type = "text",
-                                    text = "Please extract and return all text content from this PDF document. Focus on key information like amounts, dates, names, and product details."
-                                }
-                            }
-                        }
-                    }
+                    Category = "invoice_due",
+                    Confidence = 0.75,
+                    Priority = "High",
+                    Sentiment = "Neutral",
+                    Reasoning = "Contains invoice/payment keywords (fallback detection)",
+                    ExtractedData = new Dictionary<string, object>()
                 };
 
-                var json = JsonConvert.SerializeObject(requestBody);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Add("x-api-key", _apiKey);
-                _httpClient.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
-
-                var response = await _httpClient.PostAsync("https://api.anthropic.com/v1/messages", content);
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode)
+            var enquiryKeywords = new[] { "enquiry", "looking for", "interested in", "awning", "pergola", "shade" };
+            if (enquiryKeywords.Count(k => combined.Contains(k)) >= 2)
+                return new AIAnalysisResult
                 {
-                    _logger.LogError($"Claude API error: {response.StatusCode}");
-                    return string.Empty;
-                }
-
-                var apiResponse = JsonConvert.DeserializeObject<ClaudeResponse>(responseContent);
-                return apiResponse?.Content?.FirstOrDefault()?.Text ?? string.Empty;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error extracting text from PDF with Claude");
-                return string.Empty;
-            }
-        }
-
-        public async Task<string> ExtractTextFromImageAsync(byte[] imageContent)
-        {
-            try
-            {
-                _logger.LogInformation($"Extracting text from image using {_aiProvider}");
-
-                if (_aiProvider.ToLower() == "claude")
-                {
-                    return await ExtractTextFromImageClaudeAsync(imageContent);
-                }
-                else if (_aiProvider.ToLower() == "openai" || _aiProvider.ToLower() == "azureopenai")
-                {
-                    return await ExtractTextFromImageOpenAIAsync(imageContent);
-                }
-
-                return string.Empty;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error extracting text from image");
-                return string.Empty;
-            }
-        }
-
-        private async Task<string> ExtractTextFromImageClaudeAsync(byte[] imageContent)
-        {
-            try
-            {
-                var base64Image = Convert.ToBase64String(imageContent);
-
-                // Detect image type
-                var mediaType = "image/jpeg";
-                if (imageContent.Length > 2)
-                {
-                    if (imageContent[0] == 0x89 && imageContent[1] == 0x50) mediaType = "image/png";
-                    else if (imageContent[0] == 0xFF && imageContent[1] == 0xD8) mediaType = "image/jpeg";
-                }
-
-                var requestBody = new
-                {
-                    model = "claude-sonnet-4-20250514",
-                    max_tokens = 2000,
-                    messages = new[]
-                    {
-                        new
-                        {
-                            role = "user",
-                            content = new object[]
-                            {
-                                new
-                                {
-                                    type = "image",
-                                    source = new
-                                    {
-                                        type = "base64",
-                                        media_type = mediaType,
-                                        data = base64Image
-                                    }
-                                },
-                                new
-                                {
-                                    type = "text",
-                                    text = "Please extract all visible text from this image. Include any numbers, names, dates, or other important information."
-                                }
-                            }
-                        }
-                    }
+                    Category = "initial_enquiry",
+                    Confidence = 0.70,
+                    Priority = "Normal",
+                    Sentiment = "Neutral",
+                    Reasoning = "Contains enquiry keywords (fallback detection)",
+                    ExtractedData = new Dictionary<string, object>()
                 };
 
-                var json = JsonConvert.SerializeObject(requestBody);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Add("x-api-key", _apiKey);
-                _httpClient.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
-
-                var response = await _httpClient.PostAsync("https://api.anthropic.com/v1/messages", content);
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogError($"Claude API error: {response.StatusCode}");
-                    return string.Empty;
-                }
-
-                var apiResponse = JsonConvert.DeserializeObject<ClaudeResponse>(responseContent);
-                return apiResponse?.Content?.FirstOrDefault()?.Text ?? string.Empty;
-            }
-            catch (Exception ex)
+            return new AIAnalysisResult
             {
-                _logger.LogError(ex, "Error extracting text from image with Claude");
-                return string.Empty;
-            }
+                Category = "general_inquiry",
+                Confidence = 0.60,
+                Priority = "Normal",
+                Sentiment = "Neutral",
+                Reasoning = "Default categorization (fallback)",
+                ExtractedData = new Dictionary<string, object>()
+            };
         }
 
-        private async Task<string> ExtractTextFromImageOpenAIAsync(byte[] imageContent)
+        #endregion
+
+        #region Junk Email Detection (Rules-Based)
+
+        /// <summary>
+        /// Rules-based junk detection - Fast and deterministic
+        /// Detects: CRM notifications, Xero emails, automated systems
+        /// </summary>
+        private bool IsJunkEmail(string fromEmail, string subject, string body)
         {
-            try
+            // XERO EMAILS
+            if (fromEmail.Contains("xero.com") ||
+                fromEmail.Contains("@xero") ||
+                fromEmail.Contains("messaging-service@post.xero"))
             {
-                var base64Image = Convert.ToBase64String(imageContent);
-
-                // Detect image type
-                var mediaType = "image/jpeg";
-                if (imageContent.Length > 2)
-                {
-                    if (imageContent[0] == 0x89 && imageContent[1] == 0x50) mediaType = "image/png";
-                    else if (imageContent[0] == 0xFF && imageContent[1] == 0xD8) mediaType = "image/jpeg";
-                }
-
-                var requestBody = new
-                {
-                    model = _model,
-                    messages = new[]
-                    {
-                        new
-                        {
-                            role = "user",
-                            content = new object[]
-                            {
-                                new
-                                {
-                                    type = "text",
-                                    text = "Please extract all visible text from this image. Include any numbers, names, dates, or other important information."
-                                },
-                                new
-                                {
-                                    type = "image_url",
-                                    image_url = new
-                                    {
-                                        url = $"data:{mediaType};base64,{base64Image}"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    max_tokens = 2000
-                };
-
-                var json = JsonConvert.SerializeObject(requestBody);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                _httpClient.DefaultRequestHeaders.Clear();
-
-                if (_aiProvider.ToLower() == "azureopenai")
-                {
-                    _httpClient.DefaultRequestHeaders.Add("api-key", _apiKey);
-                }
-                else
-                {
-                    _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
-                }
-
-                var response = await _httpClient.PostAsync(_apiEndpoint, content);
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogError($"OpenAI API error: {response.StatusCode}");
-                    return string.Empty;
-                }
-
-                var apiResponse = JsonConvert.DeserializeObject<OpenAIResponse>(responseContent);
-                return apiResponse?.Choices?.FirstOrDefault()?.Message?.Content ?? string.Empty;
+                return true;
             }
-            catch (Exception ex)
+
+            // CRM CONTACT UPDATE NOTIFICATIONS
+            var crmPatterns = new[]
             {
-                _logger.LogError(ex, "Error extracting text from image with OpenAI");
-                return string.Empty;
+                "a new contact was added",
+                "contact was added or updated",
+                "contact was updated in the crm",
+                "new contact was added in",
+                "contact name:",
+                "go and review for accuracy",
+                "generic domain so no account was found",
+                "their email was from a generic domain"
+            };
+
+            var combined = $"{subject} {body}";
+            foreach (var pattern in crmPatterns)
+            {
+                if (combined.Contains(pattern))
+                    return true;
             }
+
+            // QUOTE ACCEPTED FROM XERO
+            if (combined.Contains("has accepted quote") && fromEmail.Contains("xero"))
+                return true;
+
+            // AUTOMATED SYSTEM EMAILS
+            var systemPatterns = new[] { "noreply@", "no-reply@", "donotreply@", "do-not-reply@" };
+            foreach (var pattern in systemPatterns)
+            {
+                if (fromEmail.Contains(pattern))
+                    return true;
+            }
+
+            return false;
         }
 
-        private string StripHtml(string html)
+        #endregion
+
+        #region Data Extraction (Rules-Based)
+
+        private Dictionary<string, object> ExtractDataFromEmail(IncomingEmail email, string category)
         {
-            if (string.IsNullOrEmpty(html)) return string.Empty;
+            var data = new Dictionary<string, object>
+            {
+                { "fromName", email.FromName ?? "" },
+                { "fromEmail", email.FromEmail ?? "" },
+                { "subject", email.Subject ?? "" }
+            };
 
-            // Remove HTML tags
-            var text = Regex.Replace(html, "<.*?>", string.Empty);
+            var phone = ExtractPhoneNumber(email.BodyContent);
+            if (!string.IsNullOrEmpty(phone))
+                data["phone"] = phone;
 
-            // Decode HTML entities
-            text = System.Net.WebUtility.HtmlDecode(text);
+            var companyNumber = ExtractCompanyNumber(email.BodyContent);
+            if (!string.IsNullOrEmpty(companyNumber))
+                data["companyNumber"] = companyNumber;
 
-            // Remove extra whitespace
-            text = Regex.Replace(text, @"\s+", " ").Trim();
+            // Category-specific extraction
+            switch (category)
+            {
+                case "initial_enquiry":
+                    var dimensions = ExtractDimensions(email.BodyContent);
+                    if (!string.IsNullOrEmpty(dimensions))
+                        data["dimensions"] = dimensions;
+                    break;
 
-            return text;
+                case "site_visit_meeting":
+                    var date = ExtractPreferredDate(email.BodyContent);
+                    if (!string.IsNullOrEmpty(date))
+                        data["preferredDate"] = date;
+                    break;
+
+                case "invoice_due":
+                    var invoiceNum = ExtractInvoiceNumber(email.BodyContent);
+                    if (!string.IsNullOrEmpty(invoiceNum))
+                        data["invoiceNumber"] = invoiceNum;
+
+                    var amount = ExtractAmount(email.BodyContent);
+                    if (amount.HasValue)
+                        data["amount"] = amount.Value;
+                    break;
+            }
+
+            return data;
         }
 
-        // API response models
+        private Dictionary<string, object> MergeExtractedData(
+            Dictionary<string, object> aiData,
+            Dictionary<string, object> rulesData)
+        {
+            var merged = new Dictionary<string, object>(aiData);
+
+            foreach (var kvp in rulesData)
+            {
+                if (!merged.ContainsKey(kvp.Key))
+                    merged[kvp.Key] = kvp.Value;
+            }
+
+            return merged;
+        }
+
+        private string ExtractCompanyNumber(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            var match = Regex.Match(text, @"company\s*number[:\s]*([A-Z0-9]+)", RegexOptions.IgnoreCase);
+            return match.Success ? match.Groups[1].Value : null;
+        }
+
+        private string ExtractPhoneNumber(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            var match = Regex.Match(text, @"(\+353|0)[\s-]?(\d{2})[\s-]?(\d{3,4})[\s-]?(\d{4})");
+            return match.Success ? match.Value : null;
+        }
+
+        private string ExtractDimensions(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            var match = Regex.Match(text, @"\d+\s*(?:m|cm)\s*(?:x|by)\s*\d+\s*(?:m|cm)", RegexOptions.IgnoreCase);
+            return match.Success ? match.Value : null;
+        }
+
+        private string ExtractPreferredDate(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            var match = Regex.Match(text, @"between\s+(\d{1,2}:\d{2})\s+and\s+(\d{1,2}:\d{2})", RegexOptions.IgnoreCase);
+            return match.Success ? match.Value : null;
+        }
+
+        private string ExtractInvoiceNumber(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            var match = Regex.Match(text, @"invoice\s*#?\s*(?:no\.?)?(\d+)", RegexOptions.IgnoreCase);
+            return match.Success ? match.Groups[1].Value : null;
+        }
+
+        private decimal? ExtractAmount(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            var match = Regex.Match(text, @"[€£$]\s*(\d+(?:,\d{3})*(?:\.\d{2})?)");
+            if (match.Success && decimal.TryParse(match.Groups[1].Value.Replace(",", ""), out var value))
+                return value;
+            return null;
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        private string MapCategoryToTaskType(string category)
+        {
+            return category switch
+            {
+                "initial_enquiry" => "initial_enquiry",
+                "site_visit_meeting" => "site_visit",
+                "invoice_due" => "payment_followup",
+                "quote_creation" => "quote_creation",
+                "showroom_booking" => "showroom_booking",
+                "complaint" => "complaint",
+                _ => "general_inquiry"
+            };
+        }
+
+        private List<string> DetermineRequiredActions(string category)
+        {
+            return category switch
+            {
+                "initial_enquiry" => new List<string> { "check_customer", "create_workflow", "create_enquiry", "create_task" },
+                "site_visit_meeting" => new List<string> { "create_audit_log", "create_task" },
+                "invoice_due" => new List<string> { "create_audit_log", "create_task" },
+                "junk" => new List<string> { "mark_as_junk" },
+                _ => new List<string> { "create_task" }
+            };
+        }
+
+        #endregion
+
+        #region AI Response Models
+
+        private class AIAnalysisResult
+        {
+            public string Category { get; set; }
+            public double Confidence { get; set; }
+            public string Priority { get; set; }
+            public string Sentiment { get; set; }
+            public string Reasoning { get; set; }
+            public Dictionary<string, object> ExtractedData { get; set; } = new();
+        }
+
         private class ClaudeResponse
         {
-            [JsonProperty("content")]
-            public List<ContentBlock>? Content { get; set; }
+            public Content[] content { get; set; }
         }
 
-        private class ContentBlock
+        private class Content
         {
-            [JsonProperty("type")]
-            public string? Type { get; set; }
-
-            [JsonProperty("text")]
-            public string? Text { get; set; }
+            public string text { get; set; }
         }
 
         private class OpenAIResponse
         {
-            [JsonProperty("choices")]
-            public List<OpenAIChoice>? Choices { get; set; }
+            public Choice[] choices { get; set; }
         }
 
-        private class OpenAIChoice
+        private class Choice
         {
-            [JsonProperty("message")]
-            public OpenAIMessage? Message { get; set; }
+            public Message message { get; set; }
         }
 
-        private class OpenAIMessage
+        private class Message
         {
-            [JsonProperty("content")]
-            public string? Content { get; set; }
+            public string content { get; set; }
         }
+
+        #endregion
     }
 }
