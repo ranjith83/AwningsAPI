@@ -1,6 +1,7 @@
 ﻿using AwningsAPI.Database;
 using AwningsAPI.Dto.Tasks;
 using AwningsAPI.Interfaces;
+using AwningsAPI.Model.Customers;
 using AwningsAPI.Model.Email;
 using AwningsAPI.Model.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -88,7 +89,16 @@ namespace AwningsAPI.Services.Tasks
             await _context.SaveChangesAsync();
 
             // Add history entry
-            await AddHistoryEntry(task.TaskId, "Created", null, null, $"Task created from email", currentUser);
+            await AddHistoryEntry(
+                taskId: task.TaskId,
+                action: "Created",
+                oldValue: null,
+                newValue: null,
+                details: "Task created from email",
+                createdBy: currentUser,
+                customerName: task.CustomerName,
+                subject: task.Subject,
+                category: task.Category);
 
             return await GetTaskByIdAsync(task.TaskId);
         }
@@ -103,7 +113,13 @@ namespace AwningsAPI.Services.Tasks
 
             if (!string.IsNullOrEmpty(updateDto.Status) && task.Status != updateDto.Status)
             {
-                await AddHistoryEntry(taskId, "StatusChanged", task.Status, updateDto.Status, null, currentUser);
+                await AddHistoryEntry(
+                    taskId: taskId,
+                    action: "StatusChanged",
+                    oldValue: task.Status,
+                    newValue: updateDto.Status,
+                    details: null,
+                    createdBy: currentUser);
                 task.Status = updateDto.Status;
 
                 if (updateDto.Status == "Processed")
@@ -158,7 +174,13 @@ namespace AwningsAPI.Services.Tasks
 
             if (changes.Any())
             {
-                await AddHistoryEntry(taskId, "Updated", null, null, string.Join("; ", changes), currentUser);
+                await AddHistoryEntry(
+                    taskId: taskId,
+                    action: "Updated",
+                    oldValue: null,
+                    newValue: null,
+                    details: string.Join("; ", changes),
+                    createdBy: currentUser);
             }
 
             return await GetTaskByIdAsync(taskId);
@@ -205,7 +227,13 @@ namespace AwningsAPI.Services.Tasks
 
             await _context.SaveChangesAsync();
 
-            await AddHistoryEntry(taskId, "StatusChanged", oldStatus, statusDto.Status, statusDto.CompletionNotes, currentUser);
+            await AddHistoryEntry(
+                taskId: taskId,
+                action: "StatusChanged",
+                oldValue: oldStatus,
+                newValue: statusDto.Status,
+                details: statusDto.CompletionNotes,
+                createdBy: currentUser);
 
             return await GetTaskByIdAsync(taskId);
         }
@@ -227,24 +255,56 @@ namespace AwningsAPI.Services.Tasks
 
         public async Task<EmailTaskDto> AssignTaskAsync(int taskId, AssignTaskDto assignDto, string currentUser)
         {
-            var task = await _context.EmailTasks.FindAsync(taskId);
-            if (task == null)
-                return null;
+            try
+            {
+                var task = await _context.EmailTasks.FindAsync(taskId);
+                if (task == null)
+                    return null;
 
-            var user = await _context.Users.FindAsync(assignDto.AssignedToUserId);
-            if (user == null)
-                return null;
+                var user = await _context.Users.FindAsync(assignDto.AssignedToUserId);
+                if (user == null)
+                    return null;
 
-            var oldAssignee = task.AssignedToUserName ?? "Unassigned";
-            task.AssignedToUserId = assignDto.AssignedToUserId;
-            task.AssignedToUserName = user.Username;
-            task.DateUpdated = DateTime.UtcNow;
-            task.UpdatedBy = currentUser;
+                var oldAssignee = task.AssignedToUserName ?? "Unassigned";
 
-            await _context.SaveChangesAsync();
+                // Assign the user
+                task.AssignedToUserId = assignDto.AssignedToUserId;
+                task.AssignedToUserName = user.Username;
+                task.DateUpdated = DateTime.UtcNow;
+                task.UpdatedBy = currentUser;
 
-            await AddHistoryEntry(taskId, "Assigned", oldAssignee, user.Username, assignDto.Notes, currentUser);
+                // Assigning a task marks it as Processed and moves it to the Processed tab
+                var oldStatus = task.Status;
+                task.Status = "Processed";
+                task.DateProcessed = DateTime.UtcNow;
+                task.ProcessedBy = currentUser;
 
+                await _context.SaveChangesAsync();
+
+                await AddHistoryEntry(
+                    taskId: taskId,
+                    action: "Assigned",
+                    oldValue: oldAssignee,
+                    newValue: user.Username,
+                    details: assignDto.Notes,
+                    createdBy: currentUser,
+                    customerName: task.CustomerName,
+                    subject: task.Subject,
+                    category: task.Category);
+
+                if (oldStatus != "Processed")
+                    await AddHistoryEntry(
+                        taskId: taskId,
+                        action: "StatusChanged",
+                        oldValue: oldStatus,
+                        newValue: "Processed",
+                        details: $"Status set to Processed when assigned to {user.Username}",
+                        createdBy: currentUser);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
             return await GetTaskByIdAsync(taskId);
         }
 
@@ -262,7 +322,16 @@ namespace AwningsAPI.Services.Tasks
 
             await _context.SaveChangesAsync();
 
-            await AddHistoryEntry(taskId, "Unassigned", oldAssignee, "Unassigned", null, currentUser);
+            await AddHistoryEntry(
+                taskId: taskId,
+                action: "Unassigned",
+                oldValue: oldAssignee,
+                newValue: "Unassigned",
+                details: null,
+                createdBy: currentUser,
+                customerName: task.CustomerName,
+                subject: task.Subject,
+                category: task.Category);
 
             return await GetTaskByIdAsync(taskId);
         }
@@ -287,7 +356,13 @@ namespace AwningsAPI.Services.Tasks
             _context.TaskComments.Add(comment);
             await _context.SaveChangesAsync();
 
-            await AddHistoryEntry(taskId, "Commented", null, null, $"Comment added", currentUser);
+            await AddHistoryEntry(
+                taskId: taskId,
+                action: "Commented",
+                oldValue: null,
+                newValue: null,
+                details: "Comment added",
+                createdBy: currentUser);
 
             return new TaskCommentDto
             {
@@ -686,7 +761,23 @@ namespace AwningsAPI.Services.Tasks
 
         #region Helper Methods
 
-        private async Task AddHistoryEntry(int taskId, string action, string oldValue, string newValue, string details, string createdBy)
+        /// <summary>
+        /// Writes one row to TaskHistories.
+        /// The optional customerName / subject / category params are denormalised
+        /// at write time so the Audit tab grid never needs a join back to EmailTasks.
+        /// Only pass them for the three audit-visible actions:
+        ///   Created | Assigned | Unassigned
+        /// </summary>
+        private async Task AddHistoryEntry(
+            int taskId,
+            string action,
+            string? oldValue,
+            string? newValue,
+            string? details,
+            string createdBy,
+            string? customerName = null,
+            string? subject = null,
+            string? category = null)
         {
             var history = new TaskHistory
             {
@@ -696,11 +787,64 @@ namespace AwningsAPI.Services.Tasks
                 NewValue = newValue,
                 Details = details,
                 DateCreated = DateTime.UtcNow,
-                CreatedBy = createdBy
+                CreatedBy = createdBy,
+                CustomerName = customerName,
+                Subject = subject,
+                Category = category
             };
 
             _context.TaskHistories.Add(history);
             await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Returns paginated TaskHistory rows filtered to the three audit actions:
+        ///   Created | Assigned | Unassigned
+        /// Optionally narrow to one action via the action parameter.
+        /// Called by: GET /api/EmailTask/audit
+        /// </summary>
+        public async Task<TaskHistoryPagedDto> GetTaskAuditHistoryAsync(
+            int page = 1,
+            int pageSize = 20,
+            string? action = null)
+        {
+            var auditActions = new[] { "Created", "Assigned", "Unassigned" };
+
+            var query = _context.TaskHistories
+                .Where(h => auditActions.Contains(h.Action));
+
+            if (!string.IsNullOrEmpty(action) && auditActions.Contains(action))
+                query = query.Where(h => h.Action == action);
+
+            query = query.OrderByDescending(h => h.DateCreated);
+
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new TaskHistoryPagedDto
+            {
+                Items = items.Select(h => new TaskHistoryDto
+                {
+                    HistoryId = h.HistoryId,
+                    TaskId = h.TaskId,
+                    Action = h.Action,
+                    OldValue = h.OldValue,
+                    NewValue = h.NewValue,
+                    Details = h.Details,
+                    DateCreated = h.DateCreated,
+                    CreatedBy = h.CreatedBy,
+                    CustomerName = h.CustomerName,
+                    Subject = h.Subject,
+                    Category = h.Category
+                }).ToList(),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
         }
 
         private async Task<EmailTaskDto> MapToDto(EmailTask task)
@@ -774,7 +918,10 @@ namespace AwningsAPI.Services.Tasks
                     NewValue = h.NewValue,
                     Details = h.Details,
                     DateCreated = h.DateCreated,
-                    CreatedBy = h.CreatedBy
+                    CreatedBy = h.CreatedBy,
+                    CustomerName = h.CustomerName,
+                    Subject = h.Subject,
+                    Category = h.Category
                 }).OrderByDescending(h => h.DateCreated).ToList() ?? new List<TaskHistoryDto>()
             };
         }
@@ -1019,8 +1166,174 @@ namespace AwningsAPI.Services.Tasks
             };
         }
 
-#endregion
+        #endregion
+
+        #region Customer Linking
+
+        /// <summary>
+        /// GET /api/EmailTask/{taskId}/extracted-customer-data
+        /// Returns customer data extracted by AI from the email, for pre-filling the customer creation form.
+        /// </summary>
+        public async Task<ExtractedCustomerDataDto> GetExtractedCustomerDataAsync(int taskId)
+        {
+            var task = await _context.EmailTasks
+                .FirstOrDefaultAsync(t => t.TaskId == taskId);
+
+            if (task == null)
+                return null;
+
+            var result = new ExtractedCustomerDataDto
+            {
+                TaskId = taskId,
+                Email = task.FromEmail,
+                FromName = task.FromName,
+                CompanyNumber = task.CompanyNumber,
+                Subject = task.Subject,
+                CustomerName = task.CustomerName
+            };
+
+            // Split FromName into first / last for the customer form
+            if (!string.IsNullOrWhiteSpace(task.FromName))
+            {
+                var parts = task.FromName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                result.ContactFirstName = parts[0];
+                result.ContactLastName = parts.Length > 1 ? parts[1] : string.Empty;
+            }
+
+            // Overlay any richer fields that the AI already extracted
+            if (!string.IsNullOrWhiteSpace(task.ExtractedData))
+            {
+                try
+                {
+                    var extracted = JsonConvert.DeserializeObject<Dictionary<string, object>>(task.ExtractedData);
+                    if (extracted != null)
+                    {
+                        result.Phone = GetValue(extracted, "phone", null);
+                        result.Mobile = GetValue(extracted, "mobile", null);
+                        result.Address = GetValue(extracted, "address", null);
+
+                        var firstName = GetValue(extracted, "firstName", null);
+                        var lastName = GetValue(extracted, "lastName", null);
+                        if (!string.IsNullOrWhiteSpace(firstName)) result.ContactFirstName = firstName;
+                        if (!string.IsNullOrWhiteSpace(lastName)) result.ContactLastName = lastName;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not parse ExtractedData for task {TaskId}", taskId);
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// POST /api/EmailTask/check-customer-exists
+        /// Checks whether a customer already exists by email or company number.
+        /// </summary>
+        public async Task<CustomerExistsResponseDto> CheckCustomerExistsAsync(string? email, string? companyNumber)
+        {
+            Customer customer = null;
+
+            if (!string.IsNullOrWhiteSpace(email))
+                customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.Email.ToLower() == email.ToLower());
+
+            if (customer == null && !string.IsNullOrWhiteSpace(companyNumber))
+                customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.CompanyNumber == companyNumber);
+
+            return new CustomerExistsResponseDto
+            {
+                Exists = customer != null,
+                CustomerId = customer?.CustomerId,
+                CustomerName = customer?.Name,
+                Email = customer?.Email,
+                CompanyNumber = customer?.CompanyNumber
+            };
+        }
+
+        /// <summary>
+        /// POST /api/EmailTask/{taskId}/link-customer
+        /// Links an existing customer to a task and records the change in history.
+        /// </summary>
+        public async Task<EmailTaskDto> LinkCustomerToTaskAsync(int taskId, int customerId, string currentUser)
+        {
+            var task = await _context.EmailTasks
+                .Include(t => t.TaskAttachments)
+                .FirstOrDefaultAsync(t => t.TaskId == taskId);
+
+            if (task == null)
+                return null;
+
+            var customer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.CustomerId == customerId)
+                ?? throw new KeyNotFoundException($"Customer {customerId} not found");
+
+            var previousCustomerId = task.CustomerId;
+            var previousCustomerName = task.CustomerName;
+
+            task.CustomerId = customerId;
+            task.CustomerName = customer.Name;
+            task.CompanyNumber = customer.CompanyNumber;
+            task.DateUpdated = DateTime.UtcNow;
+            task.UpdatedBy = currentUser;
+
+            await _context.SaveChangesAsync();
+
+            var note = previousCustomerId.HasValue
+                ? $"Customer changed from '{previousCustomerName}' to '{customer.Name}'"
+                : $"Customer linked: '{customer.Name}'";
+
+            await AddHistoryEntry(
+                taskId: taskId,
+                action: "CustomerLinked",
+                oldValue: previousCustomerId?.ToString(),
+                newValue: customerId.ToString(),
+                details: note,
+                createdBy: currentUser);
+
+            _logger.LogInformation("Customer {CustomerId} linked to task {TaskId} by {User}",
+                customerId, taskId, currentUser);
+
+            return await MapToDto(task);
+        }
+
+        #endregion
 
 
     }
+}
+
+// ==================== NEW DTOs (add to your Dto/Tasks folder) ====================
+// ExtractedCustomerDataDto.cs
+public class ExtractedCustomerDataDto
+{
+    public int TaskId { get; set; }
+    public string? Email { get; set; }
+    public string? FromName { get; set; }
+    public string? CompanyNumber { get; set; }
+    public string? Subject { get; set; }
+    public string? CustomerName { get; set; }
+    public string? ContactFirstName { get; set; }
+    public string? ContactLastName { get; set; }
+    public string? Phone { get; set; }
+    public string? Mobile { get; set; }
+    public string? Address { get; set; }
+}
+
+// CustomerExistsResponseDto.cs
+public class CustomerExistsResponseDto
+{
+    public bool Exists { get; set; }
+    public int? CustomerId { get; set; }
+    public string? CustomerName { get; set; }
+    public string? Email { get; set; }
+    public string? CompanyNumber { get; set; }
+}
+
+// LinkCustomerRequestDto.cs
+public class LinkCustomerRequestDto
+{
+    public int CustomerId { get; set; }
 }

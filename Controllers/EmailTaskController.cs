@@ -389,7 +389,7 @@ namespace AwningsAPI.Controllers
                 var currentUser = GetCurrentUserName();
                 var task = await _taskService.AssignTaskAsync(taskId, assignDto, currentUser);
 
-                if (task == null)
+                    if (task == null)
                 {
                     return NotFound(new { error = "Task not found" });
                 }
@@ -428,6 +428,31 @@ namespace AwningsAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Paginated task audit log — shown in the front-end "Task Audit" tab.
+        /// Returns TaskHistory rows filtered to: Created | Assigned | Unassigned
+        ///
+        /// GET /api/EmailTask/audit
+        /// GET /api/EmailTask/audit?page=1&pageSize=20
+        /// GET /api/EmailTask/audit?action=Assigned
+        /// </summary>
+        [HttpGet("audit")]
+        public async Task<ActionResult<TaskHistoryPagedDto>> GetTaskAuditHistory(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? action = null)
+        {
+            try
+            {
+                var result = await _taskService.GetTaskAuditHistoryAsync(page, pageSize, action);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving task audit history");
+                return StatusCode(500, new { error = "Failed to retrieve audit history", details = ex.Message });
+            }
+        }
         #endregion
 
         #region DELETE Endpoints
@@ -636,6 +661,106 @@ namespace AwningsAPI.Controllers
                 return StatusCode(500, new { error = "An error occurred while executing the action", details = ex.Message });
             }
         }
+
+
+        // ==================== NEW: CUSTOMER CREATION ENDPOINTS ====================
+
+        /// <summary>
+        /// Returns AI-extracted customer data from an email task,
+        /// used to pre-fill the customer creation form in the UI.
+        /// Called by Angular: getExtractedCustomerData(taskId)
+        /// GET /api/EmailTask/{taskId}/extracted-customer-data
+        /// </summary>
+        [HttpGet("{taskId}/extracted-customer-data")]
+        public async Task<IActionResult> GetExtractedCustomerData(int taskId)
+        {
+            try
+            {
+                var data = await _taskService.GetExtractedCustomerDataAsync(taskId);
+
+                if (data == null)
+                    return NotFound(new { error = "Task not found" });
+
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting extracted customer data for task {TaskId}", taskId);
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Checks whether a customer already exists by email or company number,
+        /// preventing duplicate creation before the user submits the form.
+        /// Called by Angular: checkCustomerExists({ email, companyNumber })
+        /// POST /api/EmailTask/check-customer-exists
+        /// </summary>
+        [HttpPost("check-customer-exists")]
+        public async Task<IActionResult> CheckCustomerExists([FromBody] CheckCustomerRequestDto request)
+        {
+            try
+            {
+                var result = await _taskService.CheckCustomerExistsAsync(request.Email, request.CompanyNumber);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking customer exists");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Links an existing customer record to a task after the user
+        /// either creates a new customer or selects an existing one.
+        /// Called by Angular: linkCustomerToTask(taskId, customerId)
+        /// POST /api/EmailTask/{taskId}/link-customer
+        /// </summary>
+        [HttpPost("{taskId}/link-customer")]
+        public async Task<IActionResult> LinkCustomerToTask(int taskId, [FromBody] LinkCustomerRequestDto request)
+        {
+            try
+            {
+                var currentUser = GetCurrentUserName();
+                var task = await _taskService.LinkCustomerToTaskAsync(taskId, request.CustomerId, currentUser);
+
+                if (task == null)
+                    return NotFound(new { error = "Task not found" });
+
+                return Ok(task);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error linking customer {CustomerId} to task {TaskId}",
+                    request.CustomerId, taskId);
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+    
+
+    // ==================== REQUEST DTOs ====================
+
+    public class CheckCustomerRequestDto
+    {
+        public string? Email { get; set; }
+        public string? CompanyNumber { get; set; }
+    }
+
+    public class AssignTaskRequestDto
+    {
+        public int AssignedToUserId { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public class ExecuteActionRequestDto
+    {
+        public object? Data { get; set; }
+    }
 
         #endregion
 

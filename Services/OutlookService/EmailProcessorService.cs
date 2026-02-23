@@ -193,10 +193,10 @@ namespace AwningsAPI.Services.Email
                 // Mark as read and move to appropriate folder
                 await _emailReaderService.MarkEmailAsReadAsync(mailboxEmail, email.EmailId);
 
-                var folderName = analysisResult.IsSpam ? "Junk" : $"Processed/{email.Category}";
-                await _emailReaderService.MoveEmailToFolderAsync(mailboxEmail, email.EmailId, folderName);
+                //var folderName = analysisResult.IsSpam ? "Junk" : $"Processed/{email.Category}";
+                //await _emailReaderService.MoveEmailToFolderAsync(mailboxEmail, email.EmailId, folderName);
 
-                _logger.LogInformation($"✅ Email {email.EmailId} processed and moved to {folderName}");
+               // _logger.LogInformation($"✅ Email {email.EmailId} processed and moved to {folderName}");
             }
             catch (Exception ex)
             {

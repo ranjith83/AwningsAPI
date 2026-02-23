@@ -13,7 +13,7 @@ namespace AwningsAPI.Model.Tasks
         [Required]
         public int IncomingEmailId { get; set; }
 
-        
+
         [Required]
         [StringLength(255)]
         public string? FromName { get; set; }
@@ -213,6 +213,20 @@ namespace AwningsAPI.Model.Tasks
         [Column(TypeName = "nvarchar(MAX)")]
         public string? Details { get; set; }
 
+        // ── Audit-grid columns — denormalised from EmailTask at write time ────
+        // These three columns power the front-end "Task Audit" tab.
+        // Migration: dotnet ef migrations add AddTaskHistoryAuditColumns
+        //            dotnet ef database update
+        [StringLength(255)]
+        public string? CustomerName { get; set; }
+
+        [StringLength(500)]
+        public string? Subject { get; set; }
+
+        [StringLength(100)]
+        public string? Category { get; set; }
+        // ─────────────────────────────────────────────────────────────────────
+
         public DateTime DateCreated { get; set; } = DateTime.UtcNow;
 
         [StringLength(100)]
@@ -221,6 +235,9 @@ namespace AwningsAPI.Model.Tasks
         // Navigation Property
         [ForeignKey("TaskId")]
         public virtual EmailTask EmailTask { get; set; }
+
+        //public string PerformedBy { get; set; } = string.Empty;
+        //public DateTime PerformedDate { get; set; }
     }
 
     // Task Statistics Model

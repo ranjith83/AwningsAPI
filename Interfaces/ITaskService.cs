@@ -14,6 +14,8 @@ namespace AwningsAPI.Interfaces
         Task<EmailTaskDto> UpdateTaskAsync(int taskId, UpdateTaskDto updateDto, string currentUser);
         Task<bool> DeleteTaskAsync(int taskId);
 
+        Task<TaskHistoryPagedDto> GetTaskAuditHistoryAsync(int page = 1, int pageSize = 20, string? action = null);
+
         // Status Management
         Task<EmailTaskDto> UpdateTaskStatusAsync(int taskId, UpdateTaskStatusDto statusDto, string currentUser);
         Task<EmailTaskDto> CompleteTaskAsync(int taskId, string completionNotes, string currentUser);
@@ -53,5 +55,12 @@ namespace AwningsAPI.Interfaces
         /// <param name="data">Additional data for the action</param>
         /// <returns>Result of the action execution</returns>
         Task<object> ExecuteTaskActionAsync(int taskId, string action, object data);
+
+        Task<ExtractedCustomerDataDto> GetExtractedCustomerDataAsync(int taskId);
+        Task<CustomerExistsResponseDto> CheckCustomerExistsAsync(string? email, string? companyNumber);
+        Task<EmailTaskDto> LinkCustomerToTaskAsync(int taskId, int customerId, string currentUser);
+
+
+
     }
 }

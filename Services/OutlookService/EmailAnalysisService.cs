@@ -400,7 +400,7 @@ Respond ONLY with the JSON object, no other text.";
             // XERO EMAILS
             if (fromEmail.Contains("xero.com") ||
                 fromEmail.Contains("@xero") ||
-                fromEmail.Contains("messaging-service@post.xero"))
+                fromEmail.Contains("messaging-service@post.xero") || fromEmail.Contains("noreply"))
             {
                 return true;
             }

@@ -89,16 +89,43 @@ namespace AwningsAPI.Dto.Tasks
         public string UploadedBy { get; set; }
     }
 
+    /// <summary>
+    /// One TaskHistory row. The three audit-grid columns
+    /// (CustomerName, Subject, Category) are populated only for
+    /// audit-relevant actions: Created, Assigned, Unassigned.
+    /// All other actions leave them null.
+    /// </summary>
     public class TaskHistoryDto
     {
         public int HistoryId { get; set; }
         public int TaskId { get; set; }
-        public string Action { get; set; }
-        public string OldValue { get; set; }
-        public string NewValue { get; set; }
-        public string Details { get; set; }
+        public string Action { get; set; }   // Created | Assigned | Unassigned | StatusChanged | Updated | Commented | CustomerLinked
+        public string? OldValue { get; set; }
+        public string? NewValue { get; set; }
+        public string? Details { get; set; }
         public DateTime DateCreated { get; set; }
-        public string CreatedBy { get; set; }
+        public string? CreatedBy { get; set; }
+
+        // ── Audit-grid columns (populated for Created / Assigned / Unassigned) ──
+        public string? CustomerName { get; set; }
+        public string? Subject { get; set; }
+        public string? Category { get; set; }
+    }
+
+    /// <summary>
+    /// Paginated wrapper returned by GET /api/EmailTask/audit.
+    /// Rows are filtered to: Created | Assigned | Unassigned.
+    /// JSON property names (camelCase after serialisation):
+    ///   items, totalCount, page, pageSize, totalPages
+    /// These must match exactly what the Angular TaskHistoryPagedDto interface expects.
+    /// </summary>
+    public class TaskHistoryPagedDto
+    {
+        public List<TaskHistoryDto> Items { get; set; } = new();
+        public int TotalCount { get; set; }
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalPages { get; set; }
     }
 
     public class CreateTaskDto
@@ -158,8 +185,8 @@ namespace AwningsAPI.Dto.Tasks
     public class TaskFilterDto
     {
         public string? Status { get; set; }
-        public string? TaskType { get; set; } 
-        public string? Priority { get; set; } 
+        public string? TaskType { get; set; }
+        public string? Priority { get; set; }
         public int? AssignedToUserId { get; set; }
         public int? CustomerId { get; set; }
         public DateTime? DueDateFrom { get; set; }
