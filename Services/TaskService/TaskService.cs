@@ -810,8 +810,14 @@ namespace AwningsAPI.Services.Tasks
         {
             var auditActions = new[] { "Created", "Assigned", "Unassigned" };
 
+            //var query = _context.TaskHistories
+            //    .Where(h => auditActions.Contains(h.Action));
+
             var query = _context.TaskHistories
-                .Where(h => auditActions.Contains(h.Action));
+              .Where(h =>
+                  h.Action == "Created" ||
+                  h.Action == "Assigned" ||
+                  h.Action == "Unassigned");
 
             if (!string.IsNullOrEmpty(action) && auditActions.Contains(action))
                 query = query.Where(h => h.Action == action);
