@@ -65,25 +65,15 @@ namespace AwningsAPI.Services.Tasks
                 EmailBody = createDto.EmailBody,
                 CompanyNumber = createDto.CompanyNumber,
                 Priority = createDto.Priority ?? "Normal",
-                Status = "Pending",
+                Status = "New",           // New tasks always start as "New" with no assignee
+                AssignedToUserId = null,  // No assignee on creation
                 DueDate = createDto.DueDate,
-                AssignedToUserId = createDto.AssignedToUserId,
                 CustomerId = createDto.CustomerId,
                 WorkflowId = createDto.WorkflowId,
                 DateAdded = DateTime.UtcNow,
                 DateCreated = DateTime.UtcNow,
                 CreatedBy = currentUser
             };
-
-            // Get assignee name if assigned
-            if (task.AssignedToUserId.HasValue)
-            {
-                var user = await _context.Users.FindAsync(task.AssignedToUserId.Value);
-                if (user != null)
-                {
-                    task.AssignedToUserName = user.Username;
-                }
-            }
 
             _context.EmailTasks.Add(task);
             await _context.SaveChangesAsync();
@@ -122,10 +112,15 @@ namespace AwningsAPI.Services.Tasks
                     createdBy: currentUser);
                 task.Status = updateDto.Status;
 
-                if (updateDto.Status == "Processed")
+                if (updateDto.Status == "In Progress")
                 {
                     task.DateProcessed = DateTime.UtcNow;
                     task.ProcessedBy = currentUser;
+                }
+                else if (updateDto.Status == "Completed")
+                {
+                    task.CompletedDate = DateTime.UtcNow;
+                    task.CompletedBy = currentUser;
                 }
             }
 
@@ -212,7 +207,7 @@ namespace AwningsAPI.Services.Tasks
             task.DateUpdated = DateTime.UtcNow;
             task.UpdatedBy = currentUser;
 
-            if (statusDto.Status == "Processed")
+            if (statusDto.Status == "In Progress")
             {
                 task.DateProcessed = DateTime.UtcNow;
                 task.ProcessedBy = currentUser;
@@ -266,6 +261,14 @@ namespace AwningsAPI.Services.Tasks
                     return null;
 
                 var oldAssignee = task.AssignedToUserName ?? "Unassigned";
+                var isReassignment = task.AssignedToUserId.HasValue && task.AssignedToUserId != assignDto.AssignedToUserId;
+
+                // Track previous assignee when re-assigning
+                if (isReassignment)
+                {
+                    task.PreviousAssignedToUserId = task.AssignedToUserId;
+                    task.PreviousAssignedToUserName = task.AssignedToUserName;
+                }
 
                 // Assign the user
                 task.AssignedToUserId = assignDto.AssignedToUserId;
@@ -273,9 +276,16 @@ namespace AwningsAPI.Services.Tasks
                 task.DateUpdated = DateTime.UtcNow;
                 task.UpdatedBy = currentUser;
 
-                // Assigning a task marks it as Processed and moves it to the Processed tab
+                // First assignment → In Progress; Re-assignment → More Info (In Progress tab)
                 var oldStatus = task.Status;
-                task.Status = "Processed";
+                if (isReassignment)
+                {
+                    task.Status = "More Info";
+                }
+                else
+                {
+                    task.Status = "In Progress";
+                }
                 task.DateProcessed = DateTime.UtcNow;
                 task.ProcessedBy = currentUser;
 
@@ -292,13 +302,15 @@ namespace AwningsAPI.Services.Tasks
                     subject: task.Subject,
                     category: task.Category);
 
-                if (oldStatus != "Processed")
+                if (oldStatus != "In Progress" && oldStatus != "More Info")
                     await AddHistoryEntry(
                         taskId: taskId,
                         action: "StatusChanged",
                         oldValue: oldStatus,
-                        newValue: "Processed",
-                        details: $"Status set to Processed when assigned to {user.Username}",
+                        newValue: task.Status,
+                        details: isReassignment
+                            ? $"Status set to More Info when re-assigned from {oldAssignee} to {user.Username}"
+                            : $"Status set to In Progress when assigned to {user.Username}",
                         createdBy: currentUser);
             }
             catch (Exception ex)
@@ -418,8 +430,14 @@ namespace AwningsAPI.Services.Tasks
                 .Include(t => t.TaskAttachments)
                 .AsQueryable();
 
+            // Role-based visibility: non-admin users only see their own tasks
+            if (!filterDto.IsAdmin && filterDto.CurrentUserId.HasValue)
+                query = query.Where(t => t.AssignedToUserId == filterDto.CurrentUserId.Value);
+
             // Apply filters
-            if (!string.IsNullOrEmpty(filterDto.Status))
+            if (filterDto.Statuses != null && filterDto.Statuses.Count > 0)
+                query = query.Where(t => filterDto.Statuses.Contains(t.Status));
+            else if (!string.IsNullOrEmpty(filterDto.Status))
                 query = query.Where(t => t.Status == filterDto.Status);
 
             if (!string.IsNullOrEmpty(filterDto.TaskType))
@@ -844,7 +862,14 @@ namespace AwningsAPI.Services.Tasks
                     CreatedBy = h.CreatedBy,
                     CustomerName = h.CustomerName,
                     Subject = h.Subject,
-                    Category = h.Category
+                    Category = h.Category,
+                    // AssignedTo: for Assigned actions → NewValue is the assignee name;
+                    //             for Unassigned actions → OldValue is the former assignee.
+                    AssignedTo = h.Action == "Assigned" ? h.NewValue :
+                                 h.Action == "Unassigned" ? h.OldValue : null,
+                    // AssignedBy: the user who performed the assignment (always CreatedBy).
+                    AssignedBy = (h.Action == "Assigned" || h.Action == "Unassigned")
+                                 ? h.CreatedBy : null
                 }).ToList(),
                 TotalCount = totalCount,
                 Page = page,
@@ -871,6 +896,8 @@ namespace AwningsAPI.Services.Tasks
                 AssignedToUserName = task.AssignedToUserName,
                 AssignedByUserId = task.AssignedByUserId,
                 AssignedByUserName = task.AssignedByUserName,
+                PreviousAssignedToUserId = task.PreviousAssignedToUserId,
+                PreviousAssignedToUserName = task.PreviousAssignedToUserName,
                 CompanyNumber = task.CompanyNumber,
                 EmailBody = task.EmailBody,
                 HasAttachments = task.HasAttachments,
@@ -927,7 +954,11 @@ namespace AwningsAPI.Services.Tasks
                     CreatedBy = h.CreatedBy,
                     CustomerName = h.CustomerName,
                     Subject = h.Subject,
-                    Category = h.Category
+                    Category = h.Category,
+                    AssignedTo = h.Action == "Assigned" ? h.NewValue :
+                                 h.Action == "Unassigned" ? h.OldValue : null,
+                    AssignedBy = (h.Action == "Assigned" || h.Action == "Unassigned")
+                                 ? h.CreatedBy : null
                 }).OrderByDescending(h => h.DateCreated).ToList() ?? new List<TaskHistoryDto>()
             };
         }

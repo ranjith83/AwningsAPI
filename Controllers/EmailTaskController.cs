@@ -48,13 +48,18 @@ namespace AwningsAPI.Controllers
         {
             try
             {
+                var isAdmin = User.IsInRole("Admin");
+                var currentUserId = GetCurrentUserId();
+
                 var filter = new TaskFilterDto
                 {
                     Status = status,
                     SortBy = "DateAdded",
                     SortDirection = "DESC",
                     Page = 1,
-                    PageSize = 1000 // Large number to get all
+                    PageSize = 1000,
+                    CurrentUserId = currentUserId > 0 ? currentUserId : null,
+                    IsAdmin = isAdmin
                 };
 
                 var (tasks, totalCount) = await _taskService.GetTasksWithFiltersAsync(filter);
@@ -240,6 +245,13 @@ namespace AwningsAPI.Controllers
         {
             try
             {
+                // Enforce role-based visibility server-side
+                var isAdmin = User.IsInRole("Admin");
+                var currentUserId = GetCurrentUserId();
+                filter.IsAdmin = isAdmin;
+                if (!isAdmin && currentUserId > 0)
+                    filter.CurrentUserId = currentUserId;
+
                 var (tasks, totalCount) = await _taskService.GetTasksWithFiltersAsync(filter);
 
                 return Ok(new
@@ -861,7 +873,7 @@ namespace AwningsAPI.Controllers
             public string? OriginalEmailGraphId { get; set; }
         }
 
-#endregion
+        #endregion
 
         #region Helper Methods
 

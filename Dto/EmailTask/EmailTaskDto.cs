@@ -17,7 +17,7 @@ namespace AwningsAPI.Dto.Tasks
         public DateTime DateAdded { get; set; }
 
         // Status for tabs
-        public string Status { get; set; }  // "Pending", "Processed", "Junk"
+        public string Status { get; set; }  // "New", "In Progress", "More Info", "Closed", "Reopened", "Completed", "Junk"
         public string TaskType { get; set; } // Backend type: "invoice_creation", etc.
         public string Priority { get; set; }
 
@@ -26,6 +26,10 @@ namespace AwningsAPI.Dto.Tasks
         public string AssignedToUserName { get; set; }
         public int? AssignedByUserId { get; set; }
         public string AssignedByUserName { get; set; }
+
+        // Previous assignee — populated when task is re-assigned (status becomes More Info)
+        public int? PreviousAssignedToUserId { get; set; }
+        public string PreviousAssignedToUserName { get; set; }
 
         // Email viewer fields
         public string CompanyNumber { get; set; }  // Shown top-right in viewer
@@ -110,6 +114,20 @@ namespace AwningsAPI.Dto.Tasks
         public string? CustomerName { get; set; }
         public string? Subject { get; set; }
         public string? Category { get; set; }
+
+        // ── Assignment columns ────────────────────────────────────────────────
+        /// <summary>
+        /// The user the task is assigned TO.
+        /// For Assigned: NewValue (the new assignee).
+        /// For Unassigned: OldValue (the former assignee).
+        /// Null for other actions.
+        /// </summary>
+        public string? AssignedTo { get; set; }
+
+        /// <summary>
+        /// The user who performed the assignment (CreatedBy on the history row).
+        /// </summary>
+        public string? AssignedBy { get; set; }
     }
 
     /// <summary>
@@ -150,7 +168,7 @@ namespace AwningsAPI.Dto.Tasks
 
     public class UpdateTaskDto
     {
-        public string Status { get; set; }  // Pending, Processed, Junk
+        public string Status { get; set; }  // New, In Progress, More Info, Closed, Reopened, Completed, Junk
         public string Priority { get; set; }
         public DateTime? DueDate { get; set; }
         public int? AssignedToUserId { get; set; }
@@ -163,6 +181,7 @@ namespace AwningsAPI.Dto.Tasks
     public class UpdateTaskStatusDto
     {
         [Required]
+        /// <summary>Valid values: New | In Progress | More Info | Closed | Reopened | Completed | Junk</summary>
         public string Status { get; set; }
 
         public string? CompletionNotes { get; set; }
@@ -185,6 +204,11 @@ namespace AwningsAPI.Dto.Tasks
     public class TaskFilterDto
     {
         public string? Status { get; set; }
+        /// <summary>
+        /// Multi-status filter. When set, overrides Status.
+        /// E.g. ["In Progress", "More Info", "Reopened"] for the In Progress tab.
+        /// </summary>
+        public List<string>? Statuses { get; set; }
         public string? TaskType { get; set; }
         public string? Priority { get; set; }
         public int? AssignedToUserId { get; set; }
@@ -198,5 +222,16 @@ namespace AwningsAPI.Dto.Tasks
         public int PageSize { get; set; } = 20;
         public string SortBy { get; set; } = "DateAdded";
         public string SortDirection { get; set; } = "DESC";
+
+        /// <summary>
+        /// ID of the currently authenticated user.
+        /// When IsAdmin is false, only tasks assigned to this user are returned.
+        /// </summary>
+        public int? CurrentUserId { get; set; }
+
+        /// <summary>
+        /// When true the caller is an Admin and can see all tasks regardless of assignment.
+        /// </summary>
+        public bool IsAdmin { get; set; } = false;
     }
 }

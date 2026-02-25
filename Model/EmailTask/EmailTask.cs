@@ -32,10 +32,10 @@ namespace AwningsAPI.Model.Tasks
         [StringLength(100)]
         public string? Category { get; set; }
 
-        // Status: "Pending", "Processed", "Junk"
+        // Status: "New", "More Info", "In Progress", "Closed", "Reopened", "Completed", "Junk"
         [Required]
         [StringLength(50)]
-        public string? Status { get; set; } = "Pending";
+        public string? Status { get; set; } = "New";
 
         // Task Type for backend (invoice_creation, quote_creation, etc.)
         [StringLength(50)]
@@ -59,6 +59,12 @@ namespace AwningsAPI.Model.Tasks
 
         [StringLength(255)]
         public string? AssignedByUserName { get; set; }
+
+        // Tracks the previous assignee when task is re-assigned (triggers "More Info" status)
+        public int? PreviousAssignedToUserId { get; set; }
+
+        [StringLength(255)]
+        public string? PreviousAssignedToUserName { get; set; }
 
         // Company Number (shown in email viewer top-right)
         [StringLength(50)]
