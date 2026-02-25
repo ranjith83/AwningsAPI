@@ -196,7 +196,7 @@ namespace AwningsAPI.Services.Email
                 //var folderName = analysisResult.IsSpam ? "Junk" : $"Processed/{email.Category}";
                 //await _emailReaderService.MoveEmailToFolderAsync(mailboxEmail, email.EmailId, folderName);
 
-               // _logger.LogInformation($"✅ Email {email.EmailId} processed and moved to {folderName}");
+                // _logger.LogInformation($"✅ Email {email.EmailId} processed and moved to {folderName}");
             }
             catch (Exception ex)
             {
@@ -232,17 +232,17 @@ namespace AwningsAPI.Services.Email
                     await HandleInitialEnquiryWorkflow(email, analysisResult, currentUser);
                     break;
 
-                case "site_visit_meeting":
-                    await HandleSiteVisitWorkflow(email, analysisResult, currentUser);
-                    break;
+                /** case "site_visit_meeting":
+                     await HandleSiteVisitWorkflow(email, analysisResult, currentUser);
+                     break;
 
-                case "invoice_due":
-                    await HandleInvoiceDueWorkflow(email, analysisResult, currentUser);
-                    break;
+                 case "invoice_due":
+                     await HandleInvoiceDueWorkflow(email, analysisResult, currentUser);
+                     break;
 
-                case "quote_creation":
-                    await HandleQuoteRequestWorkflow(email, analysisResult, currentUser);
-                    break;
+                 case "quote_creation":
+                     await HandleQuoteRequestWorkflow(email, analysisResult, currentUser);
+                     break; */
 
                 default:
                     _logger.LogInformation($"ℹ️ No automated workflow for category: {analysisResult.Category}");
@@ -251,61 +251,64 @@ namespace AwningsAPI.Services.Email
         }
 
         /// <summary>
-        /// Handle Initial Enquiry: Create customer (if new) + workflow + initial enquiry
+        /// Handle Initial Enquiry: only inserts an InitialEnquiry record when BOTH the customer
+        /// AND a workflow already exist in the database.  If either is missing, no action is taken
+        /// and the email will surface as a normal manual task for staff to handle.
         /// </summary>
         private async Task HandleInitialEnquiryWorkflow(IncomingEmail email, EmailAnalysisResult analysisResult, string currentUser)
         {
             try
             {
-                _logger.LogInformation($"🔄 Executing Initial Enquiry Workflow for {email.FromEmail}");
+                _logger.LogInformation($"🔄 Checking Initial Enquiry conditions for {email.FromEmail}");
 
-                // Check if customer exists
+                // ── 1. Customer must already exist ────────────────────────────────────
                 var existingCustomer = await _context.Customers
                     .Include(c => c.CustomerContacts)
                     .FirstOrDefaultAsync(c =>
                         c.Email == email.FromEmail ||
                         c.CustomerContacts.Any(cc => cc.Email == email.FromEmail));
 
-                int customerId;
-                string customerName;
-
                 if (existingCustomer == null)
                 {
-                    // CREATE NEW CUSTOMER
-                    _logger.LogInformation($"👤 Creating new customer: {email.FromEmail}");
-
-                    var newCustomer = await CreateCustomerFromEmail(email, analysisResult, currentUser);
-                    customerId = newCustomer.CustomerId;
-                    customerName = newCustomer.Name;
-
-                    _logger.LogInformation($"✅ Customer created: ID={customerId}, Name={customerName}");
+                    _logger.LogInformation(
+                        $"⏭️ No existing customer found for '{email.FromEmail}' — skipping Initial Enquiry creation");
+                    return;
                 }
-                else
+
+                _logger.LogInformation(
+                    $"✅ Existing customer found: ID={existingCustomer.CustomerId}, Name={existingCustomer.Name}");
+
+                // ── 2. Workflow must already exist for that customer ───────────────────
+                var existingWorkflow = await _context.WorkflowStarts
+                    .Where(w => w.CustomerId == existingCustomer.CustomerId)
+                    .OrderByDescending(w => w.DateCreated)
+                    .FirstOrDefaultAsync();
+
+                if (existingWorkflow == null)
                 {
-                    customerId = existingCustomer.CustomerId;
-                    customerName = existingCustomer.Name;
-                    _logger.LogInformation($"✅ Existing customer found: ID={customerId}, Name={customerName}");
+                    _logger.LogInformation(
+                        $"⏭️ Customer {existingCustomer.CustomerId} has no workflow — skipping Initial Enquiry creation");
+                    return;
                 }
 
-                // CREATE or GET WORKFLOW
-                var workflow = await GetOrCreateWorkflow(customerId, currentUser);
-                _logger.LogInformation($"✅ Workflow: ID={workflow.WorkflowId}");
+                _logger.LogInformation(
+                    $"✅ Existing workflow found: ID={existingWorkflow.WorkflowId}");
 
-                // CREATE INITIAL ENQUIRY
-                var enquiry = await CreateInitialEnquiry(workflow.WorkflowId, email, analysisResult, currentUser);
-                _logger.LogInformation($"✅ Initial enquiry created: ID={enquiry.EnquiryId}");
+                // ── 3. Both exist — create the Initial Enquiry ────────────────────────
+                var enquiry = await CreateInitialEnquiry(existingWorkflow.WorkflowId, email, analysisResult, currentUser);
 
-                // Store workflow and customer info in email for task creation
+                _logger.LogInformation(
+                    $"✅ Initial enquiry created: ID={enquiry.EnquiryId} in workflow {existingWorkflow.WorkflowId}");
+
+                // Store IDs in ExtractedData so the task created afterwards is pre-linked
                 email.ExtractedData = JsonConvert.SerializeObject(new Dictionary<string, object>
                 {
-                    ["customerId"] = customerId,
-                    ["customerName"] = customerName,
-                    ["workflowId"] = workflow.WorkflowId,
+                    ["customerId"] = existingCustomer.CustomerId,
+                    ["customerName"] = existingCustomer.Name,
+                    ["workflowId"] = existingWorkflow.WorkflowId,
                     ["enquiryId"] = enquiry.EnquiryId,
                     ["aiExtractedData"] = analysisResult.ExtractedData
                 });
-
-                _logger.LogInformation($"✅ Initial enquiry workflow completed for {email.FromEmail}");
             }
             catch (Exception ex)
             {

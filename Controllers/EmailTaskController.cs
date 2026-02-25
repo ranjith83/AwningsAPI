@@ -3,8 +3,10 @@ using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -20,13 +22,19 @@ namespace AwningsAPI.Controllers
     public class EmailTaskController : ControllerBase
     {
         private readonly ITaskService _taskService;
+        private readonly IEmailReaderService _emailReaderService;
+        private readonly IConfiguration _configuration;
         private readonly ILogger<EmailTaskController> _logger;
 
         public EmailTaskController(
             ITaskService taskService,
+            IEmailReaderService emailReaderService,
+            IConfiguration configuration,
             ILogger<EmailTaskController> logger)
         {
             _taskService = taskService;
+            _emailReaderService = emailReaderService;
+            _configuration = configuration;
             _logger = logger;
         }
 
@@ -389,7 +397,7 @@ namespace AwningsAPI.Controllers
                 var currentUser = GetCurrentUserName();
                 var task = await _taskService.AssignTaskAsync(taskId, assignDto, currentUser);
 
-                    if (task == null)
+                if (task == null)
                 {
                     return NotFound(new { error = "Task not found" });
                 }
@@ -741,28 +749,119 @@ namespace AwningsAPI.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
-    
 
-    // ==================== REQUEST DTOs ====================
 
-    public class CheckCustomerRequestDto
-    {
-        public string? Email { get; set; }
-        public string? CompanyNumber { get; set; }
-    }
+        /// <summary>
+        /// Send an email reply directly from the task viewer.
+        /// Uses the original email's Graph messageId to reply in-thread when available,
+        /// otherwise sends a fresh email to the task's fromEmail address.
+        ///
+        /// POST /api/EmailTask/{taskId}/send-email
+        /// Body: SendTaskEmailRequest
+        /// </summary>
+        [HttpPost("{taskId}/send-email")]
+        public async Task<IActionResult> SendTaskEmail(int taskId, [FromBody] SendTaskEmailRequest request)
+        {
+            try
+            {
+#if DEBUG
+                request.ToEmail = "mrk.ranjithkumar@gmail.com";
+#endif
+                var mailboxEmail = _configuration["AzureAd:MonitoredMailbox"]
+                    ?? _configuration["AzureAd:OrganizerEmail"]
+                    ?? throw new InvalidOperationException("Monitored mailbox not configured");
 
-    public class AssignTaskRequestDto
-    {
-        public int AssignedToUserId { get; set; }
-        public string? Notes { get; set; }
-    }
+                // Resolve recipient details from the task if not supplied in the request
+                if (string.IsNullOrWhiteSpace(request.ToEmail))
+                {
+                    var task = await _taskService.GetTaskByIdAsync(taskId);
+                    if (task == null)
+                        return NotFound(new { error = "Task not found" });
 
-    public class ExecuteActionRequestDto
-    {
-        public object? Data { get; set; }
-    }
+                    request.ToEmail = task.FromEmail;
+                    request.ToName = task.FromName ?? task.FromEmail;
+                }
 
-        #endregion
+                await _emailReaderService.SendEmailAsync(
+                    mailboxEmail: mailboxEmail,
+                    toEmail: request.ToEmail,
+                    toName: request.ToName ?? request.ToEmail,
+                    subject: request.Subject,
+                    bodyHtml: WrapPlainTextAsHtml(request.Body),
+                    replyToEmailId: request.OriginalEmailGraphId  // null = fresh email
+                );
+
+                _logger.LogInformation(
+                    "Email sent from task {TaskId} to {ToEmail} by {User}",
+                    taskId, request.ToEmail, GetCurrentUserName());
+
+                return Ok(new { message = "Email sent successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending email for task {TaskId}", taskId);
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Converts a plain-text body (with line breaks) to minimal HTML so Graph
+        /// renders it correctly. If the caller already supplies HTML it is passed through.
+        /// </summary>
+        private static string WrapPlainTextAsHtml(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body)) return "<p></p>";
+
+            // Already HTML — don't double-wrap
+            if (body.TrimStart().StartsWith("<", StringComparison.Ordinal))
+                return body;
+
+            var escaped = System.Net.WebUtility.HtmlEncode(body)
+                                               .Replace("\r\n", "<br>")
+                                               .Replace("\n", "<br>");
+            return $"<div style=\"font-family:Aptos,Calibri,Arial,sans-serif;font-size:12pt;\">{escaped}</div>";
+        }
+
+        // ==================== REQUEST DTOs ====================
+
+        public class CheckCustomerRequestDto
+        {
+            public string? Email { get; set; }
+            public string? CompanyNumber { get; set; }
+        }
+
+        public class AssignTaskRequestDto
+        {
+            public int AssignedToUserId { get; set; }
+            public string? Notes { get; set; }
+        }
+
+        public class ExecuteActionRequestDto
+        {
+            public object? Data { get; set; }
+        }
+
+        public class SendTaskEmailRequest
+        {
+            /// <summary>Recipient — resolved from task.FromEmail when omitted.</summary>
+            public string? ToEmail { get; set; }
+            public string? ToName { get; set; }
+
+            /// <summary>Email subject line.</summary>
+            public string Subject { get; set; } = string.Empty;
+
+            /// <summary>Plain-text or HTML body.</summary>
+            public string Body { get; set; } = string.Empty;
+
+            /// <summary>
+            /// The Graph message ID of the original inbound email.
+            /// When supplied the reply is threaded; when null a fresh email is sent.
+            /// Maps to IncomingEmail.EmailId stored on the task.
+            /// </summary>
+            public string? OriginalEmailGraphId { get; set; }
+        }
+
+#endregion
 
         #region Helper Methods
 

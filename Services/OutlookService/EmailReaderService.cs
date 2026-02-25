@@ -154,16 +154,16 @@ namespace AwningsAPI.Services.Email
                 var msg = await _graphClient.Users[mailboxEmail]
                     .Messages
                     .GetAsync(requestConfiguration =>
-                       {
-                           requestConfiguration.QueryParameters.Filter =
-                               $"from/emailAddress/address eq '{emailId}'";
+                    {
+                        requestConfiguration.QueryParameters.Filter =
+                            $"from/emailAddress/address eq '{emailId}'";
 
-                           requestConfiguration.QueryParameters.Select = new[]
-                           {
+                        requestConfiguration.QueryParameters.Select = new[]
+                        {
                            "id", "subject", "from", "body", "bodyPreview",
                            "receivedDateTime", "hasAttachments", "importance", "isRead"
                        };
-                       });
+                    });
                 var message = msg?.Value?.FirstOrDefault();
 
 
@@ -222,6 +222,77 @@ namespace AwningsAPI.Services.Email
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error marking email {emailId} as read");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Send an email reply (or new email) via Microsoft Graph on behalf of the monitored mailbox.
+        /// Saves a copy to Sent Items automatically.
+        /// </summary>
+        public async Task SendEmailAsync(
+            string mailboxEmail,
+            string toEmail,
+            string toName,
+            string subject,
+            string bodyHtml,
+            string? replyToEmailId = null)
+        {
+            try
+            {
+                _logger.LogInformation($"Sending email to {toEmail}, subject: {subject}");
+
+                var message = new Message
+                {
+                    Subject = subject,
+                    Body = new ItemBody
+                    {
+                        ContentType = BodyType.Html,
+                        Content = bodyHtml
+                    },
+                    ToRecipients = new List<Recipient>
+                    {
+                        new Recipient
+                        {
+                            EmailAddress = new Microsoft.Graph.Models.EmailAddress
+                            {
+                                Address = toEmail,
+                                Name    = toName
+                            }
+                        }
+                    }
+                };
+
+                if (!string.IsNullOrEmpty(replyToEmailId))
+                {
+                    // Reply in the same thread — Graph creates the reply and sends it
+                    await _graphClient.Users[mailboxEmail]
+                        .Messages[replyToEmailId]
+                        .Reply
+                        .PostAsync(new Microsoft.Graph.Users.Item.Messages.Item.Reply.ReplyPostRequestBody
+                        {
+                            Message = message
+                        });
+
+                    _logger.LogInformation($"Sent reply to thread {replyToEmailId}");
+                }
+                else
+                {
+                    // Fresh email — send directly
+                    await _graphClient.Users[mailboxEmail]
+                        .SendMail
+                        .PostAsync(new Microsoft.Graph.Users.Item.SendMail.SendMailPostRequestBody
+                        {
+                            Message = message,
+                            SaveToSentItems = true
+                        });
+
+                    _logger.LogInformation($"Sent new email to {toEmail}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error sending email to {toEmail}");
                 throw;
             }
         }

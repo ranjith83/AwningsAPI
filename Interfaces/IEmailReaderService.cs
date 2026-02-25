@@ -31,5 +31,8 @@ namespace AwningsAPI.Interfaces
         /// Gets a complete email with all attachments
         /// </summary>
         Task<IncomingEmail> GetCompleteEmailAsync(string mailboxEmail, string emailId);
+
+        Task SendEmailAsync(string mailboxEmail, string toEmail, string toName, string subject, string bodyHtml, string? replyToEmailId = null);
+
     }
 }
