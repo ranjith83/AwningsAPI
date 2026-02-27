@@ -3,6 +3,7 @@ using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Products;
 using AwningsAPI.Model.Suppliers;
+using AwningsAPI.Model.Tasks;
 using AwningsAPI.Model.Workflow;
 using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
@@ -12,38 +13,119 @@ namespace AwningsAPI.Services.WorkflowService
     public class WorkflowService : IWorkflowService
     {
         private readonly AppDbContext _context;
+        private readonly FollowUpService _followUpService;
 
-        public WorkflowService(AppDbContext context)
+        public WorkflowService(AppDbContext context, FollowUpService followUpService)
         {
             _context = context;
+            _followUpService = followUpService;
         }
         public async Task<IEnumerable<WorkflowStart>> GetAllWorfflowsForCustomerAsync(int CustomerId)
         {
-            return await _context.WorkflowStarts.Include(p => p.Product).Where(w=>w.CustomerId==CustomerId).ToListAsync();
+            return await _context.WorkflowStarts.Include(p => p.Product).Where(w => w.CustomerId == CustomerId).ToListAsync();
         }
 
         public async Task<WorkflowStart> CreateWorkflow(WorkflowDto dto, string currentUser)
         {
             var workflow = new WorkflowStart
             {
+                WorkflowName = dto.WorkflowName,
                 Description = dto.Description,
                 InitialEnquiry = dto.InitialEnquiry,
-                CreateQuote = dto.CreateQuotation,  
+                CreateQuote = dto.CreateQuotation,
                 InviteShowRoom = dto.InviteShowRoomVisit,
                 SetupSiteVisit = dto.SetupSiteVisit,
-                InvoiceSent = dto.InvoiceSent,  
+                InvoiceSent = dto.InvoiceSent,
                 SupplierId = dto.SupplierId,
                 CustomerId = dto.CustomerId,
                 ProductId = dto.ProductId,
-                ProductTypeId = dto.ProductTypeId,  
-                DateCreated = DateTime.UtcNow,  
+                ProductTypeId = dto.ProductTypeId,
+                DateCreated = DateTime.UtcNow,
                 CreatedBy = currentUser
             };
 
             _context.WorkflowStarts.Add(workflow);
             await _context.SaveChangesAsync();
 
+            // ── Auto-create InitialEnquiry when workflow originates from an initial_enquiry email ──
+            // If the caller passes a TaskId, look up the task. If its category is
+            // "initial_enquiry" (or the display label "Initial Enquiry"), create a linked
+            // InitialEnquiry record so the follow-up timer starts immediately.
+            if (dto.TaskId.HasValue && dto.TaskId.Value > 0)
+            {
+                await TryCreateInitialEnquiryFromTaskAsync(
+                    workflowId: workflow.WorkflowId,
+                    taskId: dto.TaskId.Value,
+                    currentUser: currentUser);
+            }
+
             return workflow;
+        }
+
+        /// <summary>
+        /// Called by CreateWorkflow when a TaskId is provided.
+        /// Loads the EmailTask and, if the category is initial_enquiry, inserts a
+        /// matching InitialEnquiry record so it immediately appears in the enquiry
+        /// history and starts the 3-day follow-up clock.
+        ///
+        /// Non-fatal: any error is logged and execution continues so the workflow
+        /// is always saved even if the enquiry record fails.
+        /// </summary>
+        private async Task TryCreateInitialEnquiryFromTaskAsync(
+            int workflowId, int taskId, string currentUser)
+        {
+            try
+            {
+                var task = await _context.EmailTasks
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.TaskId == taskId);
+
+                if (task == null) return;
+
+                // Match both the raw category key and the display label
+                var cat = (task.TaskType ?? task.Category ?? string.Empty).ToLowerInvariant();
+                bool isInitialEnquiry =
+                    cat == "initial_enquiry" ||
+                    cat == "initial enquiry" || cat == "general_enquiry";
+
+
+                if (!isInitialEnquiry) return;
+
+                // Guard: don't create a duplicate if one already exists for this workflow+task
+                bool alreadyExists = await _context.InitialEnquiries
+                    .AnyAsync(e => e.WorkflowId == workflowId && e.TaskId == taskId);
+
+                if (alreadyExists) return;
+
+                // Build the comments summary from subject + email body preview
+                var bodyPreview = (task.EmailBody ?? string.Empty);
+                if (bodyPreview.Length > 400) bodyPreview = bodyPreview[..400] + "…";
+
+                var comments = string.IsNullOrWhiteSpace(task.Subject)
+                    ? bodyPreview: $"Subject: {task.Subject} { bodyPreview} ";
+
+                var enquiry = new InitialEnquiry
+                {
+                    WorkflowId = workflowId,
+                    Comments = comments.Trim(),
+                    Email = task.FromEmail ?? string.Empty,
+                    Images = "",
+                    TaskId = taskId,
+                    IncomingEmailId = task.IncomingEmailId,
+                    DateCreated = DateTime.UtcNow,
+                    CreatedBy = currentUser
+                };
+
+                _context.InitialEnquiries.Add(enquiry);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Non-fatal: log but do not bubble up so the workflow save succeeds
+                Console.Error.WriteLine(
+                    $"[WorkflowService] TryCreateInitialEnquiryFromTaskAsync failed for " +
+                    $"task {taskId}: {ex.Message}");
+            }
         }
 
         public async Task<WorkflowStart> UpdateWorkflow(WorkflowDto dto, string currentUser)
@@ -55,6 +137,7 @@ namespace AwningsAPI.Services.WorkflowService
                 throw new Exception("Workflow not found");
             }
 
+            existingWorkflow.WorkflowName = dto.WorkflowName;
             existingWorkflow.Description = dto.Description;
             existingWorkflow.InitialEnquiry = dto.InitialEnquiry;
             existingWorkflow.CreateQuote = dto.CreateQuotation;
@@ -87,11 +170,21 @@ namespace AwningsAPI.Services.WorkflowService
                 Comments = dto.Comments,
                 Email = dto.Email,
                 Images = dto.Images,
+                // Link to the originating email task/incoming email when available
+                TaskId = dto.TaskId,
+                IncomingEmailId = dto.IncomingEmailId,
                 DateCreated = DateTime.UtcNow,
                 CreatedBy = currentUser
             };
             _context.InitialEnquiries.Add(initialEnquiry);
             await _context.SaveChangesAsync();
+
+            // ── Timer reset: dismiss any active follow-up for this workflow ──
+            // A new enquiry resets the 3-day clock. The old follow-up row
+            // disappears from the grid; a new one will appear after 3 days
+            // if still no quote is raised.
+            await _followUpService.DismissActiveForWorkflowAsync(dto.WorkflowId, currentUser);
+
             return initialEnquiry;
         }
 
@@ -139,7 +232,7 @@ namespace AwningsAPI.Services.WorkflowService
         {
             return await _context.Projections
                      .Where(p => p.ProductId == productId && p.Width_cm == widthcm && p.Projection_cm == projectioncm)
-                     .Select(p => p.Price) 
+                     .Select(p => p.Price)
                      .FirstOrDefaultAsync();
         }
 
@@ -184,6 +277,18 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<List<Heaters>> GeHeatersForProductAsync(int productId)
         {
             return await _context.Heaters.Where(f => f.ProductId == productId).ToListAsync();
-        }         
+        }
+
+        public async Task<bool> DeleteWorkflowAsync(int workflowId)
+        {
+            var workflow = await _context.WorkflowStarts.FindAsync(workflowId);
+
+            if (workflow == null)
+                return false;
+
+            _context.WorkflowStarts.Remove(workflow);
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }

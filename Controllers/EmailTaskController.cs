@@ -764,6 +764,32 @@ namespace AwningsAPI.Controllers
 
 
         /// <summary>
+        /// Links a newly created workflow to a task after the user
+        /// creates a workflow from the email-task screen.
+        /// POST /api/EmailTask/{taskId}/link-workflow
+        /// </summary>
+        [HttpPost("{taskId}/link-workflow")]
+        public async Task<IActionResult> LinkWorkflowToTask(int taskId, [FromBody] LinkWorkflowRequestDto request)
+        {
+            try
+            {
+                var currentUser = GetCurrentUserName();
+                var task = await _taskService.LinkWorkflowToTaskAsync(taskId, request.WorkflowId, currentUser);
+
+                if (task == null)
+                    return NotFound(new { error = "Task not found" });
+
+                return Ok(task);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error linking workflow {WorkflowId} to task {TaskId}",
+                    request.WorkflowId, taskId);
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Send an email reply directly from the task viewer.
         /// Uses the original email's Graph messageId to reply in-thread when available,
         /// otherwise sends a fresh email to the task's fromEmail address.
@@ -840,6 +866,11 @@ namespace AwningsAPI.Controllers
         {
             public string? Email { get; set; }
             public string? CompanyNumber { get; set; }
+        }
+
+        public class LinkWorkflowRequestDto
+        {
+            public int WorkflowId { get; set; }
         }
 
         public class AssignTaskRequestDto

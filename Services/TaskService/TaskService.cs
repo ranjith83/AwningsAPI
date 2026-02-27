@@ -4,6 +4,7 @@ using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Customers;
 using AwningsAPI.Model.Email;
 using AwningsAPI.Model.Tasks;
+using AwningsAPI.Model.Workflow;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
@@ -772,7 +773,92 @@ namespace AwningsAPI.Services.Tasks
 
             _logger.LogInformation($"Task created successfully: TaskId={task.TaskId}, Category={category}");
 
+            // ── Auto-create InitialEnquiry record for initial_enquiry emails ──────────
+            // This links the incoming email directly to the InitialEnquiry table so
+            // the Initial Enquiry screen can show it, and so follow-up generation
+            // can use it as the timer anchor.
+            //
+            // We only create the record if the task already has a WorkflowId
+            // (i.e. the customer was previously linked to a workflow). For new
+            // customers the record is created later when the user creates the workflow.
+            if (string.Equals(email.Category, "initial_enquiry", StringComparison.OrdinalIgnoreCase))
+            {
+                await CreateInitialEnquiryFromEmailAsync(task.TaskId, email, currentUser);
+            }
+
             return await GetTaskByIdAsync(task.TaskId);
+        }
+
+        /// <summary>
+        /// Called when an inbound email is categorised as initial_enquiry.
+        /// Creates an InitialEnquiry record so the workflow screen can immediately
+        /// display it and so the follow-up timer starts from this email's date.
+        ///
+        /// If the task does not yet have a WorkflowId the record is created later
+        /// (when the user creates a workflow) via AddInitialEnquiryFromTask().
+        /// </summary>
+        private async Task CreateInitialEnquiryFromEmailAsync(
+            int taskId,
+            IncomingEmail email,
+            string currentUser)
+        {
+            try
+            {
+                // Find the task's WorkflowId (may be null if no workflow yet)
+                var dbTask = await _context.EmailTasks
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.TaskId == taskId);
+
+                if (dbTask?.WorkflowId == null)
+                {
+                    // No workflow yet — record will be created when workflow is linked
+                    _logger.LogInformation(
+                        "CreateInitialEnquiryFromEmail: task {TaskId} has no workflow yet — skipping auto-create",
+                        taskId);
+                    return;
+                }
+
+                // Guard: don't create duplicates if the processor runs twice
+                var existing = await _context.InitialEnquiries
+                    .AnyAsync(e => e.TaskId == taskId);
+                if (existing)
+                {
+                    _logger.LogInformation(
+                        "CreateInitialEnquiryFromEmail: InitialEnquiry already exists for task {TaskId}",
+                        taskId);
+                    return;
+                }
+
+                // Build a comments summary from the email subject + body preview
+                var bodyPreview = email.BodyPreview ?? string.Empty;
+                var commentsText = $"Email subject: {email.Subject}";
+                if (!string.IsNullOrWhiteSpace(bodyPreview))
+                    commentsText += $"{bodyPreview[..Math.Min(bodyPreview.Length, 500)]}";
+
+                var enquiry = new InitialEnquiry
+                {
+                    WorkflowId = dbTask.WorkflowId.Value,
+                    Comments = commentsText,
+                    Email = email.FromEmail ?? string.Empty,
+                    TaskId = taskId,
+                    IncomingEmailId = email.Id,
+                    DateCreated = email?.ReceivedDateTime ?? DateTime.UtcNow,
+                    CreatedBy = "System (email processor)"
+                };
+
+                _context.InitialEnquiries.Add(enquiry);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "CreateInitialEnquiryFromEmail: created EnquiryId={EnquiryId} for task {TaskId} on workflow {WorkflowId}",
+                    enquiry.EnquiryId, taskId, dbTask.WorkflowId);
+            }
+            catch (Exception ex)
+            {
+                // Non-fatal — log and continue. The task was created successfully.
+                _logger.LogError(ex,
+                    "CreateInitialEnquiryFromEmail: failed for task {TaskId}", taskId);
+            }
         }
 
         #endregion
@@ -1334,6 +1420,42 @@ namespace AwningsAPI.Services.Tasks
                 customerId, taskId, currentUser);
 
             return await MapToDto(task);
+        }
+
+        /// <summary>
+        /// Links a workflow to an email task after the user creates a workflow
+        /// from the email-task screen.  Updates EmailTask.WorkflowId and writes
+        /// a "WorkflowLinked" entry into task history.
+        /// </summary>
+        public async Task<EmailTaskDto> LinkWorkflowToTaskAsync(
+            int taskId, int workflowId, string currentUser)
+        {
+            var task = await _context.EmailTasks.FindAsync(taskId);
+            if (task == null) return null;
+
+            // Guard: don't overwrite if the same workflow is already set
+            if (task.WorkflowId == workflowId)
+                return await GetTaskByIdAsync(taskId);
+
+            var oldWorkflowId = task.WorkflowId;
+            task.WorkflowId = workflowId;
+            task.DateUpdated = DateTime.UtcNow;
+            task.UpdatedBy = currentUser;
+
+            await _context.SaveChangesAsync();
+
+            await AddHistoryEntry(
+                taskId: taskId,
+                action: "WorkflowLinked",
+                oldValue: oldWorkflowId?.ToString(),
+                newValue: workflowId.ToString(),
+                details: $"Workflow {workflowId} linked to task from email-task screen",
+                createdBy: currentUser,
+                customerName: task.CustomerName,
+                subject: task.Subject,
+                category: task.Category);
+
+            return await GetTaskByIdAsync(taskId);
         }
 
         #endregion

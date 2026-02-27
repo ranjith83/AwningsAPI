@@ -59,6 +59,7 @@ namespace AwningsAPI.Database
         public DbSet<TaskComment> TaskComments { get; set; }
         public DbSet<TaskAttachment> TaskAttachments { get; set; }
         public DbSet<TaskHistory> TaskHistories { get; set; }
+        public DbSet<WorkflowFollowUp> WorkflowFollowUps { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -452,6 +453,82 @@ namespace AwningsAPI.Database
 
                 entity.HasIndex(e => new { e.TaskId, e.DateCreated })
                     .HasDatabaseName("IX_TaskHistories_TaskId_DateCreated");
+            });
+
+            modelBuilder.Entity<WorkflowFollowUp>(entity =>
+            {
+                entity.ToTable("WorkflowFollowUps");
+
+                entity.HasKey(e => e.FollowUpId);
+
+                // ── Required fields ─────────────────────────────
+                entity.Property(e => e.WorkflowId)
+                      .IsRequired();
+
+                entity.Property(e => e.EnquiryId)
+                      .IsRequired();
+
+                entity.Property(e => e.LastEnquiryDate)
+                      .IsRequired();
+
+                entity.Property(e => e.Subject)
+                      .IsRequired()
+                      .HasMaxLength(255);
+
+                entity.Property(e => e.Category)
+                      .HasMaxLength(100)
+                      .HasDefaultValue("Inquiry");
+
+                entity.Property(e => e.DateAdded)
+                      .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.Property(e => e.DateCreated)
+                      .HasDefaultValueSql("GETUTCDATE()");
+
+                // ── Optional fields ─────────────────────────────
+                entity.Property(e => e.CompanyName)
+                      .HasMaxLength(255);
+
+                entity.Property(e => e.EnquiryComments)
+                      .HasColumnType("nvarchar(max)");
+
+                entity.Property(e => e.EnquiryEmail)
+                      .HasMaxLength(255);
+
+                entity.Property(e => e.ResolvedBy)
+                      .HasMaxLength(255);
+
+                entity.Property(e => e.DismissReason)
+                      .HasMaxLength(50);
+
+                entity.Property(e => e.CreatedBy)
+                      .HasMaxLength(255);
+
+                // ── Indexes (IMPORTANT for performance) ─────────
+                entity.HasIndex(e => e.WorkflowId);
+                entity.HasIndex(e => e.EnquiryId);
+                entity.HasIndex(e => e.IsDismissed);
+                entity.HasIndex(e => e.DateAdded);
+
+                // ── Relationships ───────────────────────────────
+
+                // Link to WorkflowStart
+                entity.HasOne<WorkflowStart>()
+                      .WithMany()
+                      .HasForeignKey(e => e.WorkflowId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // Optional link to Customer
+                entity.HasOne<Customer>()
+                      .WithMany()
+                      .HasForeignKey(e => e.CustomerId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                // Optional link to InitialEnquiry
+                entity.HasOne<InitialEnquiry>()
+                      .WithMany()
+                      .HasForeignKey(e => e.EnquiryId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
 

@@ -9,6 +9,7 @@ namespace AwningsAPI.Interfaces
         Task<IEnumerable<WorkflowStart>> GetAllWorfflowsForCustomerAsync(int CustomerId);
         Task<WorkflowStart> CreateWorkflow(WorkflowDto dto, string currentUser);
         Task<WorkflowStart> UpdateWorkflow(WorkflowDto dto, string currentUser);
+        Task<bool> DeleteWorkflowAsync(int workflowId);
         Task<IEnumerable<InitialEnquiry>> GetInitialEnquiryForWorkflowAsync(int WorkflowId);
         Task<InitialEnquiry> UpdateInitialEnquiry(InitialEnquiryDto dto, string currentUser);
         Task<InitialEnquiry> AddInitialEnquiry(InitialEnquiryDto dto, string currentUser);

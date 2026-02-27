@@ -26,6 +26,7 @@ namespace AwningsAPI.Controllers
             var workflowDtos = workflows.Select(c => new WorkflowDto
             {
                 WorkflowId = c.WorkflowId,
+                WorkflowName = c.WorkflowName,
                 ProductName = c.Product.Description,
                 Description = c.Description,
                 InitialEnquiry = c.InitialEnquiry,
@@ -34,7 +35,7 @@ namespace AwningsAPI.Controllers
                 SetupSiteVisit = c.SetupSiteVisit,
                 InvoiceSent = c.InvoiceSent,
                 DateAdded = c.DateCreated,
-                AddedBy =  c.CreatedBy,
+                AddedBy = c.CreatedBy,
                 CompanyId = c.CompanyId,
                 SupplierId = c.SupplierId,
                 ProductId = c.ProductId,
@@ -52,7 +53,15 @@ namespace AwningsAPI.Controllers
             var currentUser = User?.Identity?.Name ?? "System";
             var workflow = await _workflowService.CreateWorkflow(dto, currentUser);
 
-            return CreatedAtAction(nameof(CreateWorkflow), new { Id = workflow.CustomerId }, workflow);
+            // Return workflowId explicitly so the Angular caller can link it back
+            // to the originating task without a second request.
+            return CreatedAtAction(nameof(CreateWorkflow), new { Id = workflow.WorkflowId }, new
+            {
+                workflow.WorkflowId,
+                workflow.CustomerId,
+                workflow.WorkflowName,
+                TaskId = dto.TaskId   // echo back the TaskId the caller sent
+            });
         }
 
         [Authorize]
@@ -76,7 +85,11 @@ namespace AwningsAPI.Controllers
                 WorkflowId = c.WorkflowId,
                 Comments = c.Comments,
                 Email = c.Email,
-                Images = c.Images
+                Images = c.Images,
+                TaskId = c.TaskId,
+                IncomingEmailId = c.IncomingEmailId,
+                DateCreated = c.DateCreated,
+                CreatedBy = c.CreatedBy
             }).ToList();
 
             return Ok(initialEnquiryDto);
@@ -120,13 +133,13 @@ namespace AwningsAPI.Controllers
         [HttpGet("GeBracketsForProduct")]
         public async Task<ActionResult<IEnumerable<BracketDto>>> GeBracketsForProduct(int ProductId)
         {
-           var brackets = await _workflowService.GeBracketsForProductAsync(ProductId);
+            var brackets = await _workflowService.GeBracketsForProductAsync(ProductId);
 
             var bracketsDto = brackets.Select(c => new BracketDto
             {
                 BracketId = c.BracketId,
                 BracketName = c.BracketName,
-               Price = c.Price
+                Price = c.Price
             }).ToList();
 
             return Ok(bracketsDto);
@@ -190,11 +203,23 @@ namespace AwningsAPI.Controllers
             {
                 HeaterId = c.HeaterId,
                 Description = c.Description,
-                Price = c.Price,                
+                Price = c.Price,
                 PriceNonRALColour = c.PriceNonRALColour
             }).ToList();
 
             return Ok(heatersDto);
+        }
+
+        [Authorize]
+        [HttpDelete("DeleteWorkflow/{workflowId}")]
+        public async Task<IActionResult> DeleteWorkflow(int workflowId)
+        {
+            var result = await _workflowService.DeleteWorkflowAsync(workflowId);
+
+            if (!result)
+                return NotFound(new { message = $"Workflow with ID {workflowId} not found" });
+
+            return Ok(new { message = "Workflow deleted successfully" });
         }
     }
 }

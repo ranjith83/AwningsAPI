@@ -16,6 +16,19 @@ namespace AwningsAPI.Model.Workflow
         public string? UpdatedBy { get; set; }  
 
         //Navigation property to link to Workflow
-        public int WorkflowId { get; set; } 
+        public int WorkflowId { get; set; }
+
+        /// <summary>
+        /// The IncomingEmail.Id that was processed by the email processor and
+        /// automatically generated this enquiry record. NULL for manually entered enquiries.
+        /// </summary>
+        public int? IncomingEmailId { get; set; }
+
+        /// <summary>
+        /// The EmailTask.TaskId that was created when the email was categorised as
+        /// initial_enquiry. NULL for manually entered enquiries.
+        /// Allows navigating from the enquiry back to the task inbox.
+        /// </summary>
+        public int? TaskId { get; set; }
     }
 }

@@ -51,7 +51,7 @@ namespace AwningsAPI.Services.OutlookService
                 var endTime = dto.EndDate ?? startTime.AddHours(1);
 
                 var eventSubject = !string.IsNullOrEmpty(dto.EventName)
-                    ? dto.EventName 
+                    ? dto.EventName
                     : $"Showroom Visit - {dto.CustomerName}";
 
                 // Create the calendar event
@@ -147,14 +147,26 @@ namespace AwningsAPI.Services.OutlookService
             {
                 var organizerEmail = _configuration["AzureAd:OrganizerEmail"];
 
+                // Ensure endDate covers the full last day (23:59:59) so events
+                // created earlier that day are not excluded by the range boundary.
+                var endOfDay = endDate.Date == endDate
+                    ? endDate.Date.AddDays(1).AddSeconds(-1)   // midnight → end of day
+                    : endDate;                                   // already has time component
+
                 var events = await _graphClient.Users[organizerEmail]
                     .CalendarView
                     .GetAsync((requestConfiguration) =>
                     {
                         requestConfiguration.QueryParameters.StartDateTime = startDate.ToString("yyyy-MM-ddTHH:mm:ss");
-                        requestConfiguration.QueryParameters.EndDateTime = endDate.ToString("yyyy-MM-ddTHH:mm:ss");
-                        requestConfiguration.QueryParameters.Top = 50;
+                        requestConfiguration.QueryParameters.EndDateTime = endOfDay.ToString("yyyy-MM-ddTHH:mm:ss");
+                        requestConfiguration.QueryParameters.Top = 100;
                         requestConfiguration.QueryParameters.Orderby = new[] { "start/dateTime" };
+                        // NOTE: Do NOT add Prefer/outlook.timezone via requestConfiguration.Headers
+                        // on a CalendarView request — the Kiota SDK sends it as a request-level
+                        // header that Graph rejects with HTTP 500. The frontend parses UTC
+                        // dateTime strings returned by Graph and converts them locally.
+                        // Also avoid $select on CalendarView — "start"/"end" are complex types
+                        // that Graph rejects on this endpoint.
                     });
 
                 return events;

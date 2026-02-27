@@ -60,7 +60,7 @@ namespace AwningsAPI.Interfaces
         Task<CustomerExistsResponseDto> CheckCustomerExistsAsync(string? email, string? companyNumber);
         Task<EmailTaskDto> LinkCustomerToTaskAsync(int taskId, int customerId, string currentUser);
 
-
+        Task<EmailTaskDto> LinkWorkflowToTaskAsync(int taskId, int workflowId, string currentUser);
 
     }
 }

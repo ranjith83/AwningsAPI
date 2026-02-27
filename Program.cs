@@ -35,6 +35,8 @@ builder.Services.AddScoped<AuditInterceptor>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IPaymentScheduleService, PaymentScheduleService>();
 builder.Services.AddScoped<IOutlookService, OutlookService>();
+//builder.Services.AddScoped<IFollowUpService, FollowUpService>();
+builder.Services.AddScoped<FollowUpService>();
 
 // Configure HttpClient
 builder.Services.AddHttpClient();
