@@ -843,6 +843,55 @@ namespace AwningsAPI.Controllers
         }
 
         /// <summary>
+        /// Send a fresh outbound email without requiring a task context.
+        /// Used when an enquiry is added manually (no inbound email task exists yet).
+        /// Always sends as a new email — never threaded.
+        ///
+        /// POST /api/EmailTask/send-direct
+        /// Body: SendDirectEmailRequest
+        /// </summary>
+        [HttpPost("send-direct")]
+        public async Task<IActionResult> SendDirectEmail([FromBody] SendDirectEmailRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(request.ToEmail))
+                    return BadRequest(new { error = "ToEmail is required" });
+
+                if (string.IsNullOrWhiteSpace(request.Subject))
+                    return BadRequest(new { error = "Subject is required" });
+
+#if DEBUG
+                request.ToEmail = "mrk.ranjithkumar@gmail.com";
+#endif
+
+                var mailboxEmail = _configuration["AzureAd:MonitoredMailbox"]
+                    ?? _configuration["AzureAd:OrganizerEmail"]
+                    ?? throw new InvalidOperationException("Monitored mailbox not configured");
+
+                await _emailReaderService.SendEmailAsync(
+                    mailboxEmail: mailboxEmail,
+                    toEmail: request.ToEmail,
+                    toName: request.ToName ?? request.ToEmail,
+                    subject: request.Subject,
+                    bodyHtml: WrapPlainTextAsHtml(request.Body),
+                    replyToEmailId: null   // always a fresh email — no thread
+                );
+
+                _logger.LogInformation(
+                    "Direct email sent to {ToEmail} by {User} (no task context)",
+                    request.ToEmail, GetCurrentUserName());
+
+                return Ok(new { message = "Email sent successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending direct email to {ToEmail}", request.ToEmail);
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Converts a plain-text body (with line breaks) to minimal HTML so Graph
         /// renders it correctly. If the caller already supplies HTML it is passed through.
         /// </summary>
@@ -882,6 +931,19 @@ namespace AwningsAPI.Controllers
         public class ExecuteActionRequestDto
         {
             public object? Data { get; set; }
+        }
+
+        public class SendDirectEmailRequest
+        {
+            /// <summary>Recipient email address. Required.</summary>
+            public string ToEmail { get; set; } = string.Empty;
+            public string? ToName { get; set; }
+
+            /// <summary>Email subject line. Required.</summary>
+            public string Subject { get; set; } = string.Empty;
+
+            /// <summary>Plain-text or HTML body.</summary>
+            public string Body { get; set; } = string.Empty;
         }
 
         public class SendTaskEmailRequest

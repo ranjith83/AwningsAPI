@@ -86,7 +86,7 @@ namespace AwningsAPI.Services.WorkflowService
                 var cat = (task.TaskType ?? task.Category ?? string.Empty).ToLowerInvariant();
                 bool isInitialEnquiry =
                     cat == "initial_enquiry" ||
-                    cat == "initial enquiry" || cat == "general_enquiry";
+                    cat == "initial enquiry" || cat == "general_inquiry";
 
 
                 if (!isInitialEnquiry) return;

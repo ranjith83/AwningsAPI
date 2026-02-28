@@ -11,7 +11,14 @@ namespace AwningsAPI.Services.WorkflowService
     ///
     /// RULE:
     ///   A follow-up is created when the MOST-RECENT InitialEnquiry for a workflow
-    ///   is older than 3 days AND the workflow still has CreateQuote = false.
+    ///   is older than 3 days AND there is no Quote record in the database for
+    ///   that workflow yet.
+    ///
+    ///   Note: we deliberately check for an actual Quote row rather than the
+    ///   workflow's CreateQuote stage flag. The flag represents a UI toggle, not
+    ///   whether a quote has been issued. Using the Quotes table means the
+    ///   follow-up disappears as soon as a real quote exists — regardless of
+    ///   how the stage toggles are set.
     ///
     /// TIMER RESET:
     ///   When a NEW InitialEnquiry is added to a workflow
@@ -46,20 +53,35 @@ namespace AwningsAPI.Services.WorkflowService
         /// where none exist yet. Returns the number of new records created.
         ///
         /// Algorithm:
-        ///   1. For every workflow where CreateQuote = false, find its most-recent
-        ///      InitialEnquiry.
+        ///   1. For every workflow that does NOT yet have a Quote record in the
+        ///      Quotes table, find its most-recent InitialEnquiry.
         ///   2. If that enquiry's DateCreated &lt; (UtcNow - 3 days) AND there is no
         ///      active (non-dismissed) follow-up for that workflow → create one.
+        ///
+        /// Note: We check for an actual Quote row in the database rather than the
+        /// workflow's CreateQuote boolean flag. The flag reflects the stage toggle
+        /// setting, not whether a quote has actually been issued. Using the Quotes
+        /// table means a follow-up is suppressed as soon as a real quote exists.
         /// </summary>
         public async Task<int> GeneratePendingFollowUpsAsync()
         {
             var cutoff = DateTime.UtcNow - FollowUpThreshold;
 
-            // Workflows that haven't had a quote raised yet
-            var workflowIds = await _context.WorkflowStarts
-                .Where(w => w.CreateQuote == false)
+            // ── Workflows that have NO quote record yet ────────────────────────
+            // Get all workflow IDs that DO have at least one quote
+            var workflowIdsWithQuotes = await _context.Quotes
+                .Select(q => q.WorkflowId)
+                .Distinct()
+                .ToHashSetAsync();
+
+            // All workflow IDs — then exclude those with quotes
+            var allWorkflowIds = await _context.WorkflowStarts
                 .Select(w => w.WorkflowId)
                 .ToListAsync();
+
+            var workflowIds = allWorkflowIds
+                .Where(id => !workflowIdsWithQuotes.Contains(id))
+                .ToList();
 
             if (!workflowIds.Any())
                 return 0;

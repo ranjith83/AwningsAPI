@@ -13,7 +13,7 @@ namespace AwningsAPI.Dto.Workflow
         public decimal SubTotal { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal DiscountAmount { get; set; }
-        public string DiscountType { get; set; }
+        public string? DiscountType { get; set; }    // ← nullable: null when no discount applied
         public decimal DiscountValue { get; set; }
         public decimal TotalAmount { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -56,7 +56,15 @@ namespace AwningsAPI.Dto.Workflow
 
         public string Notes { get; set; }
         public string Terms { get; set; }
-        public string DiscountType { get; set; } // 'Percentage' or 'Fixed'
+
+        /// <summary>
+        /// Optional. Set to 'Percentage' or 'Fixed'. Leave null/empty for no discount.
+        /// </summary>
+        public string? DiscountType { get; set; }
+
+        /// <summary>
+        /// Optional. Only used when DiscountType is set. Defaults to 0.
+        /// </summary>
         public decimal DiscountValue { get; set; } = 0;
 
         [Required]
@@ -86,7 +94,8 @@ namespace AwningsAPI.Dto.Workflow
         public DateTime? FollowUpDate { get; set; }
         public string Notes { get; set; }
         public string Terms { get; set; }
-        public string DiscountType { get; set; }
+        /// <summary>Set to null or empty string to clear the discount.</summary>
+        public string? DiscountType { get; set; }
         public decimal? DiscountValue { get; set; }
         public List<UpdateQuoteItemDto> QuoteItems { get; set; }
     }

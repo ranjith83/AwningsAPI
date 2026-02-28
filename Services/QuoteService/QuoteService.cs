@@ -50,6 +50,14 @@ namespace AwningsAPI.Services.QuoteService
         {
             var quoteNumber = await GenerateQuoteNumberAsync();
 
+            // DiscountType: only set when explicitly provided AND non-empty.
+            // Use empty string "" as the DB sentinel for "no discount" so we
+            // never INSERT NULL into a NOT NULL column.
+            // Once you run a migration to make the column nullable, you can
+            // change this to: string.IsNullOrWhiteSpace(createDto.DiscountType) ? null : createDto.DiscountType
+            var discountType = string.IsNullOrWhiteSpace(createDto.DiscountType) ? string.Empty : createDto.DiscountType;
+            var discountValue = string.IsNullOrWhiteSpace(createDto.DiscountType) ? 0 : createDto.DiscountValue;
+
             var quote = new Quote
             {
                 WorkflowId = createDto.WorkflowId,
@@ -57,10 +65,10 @@ namespace AwningsAPI.Services.QuoteService
                 QuoteDate = createDto.QuoteDate,
                 FollowUpDate = createDto.FollowUpDate,
                 CustomerId = createDto.CustomerId,
-                Notes = createDto.Notes,
-                Terms = createDto.Terms,
-                DiscountType = createDto.DiscountType,
-                DiscountValue = createDto.DiscountValue,
+                Notes = createDto.Notes ?? string.Empty,
+                Terms = createDto.Terms ?? string.Empty,
+                DiscountType = discountType,
+                DiscountValue = discountValue,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser
             };
@@ -120,7 +128,9 @@ namespace AwningsAPI.Services.QuoteService
                 quote.Terms = updateDto.Terms;
 
             if (updateDto.DiscountType != null)
-                quote.DiscountType = updateDto.DiscountType;
+                quote.DiscountType = string.IsNullOrWhiteSpace(updateDto.DiscountType)
+                    ? string.Empty   // clears discount — change to `null` after running migration
+                    : updateDto.DiscountType;
 
             if (updateDto.DiscountValue.HasValue)
                 quote.DiscountValue = updateDto.DiscountValue.Value;

@@ -29,8 +29,13 @@ namespace AwningsAPI.Model.Workflow
         [Column(TypeName = "decimal(18,2)")]
         public decimal DiscountAmount { get; set; }
 
+        /// <summary>
+        /// 'Percentage', 'Fixed', or "" (empty string = no discount).
+        /// DB column is NOT NULL — QuoteService uses "" as the no-discount sentinel.
+        /// To allow null: run migration, change to string?, update QuoteService accordingly.
+        /// </summary>
         [StringLength(20)]
-        public string DiscountType { get; set; } // 'Percentage' or 'Fixed'
+        public string DiscountType { get; set; } = string.Empty;
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal DiscountValue { get; set; } = 0;
