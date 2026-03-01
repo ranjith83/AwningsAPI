@@ -86,14 +86,61 @@ namespace AwningsAPI.Services.WorkflowService
             if (!workflowIds.Any())
                 return 0;
 
-            // Most-recent enquiry per workflow, older than the threshold
-            var staleEnquiries = await _context.InitialEnquiries
-                .Where(e =>
-                    workflowIds.Contains(e.WorkflowId) &&
-                    e.DateCreated <= cutoff)
+            // ── KEY FIX ────────────────────────────────────────────────────────
+            // Group FIRST to get the most-recent enquiry per workflow, THEN check
+            // whether that latest enquiry is older than the threshold.
+            //
+            // The previous query applied the DateCreated <= cutoff filter BEFORE
+            // grouping. This meant: if a user replied yesterday (new enquiry),
+            // that reply was filtered out, leaving only the old original enquiry,
+            // which then incorrectly triggered a new follow-up — making old emails
+            // reappear even after they had been replied to.
+            //
+            // Correct rule: "The MOST-RECENT enquiry on this workflow is older than
+            // 3 days." If the user replied yesterday, the most-recent enquiry is
+            // 1 day old → no follow-up, regardless of older enquiries.
+            var latestEnquiryPerWorkflow = await _context.InitialEnquiries
+                .Where(e => workflowIds.Contains(e.WorkflowId))
                 .GroupBy(e => e.WorkflowId)
                 .Select(g => g.OrderByDescending(e => e.DateCreated).First())
                 .ToListAsync();
+
+            // Only raise a follow-up if the LATEST reply/enquiry is itself stale
+            var staleEnquiries = latestEnquiryPerWorkflow
+                .Where(e => e.DateCreated <= cutoff)
+                .ToList();
+
+            // ── Clean-up pass: dismiss active follow-ups whose latest enquiry is now fresh ──
+            // This handles a gap: if a new enquiry is saved via a path that does NOT
+            // call DismissActiveForWorkflowAsync (e.g. auto-created from an email task),
+            // the active follow-up would persist until the next scan.
+            // Here we compare every active follow-up's EnquiryId against the latest
+            // enquiry for that workflow. If they differ, a reply has come in and the
+            // old follow-up must be dismissed.
+            var freshWorkflowIds = latestEnquiryPerWorkflow
+                .Where(e => e.DateCreated > cutoff)  // reply within threshold — no follow-up needed
+                .Select(e => e.WorkflowId)
+                .ToHashSet();
+
+            var staleFollowUps = await _context.WorkflowFollowUps
+                .Where(f => !f.IsDismissed && freshWorkflowIds.Contains(f.WorkflowId))
+                .ToListAsync();
+
+            if (staleFollowUps.Any())
+            {
+                foreach (var fu in staleFollowUps)
+                {
+                    fu.IsDismissed = true;
+                    fu.ResolvedDate = DateTime.UtcNow;
+                    fu.ResolvedBy = "System";
+                    fu.DismissReason = "Replied";
+                    fu.Notes = "Auto-dismissed — a more recent enquiry/reply exists for this workflow.";
+                }
+                await _context.SaveChangesAsync();
+                _logger.LogInformation(
+                    "GeneratePendingFollowUps: dismissed {Count} stale follow-up(s) — reply found.",
+                    staleFollowUps.Count);
+            }
 
             _logger.LogInformation(
                 "GeneratePendingFollowUps: {Count} workflow(s) with a stale enquiry",
@@ -193,8 +240,8 @@ namespace AwningsAPI.Services.WorkflowService
                 fu.IsDismissed = true;
                 fu.ResolvedDate = DateTime.UtcNow;
                 fu.ResolvedBy = currentUser;
-                fu.DismissReason = "NewEnquiry";
-                fu.Notes = "Automatically dismissed — new enquiry submitted by user.";
+                fu.DismissReason = "Replied";
+                fu.Notes = "Automatically dismissed — a new enquiry/reply was submitted.";
             }
 
             await _context.SaveChangesAsync();

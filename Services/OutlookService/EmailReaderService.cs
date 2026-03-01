@@ -229,14 +229,20 @@ namespace AwningsAPI.Services.Email
         /// <summary>
         /// Send an email reply (or new email) via Microsoft Graph on behalf of the monitored mailbox.
         /// Saves a copy to Sent Items automatically.
+        /// Optionally attaches one or more files supplied as base64-encoded content.
         /// </summary>
+        /// <param name="attachments">
+        /// Optional list of file attachments.  Each tuple: (fileName, base64Content, contentType)
+        /// e.g. ("Quote-001.pdf", "JVBERi0x...", "application/pdf")
+        /// </param>
         public async Task SendEmailAsync(
             string mailboxEmail,
             string toEmail,
             string toName,
             string subject,
             string bodyHtml,
-            string? replyToEmailId = null)
+            string? replyToEmailId = null,
+            IEnumerable<(string FileName, string Base64Content, string ContentType)>? attachments = null)
         {
             try
             {
@@ -262,6 +268,23 @@ namespace AwningsAPI.Services.Email
                         }
                     }
                 };
+
+                // Attach files when supplied
+                if (attachments != null)
+                {
+                    message.Attachments = new List<Microsoft.Graph.Models.Attachment>();
+                    foreach (var (fileName, base64Content, contentType) in attachments)
+                    {
+                        if (string.IsNullOrWhiteSpace(base64Content)) continue;
+                        message.Attachments.Add(new FileAttachment
+                        {
+                            Name = fileName,
+                            ContentType = contentType,
+                            ContentBytes = Convert.FromBase64String(base64Content)
+                        });
+                        _logger.LogInformation($"Attaching {fileName} ({contentType})");
+                    }
+                }
 
                 if (!string.IsNullOrEmpty(replyToEmailId))
                 {

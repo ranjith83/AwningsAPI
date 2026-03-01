@@ -1,4 +1,5 @@
 ﻿using AwningsAPI.Dto.Tasks;
+using AwningsAPI.Services.WorkflowService;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -25,17 +26,20 @@ namespace AwningsAPI.Controllers
         private readonly IEmailReaderService _emailReaderService;
         private readonly IConfiguration _configuration;
         private readonly ILogger<EmailTaskController> _logger;
+        private readonly FollowUpService _followUpService;
 
         public EmailTaskController(
             ITaskService taskService,
             IEmailReaderService emailReaderService,
             IConfiguration configuration,
-            ILogger<EmailTaskController> logger)
+            ILogger<EmailTaskController> logger,
+            FollowUpService followUpService)
         {
             _taskService = taskService;
             _emailReaderService = emailReaderService;
             _configuration = configuration;
             _logger = logger;
+            _followUpService = followUpService;
         }
 
         #region GET Endpoints
@@ -820,18 +824,37 @@ namespace AwningsAPI.Controllers
                     request.ToName = task.FromName ?? task.FromEmail;
                 }
 
+                // Map attachment DTOs to the tuple list SendEmailAsync expects
+                var attachments = request.Attachments?
+                    .Where(a => !string.IsNullOrWhiteSpace(a.Base64Content))
+                    .Select(a => (a.FileName, a.Base64Content, a.ContentType))
+                    .ToList();
+
                 await _emailReaderService.SendEmailAsync(
                     mailboxEmail: mailboxEmail,
                     toEmail: request.ToEmail,
                     toName: request.ToName ?? request.ToEmail,
                     subject: request.Subject,
                     bodyHtml: WrapPlainTextAsHtml(request.Body),
-                    replyToEmailId: request.OriginalEmailGraphId  // null = fresh email
+                    replyToEmailId: request.OriginalEmailGraphId,  // null = fresh email
+                    attachments: attachments?.Count > 0 ? attachments : null
                 );
 
                 _logger.LogInformation(
-                    "Email sent from task {TaskId} to {ToEmail} by {User}",
-                    taskId, request.ToEmail, GetCurrentUserName());
+                    "Email sent from task {TaskId} to {ToEmail} by {User} ({AttachCount} attachments)",
+                    taskId, request.ToEmail, GetCurrentUserName(), attachments?.Count ?? 0);
+
+                // Auto-dismiss any active follow-up for this task's workflow.
+                // Sending a reply email constitutes "following up" — the 3-day timer resets.
+                var sentTask = await _taskService.GetTaskByIdAsync(taskId);
+                if (sentTask?.WorkflowId.HasValue == true)
+                {
+                    await _followUpService.DismissActiveForWorkflowAsync(
+                        sentTask.WorkflowId.Value, GetCurrentUserName());
+                    _logger.LogInformation(
+                        "Auto-dismissed follow-up for workflow {WorkflowId} after email reply",
+                        sentTask.WorkflowId.Value);
+                }
 
                 return Ok(new { message = "Email sent successfully" });
             }
@@ -869,18 +892,25 @@ namespace AwningsAPI.Controllers
                     ?? _configuration["AzureAd:OrganizerEmail"]
                     ?? throw new InvalidOperationException("Monitored mailbox not configured");
 
+                // Map attachment DTOs to the tuple list SendEmailAsync expects
+                var attachments = request.Attachments?
+                    .Where(a => !string.IsNullOrWhiteSpace(a.Base64Content))
+                    .Select(a => (a.FileName, a.Base64Content, a.ContentType))
+                    .ToList();
+
                 await _emailReaderService.SendEmailAsync(
                     mailboxEmail: mailboxEmail,
                     toEmail: request.ToEmail,
                     toName: request.ToName ?? request.ToEmail,
                     subject: request.Subject,
                     bodyHtml: WrapPlainTextAsHtml(request.Body),
-                    replyToEmailId: null   // always a fresh email — no thread
+                    replyToEmailId: null,   // always a fresh email — no thread
+                    attachments: attachments?.Count > 0 ? attachments : null
                 );
 
                 _logger.LogInformation(
-                    "Direct email sent to {ToEmail} by {User} (no task context)",
-                    request.ToEmail, GetCurrentUserName());
+                    "Direct email sent to {ToEmail} by {User} ({AttachCount} attachments, no task context)",
+                    request.ToEmail, GetCurrentUserName(), attachments?.Count ?? 0);
 
                 return Ok(new { message = "Email sent successfully" });
             }
@@ -933,6 +963,18 @@ namespace AwningsAPI.Controllers
             public object? Data { get; set; }
         }
 
+        public class EmailAttachmentDto
+        {
+            /// <summary>File name shown in email client, e.g. "Quote-001.pdf".</summary>
+            public string FileName { get; set; } = string.Empty;
+
+            /// <summary>Base64-encoded file content.</summary>
+            public string Base64Content { get; set; } = string.Empty;
+
+            /// <summary>MIME type, e.g. "application/pdf".</summary>
+            public string ContentType { get; set; } = "application/octet-stream";
+        }
+
         public class SendDirectEmailRequest
         {
             /// <summary>Recipient email address. Required.</summary>
@@ -944,6 +986,9 @@ namespace AwningsAPI.Controllers
 
             /// <summary>Plain-text or HTML body.</summary>
             public string Body { get; set; } = string.Empty;
+
+            /// <summary>Optional file attachments encoded as base64.</summary>
+            public List<EmailAttachmentDto>? Attachments { get; set; }
         }
 
         public class SendTaskEmailRequest
@@ -964,6 +1009,9 @@ namespace AwningsAPI.Controllers
             /// Maps to IncomingEmail.EmailId stored on the task.
             /// </summary>
             public string? OriginalEmailGraphId { get; set; }
+
+            /// <summary>Optional file attachments encoded as base64.</summary>
+            public List<EmailAttachmentDto>? Attachments { get; set; }
         }
 
         #endregion

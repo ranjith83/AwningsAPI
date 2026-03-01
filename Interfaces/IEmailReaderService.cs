@@ -32,7 +32,14 @@ namespace AwningsAPI.Interfaces
         /// </summary>
         Task<IncomingEmail> GetCompleteEmailAsync(string mailboxEmail, string emailId);
 
-        Task SendEmailAsync(string mailboxEmail, string toEmail, string toName, string subject, string bodyHtml, string? replyToEmailId = null);
+        Task SendEmailAsync(
+            string mailboxEmail,
+            string toEmail,
+            string toName,
+            string subject,
+            string bodyHtml,
+            string? replyToEmailId = null,
+            IEnumerable<(string FileName, string Base64Content, string ContentType)>? attachments = null);
 
     }
 }
