@@ -806,8 +806,8 @@ namespace AwningsAPI.Controllers
         {
             try
             {
-#if DEBUG
-                request.ToEmail = "mrk.ranjithkumar@gmail.com";
+#if DEBUG 
+                request.ToEmail = "gistyf30@hotmail.com"; // "mrk.ranjithkumar@gmail.com";
 #endif
                 var mailboxEmail = _configuration["AzureAd:MonitoredMailbox"]
                     ?? _configuration["AzureAd:OrganizerEmail"]
@@ -885,7 +885,7 @@ namespace AwningsAPI.Controllers
                     return BadRequest(new { error = "Subject is required" });
 
 #if DEBUG
-                request.ToEmail = "mrk.ranjithkumar@gmail.com";
+                request.ToEmail = "gistyf30@hotmail.com"; // "mrk.ranjithkumar@gmail.com";
 #endif
 
                 var mailboxEmail = _configuration["AzureAd:MonitoredMailbox"]
