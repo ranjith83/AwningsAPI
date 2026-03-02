@@ -820,11 +820,18 @@ namespace AwningsAPI.Services.Tasks
 
         /// <summary>
         /// Called immediately after a task is created from an inbound email.
-        /// Looks up the sender email against Customer.Email and CustomerContact emails.
-        /// If a match is found:
-        ///   - Sets CustomerId + CustomerName on the task (saves an audit history entry).
-        ///   - If that customer has exactly ONE workflow, also sets WorkflowId automatically.
-        /// Non-fatal: errors are logged and the task is always saved even if lookup fails.
+        ///
+        /// Looks up the sender email against Customer.Email and CustomerContact.Email.
+        /// If a customer match is found:
+        ///   1. Sets CustomerId + CustomerName + CompanyNumber on the task.
+        ///   2. If that customer has exactly ONE workflow, also sets WorkflowId.
+        ///   3. If both a customer AND a single workflow were matched the task is
+        ///      automatically marked as Completed — no manual action required.
+        ///      A single "Completed" audit entry is written (customer/subject/category
+        ///      all populated) so it appears correctly in the Audit tab.
+        ///
+        /// Non-fatal: errors are logged and the task is always saved even if the
+        /// lookup or auto-complete step fails.
         /// </summary>
         private async Task TryAutoLinkCustomerAndWorkflowAsync(
             int taskId, string? fromEmail, string currentUser)
@@ -834,11 +841,11 @@ namespace AwningsAPI.Services.Tasks
 
             try
             {
-                // Match on Customer.Email first, then CustomerContact.Email
+                // ── 1. Match customer by sender email ────────────────────────────────
                 var customer = await _context.Customers
                     .Include(c => c.CustomerContacts)
                     .FirstOrDefaultAsync(c =>
-                        c.Email != null && c.Email.ToLower() == fromEmail.ToLower() ||
+                        (c.Email != null && c.Email.ToLower() == fromEmail.ToLower()) ||
                         c.CustomerContacts.Any(cc => cc.Email != null && cc.Email.ToLower() == fromEmail.ToLower()));
 
                 if (customer == null)
@@ -852,7 +859,7 @@ namespace AwningsAPI.Services.Tasks
                     "TryAutoLinkCustomer: matched customer {CustomerId} ({CustomerName}) for {FromEmail}",
                     customer.CustomerId, customer.Name, fromEmail);
 
-                // Update the task with the matched customer
+                // ── 2. Apply customer (+ optional single workflow) to the task ───────
                 var task = await _context.EmailTasks.FindAsync(taskId);
                 if (task == null) return;
 
@@ -862,24 +869,44 @@ namespace AwningsAPI.Services.Tasks
                 task.DateUpdated = DateTime.UtcNow;
                 task.UpdatedBy = currentUser;
 
-                // ── If customer has exactly one workflow, auto-assign it ──────────────
                 var workflows = await _context.WorkflowStarts
                     .Where(w => w.CustomerId == customer.CustomerId)
                     .ToListAsync();
 
-                if (workflows.Count == 1)
+                var singleWorkflowMatched = workflows.Count == 1;
+
+                if (singleWorkflowMatched)
                 {
-                    var singleWorkflow = workflows[0];
-                    task.WorkflowId = singleWorkflow.WorkflowId;
+                    task.WorkflowId = workflows[0].WorkflowId;
                     _logger.LogInformation(
                         "TryAutoLinkCustomer: auto-assigned single workflow {WorkflowId} to task {TaskId}",
-                        singleWorkflow.WorkflowId, taskId);
+                        workflows[0].WorkflowId, taskId);
+                }
+
+                // ── 3. Auto-complete when customer + single workflow both found ───────
+                // Both conditions met → the task can be fully resolved automatically.
+                // We set status fields here (before SaveChanges) so a single DB round-trip
+                // covers both the link and the completion.
+                if (singleWorkflowMatched)
+                {
+                    task.Status = "Completed";
+                    task.CompletedDate = DateTime.UtcNow;
+                    task.CompletedBy = currentUser;
+                    task.CompletionNotes =
+                        $"Auto-completed: customer '{customer.Name}' and workflow {task.WorkflowId} " +
+                        $"matched from sender email '{fromEmail}'.";
+
+                    _logger.LogInformation(
+                        "TryAutoLinkCustomer: auto-completing task {TaskId} — customer {CustomerId} + workflow {WorkflowId} matched",
+                        taskId, customer.CustomerId, task.WorkflowId);
                 }
 
                 await _context.SaveChangesAsync();
 
-                // Audit entry — same pattern as manual LinkCustomerToTask
-                var details = workflows.Count == 1
+                // ── 4. Audit history ─────────────────────────────────────────────────
+
+                // CustomerLinked
+                var customerDetails = singleWorkflowMatched
                     ? $"Auto-linked customer '{customer.Name}' and workflow {task.WorkflowId} from sender email"
                     : $"Auto-linked customer '{customer.Name}' from sender email";
 
@@ -888,13 +915,14 @@ namespace AwningsAPI.Services.Tasks
                     action: "CustomerLinked",
                     oldValue: null,
                     newValue: customer.CustomerId.ToString(),
-                    details: details,
+                    details: customerDetails,
                     createdBy: currentUser,
                     customerName: customer.Name,
                     subject: task.Subject,
                     category: task.Category);
 
-                if (workflows.Count == 1)
+                // WorkflowLinked
+                if (singleWorkflowMatched)
                 {
                     await AddHistoryEntry(
                         taskId: taskId,
@@ -902,6 +930,18 @@ namespace AwningsAPI.Services.Tasks
                         oldValue: null,
                         newValue: task.WorkflowId.ToString(),
                         details: $"Workflow {task.WorkflowId} auto-linked (only workflow for customer)",
+                        createdBy: currentUser,
+                        customerName: customer.Name,
+                        subject: task.Subject,
+                        category: task.Category);
+
+                    // Completed — single rich audit entry (no duplicate StatusChanged)
+                    await AddHistoryEntry(
+                        taskId: taskId,
+                        action: "Completed",
+                        oldValue: "New",
+                        newValue: "Completed",
+                        details: task.CompletionNotes,
                         createdBy: currentUser,
                         customerName: customer.Name,
                         subject: task.Subject,
@@ -1050,7 +1090,7 @@ namespace AwningsAPI.Services.Tasks
                   h.Action == "Created" ||
                   h.Action == "Assigned" ||
                   h.Action == "Unassigned" ||
-                  h.Action == "Completed" );
+                  h.Action == "Completed");
 
             if (!string.IsNullOrEmpty(action) && auditActions.Contains(action))
                 query = query.Where(h => h.Action == action);
