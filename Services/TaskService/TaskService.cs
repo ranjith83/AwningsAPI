@@ -223,19 +223,11 @@ namespace AwningsAPI.Services.Tasks
 
             await _context.SaveChangesAsync();
 
-            // Always write a generic StatusChanged entry
-            await AddHistoryEntry(
-                taskId: taskId,
-                action: "StatusChanged",
-                oldValue: oldStatus,
-                newValue: statusDto.Status,
-                details: statusDto.CompletionNotes,
-                createdBy: currentUser);
-
-            // When transitioning to Completed, also write a dedicated "Completed" audit entry
-            // that includes customer/subject/category context so it shows up richly in the Audit tab.
             if (statusDto.Status == "Completed")
             {
+                // For Completed transitions write only ONE rich "Completed" audit entry
+                // (includes customer/subject/category context for the Audit tab).
+                // We do NOT also write a generic "StatusChanged" entry to avoid duplicates.
                 await AddHistoryEntry(
                     taskId: taskId,
                     action: "Completed",
@@ -248,6 +240,17 @@ namespace AwningsAPI.Services.Tasks
                     customerName: task.CustomerName,
                     subject: task.Subject,
                     category: task.Category);
+            }
+            else
+            {
+                // For all other status changes write a generic StatusChanged entry
+                await AddHistoryEntry(
+                    taskId: taskId,
+                    action: "StatusChanged",
+                    oldValue: oldStatus,
+                    newValue: statusDto.Status,
+                    details: statusDto.CompletionNotes,
+                    createdBy: currentUser);
             }
 
             return await GetTaskByIdAsync(taskId);
@@ -1037,7 +1040,7 @@ namespace AwningsAPI.Services.Tasks
             int pageSize = 20,
             string? action = null)
         {
-            var auditActions = new[] { "Created", "Assigned", "Unassigned", "Completed", "StatusChanged" };
+            var auditActions = new[] { "Created", "Assigned", "Unassigned", "Completed" };
 
             //var query = _context.TaskHistories
             //    .Where(h => auditActions.Contains(h.Action));
@@ -1047,8 +1050,7 @@ namespace AwningsAPI.Services.Tasks
                   h.Action == "Created" ||
                   h.Action == "Assigned" ||
                   h.Action == "Unassigned" ||
-                  h.Action == "Completed" ||
-                  h.Action == "StatusChanged");
+                  h.Action == "Completed" );
 
             if (!string.IsNullOrEmpty(action) && auditActions.Contains(action))
                 query = query.Where(h => h.Action == action);
