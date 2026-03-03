@@ -528,7 +528,7 @@ namespace AwningsAPI.Services.Email
                 WorkflowId = workflowId,
                 Email = email.FromEmail,
                 Comments = $"Subject: {email.Subject}\n\n{email.BodyContent}",
-                Images = "" // Attachments would be processed here
+                Images = null // Attachments would be processed here
             };
 
             return await _workflowService.AddInitialEnquiry(enquiryDto, currentUser);

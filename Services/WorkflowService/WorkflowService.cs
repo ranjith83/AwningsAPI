@@ -102,14 +102,14 @@ namespace AwningsAPI.Services.WorkflowService
                 if (bodyPreview.Length > 400) bodyPreview = bodyPreview[..400] + "…";
 
                 var comments = string.IsNullOrWhiteSpace(task.Subject)
-                    ? bodyPreview: $"Subject: {task.Subject} { bodyPreview} ";
+                    ? bodyPreview : $"Subject: {task.Subject} {bodyPreview} ";
 
                 var enquiry = new InitialEnquiry
                 {
                     WorkflowId = workflowId,
                     Comments = comments.Trim(),
                     Email = task.FromEmail ?? string.Empty,
-                    Images = "",
+                    Images = null,
                     TaskId = taskId,
                     IncomingEmailId = task.IncomingEmailId,
                     DateCreated = DateTime.UtcNow,
