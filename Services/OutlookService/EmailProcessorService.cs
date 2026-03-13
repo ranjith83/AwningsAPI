@@ -121,6 +121,21 @@ namespace AwningsAPI.Services.Email
                     ?? _configuration["AzureAd:OrganizerEmail"]
                     ?? throw new Exception("Monitored mailbox not configured");
 
+                // ── Duplicate guard ───────────────────────────────────────────
+                // Multiple Graph subscriptions (from previous restarts) can fire
+                // for the same message simultaneously. Check the DB first so we
+                // never insert the same Graph message ID twice.
+                var alreadyProcessed = await _context.IncomingEmails
+                    .AnyAsync(e => e.EmailId == emailId);
+
+                if (alreadyProcessed)
+                {
+                    _logger.LogWarning(
+                        "⚠️ Duplicate notification ignored — emailId {EmailId} already exists in DB.",
+                        emailId);
+                    return;
+                }
+
                 _logger.LogInformation($"📧 Processing single email: {emailId}");
 
                 var email = await _emailReaderService.GetCompleteEmailAsync(mailboxEmail, emailId);
@@ -144,6 +159,21 @@ namespace AwningsAPI.Services.Email
             try
             {
                 _logger.LogInformation($"📧 Processing: {email.Subject} from {email.FromEmail}");
+
+                // ── Second duplicate guard (covers the batch poll path) ────────
+                if (!string.IsNullOrEmpty(email.EmailId))
+                {
+                    var exists = await _context.IncomingEmails
+                        .AnyAsync(e => e.EmailId == email.EmailId);
+
+                    if (exists)
+                    {
+                        _logger.LogWarning(
+                            "⚠️ Skipping duplicate email — EmailId {EmailId} already in DB.",
+                            email.EmailId);
+                        return;
+                    }
+                }
 
                 // Update status
                 email.ProcessingStatus = "Processing";

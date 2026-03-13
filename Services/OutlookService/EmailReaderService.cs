@@ -17,29 +17,69 @@ namespace AwningsAPI.Services.Email
         private readonly GraphServiceClient _graphClient;
         private readonly ILogger<EmailReaderService> _logger;
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
+
+        /// <summary>
+        /// UTC timestamp captured when the service is first constructed.
+        /// Used to filter emails so only messages received AFTER app startup are processed.
+        /// Prevents reprocessing old unread emails sitting in the inbox before the watcher started.
+        /// </summary>
+        private static readonly DateTimeOffset AppStartedAt = DateTimeOffset.UtcNow;
+
+        /// <summary>
+        /// Hard upper bound: Graph allows at most 1000 items per request.
+        /// Configurable via EmailReader:MaxEmailsPerBatch in appsettings.json.
+        /// Falls back to 50 when the setting is absent or invalid.
+        /// </summary>
+        private int MaxEmailsPerBatch
+        {
+            get
+            {
+                var configured = _configuration.GetValue<int?>("EmailReader:MaxEmailsPerBatch");
+                if (configured is null or <= 0 or > 1000)
+                    return 50;
+                return configured.Value;
+            }
+        }
 
         public EmailReaderService(
             GraphServiceClient graphClient,
             ILogger<EmailReaderService> logger,
-            AppDbContext context)
+            AppDbContext context,
+            IConfiguration configuration)
         {
             _graphClient = graphClient;
             _logger = logger;
             _context = context;
+            _configuration = configuration;
         }
 
-        public async Task<List<IncomingEmail>> GetUnreadEmailsAsync(string mailboxEmail, int maxResults = 50)
+        public async Task<List<IncomingEmail>> GetUnreadEmailsAsync(string mailboxEmail, int maxResults = 0)
         {
             try
             {
-                _logger.LogInformation($"Fetching unread emails from {mailboxEmail}");
+                // Resolve effective limit:
+                //   caller override (>0)  →  EmailReader:MaxEmailsPerBatch config  →  50
+                //   Pass 0 (or omit) to use the configured / default limit.
+                var effectiveLimit = (maxResults > 0 && maxResults <= 1000)
+                    ? maxResults
+                    : MaxEmailsPerBatch;
+
+                // Only fetch emails received on or after the moment this app instance started.
+                // Graph OData datetime format requires ISO 8601 with no milliseconds.
+                var sinceUtc = AppStartedAt.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                var filter = $"isRead eq false and receivedDateTime ge {sinceUtc}";
+
+                _logger.LogInformation(
+                    "Fetching up to {Limit} unread emails from {Mailbox} since {Since}",
+                    effectiveLimit, mailboxEmail, sinceUtc);
 
                 var messages = await _graphClient.Users[mailboxEmail]
                     .Messages
                     .GetAsync(requestConfiguration =>
                     {
-                        requestConfiguration.QueryParameters.Filter = "isRead eq false";
-                        requestConfiguration.QueryParameters.Top = maxResults;
+                        requestConfiguration.QueryParameters.Filter = filter;
+                        requestConfiguration.QueryParameters.Top = effectiveLimit;
                         requestConfiguration.QueryParameters.Orderby = new[] { "receivedDateTime DESC" };
                         requestConfiguration.QueryParameters.Select = new[]
                         {
@@ -139,37 +179,25 @@ namespace AwningsAPI.Services.Email
         {
             try
             {
-                _logger.LogInformation($"Fetching complete email {emailId}");
+                _logger.LogInformation($"Fetching complete email by ID: {emailId}");
 
-
-                var messages = await _graphClient.Users[mailboxEmail]
-                    .Messages
-                    .GetAsync();
-
-                var id = messages?.Value?.First().Id;
-
-                var safeId = Uri.EscapeDataString(id);
-
-                // Get the email message
-                var msg = await _graphClient.Users[mailboxEmail]
-                    .Messages
+                // Fetch the message directly by its Graph message ID.
+                // The emailId comes from the Graph change notification resource path,
+                // so it is already the exact message ID — no filter needed.
+                var message = await _graphClient.Users[mailboxEmail]
+                    .Messages[emailId]
                     .GetAsync(requestConfiguration =>
                     {
-                        requestConfiguration.QueryParameters.Filter =
-                            $"from/emailAddress/address eq '{emailId}'";
-
                         requestConfiguration.QueryParameters.Select = new[]
                         {
-                           "id", "subject", "from", "body", "bodyPreview",
-                           "receivedDateTime", "hasAttachments", "importance", "isRead"
-                       };
+                            "id", "subject", "from", "body", "bodyPreview",
+                            "receivedDateTime", "hasAttachments", "importance", "isRead"
+                        };
                     });
-                var message = msg?.Value?.FirstOrDefault();
-
 
                 if (message == null)
                 {
-                    throw new Exception($"Email {emailId} not found");
+                    throw new Exception($"Graph returned null for message ID: {emailId}");
                 }
 
                 var incomingEmail = new IncomingEmail

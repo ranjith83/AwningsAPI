@@ -70,7 +70,7 @@ namespace AwiningsIreland_WebAPI.Models
         public int InvoiceId { get; set; }
 
         [Required]
-        [StringLength(200)]
+        [StringLength(500)]  // Increased from 200 — supports free-text Extras descriptions
         public string Description { get; set; }
 
         [Required]
@@ -134,4 +134,3 @@ namespace AwiningsIreland_WebAPI.Models
         public virtual Invoice Invoice { get; set; }
     }
 }
-

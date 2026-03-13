@@ -65,6 +65,8 @@ builder.Services.AddSingleton<GraphServiceClient>(sp =>
 builder.Services.AddScoped<IEmailReaderService, EmailReaderService>();
 builder.Services.AddScoped<IEmailAnalysisService, EmailAnalysisService>();
 builder.Services.AddScoped<IEmailProcessorService, EmailProcessorService>();
+builder.Services.AddScoped<IGraphSubscriptionService, GraphSubscriptionService>();
+builder.Services.AddHostedService<EmailWatcherBackgroundService>();
 // Task Service
 builder.Services.AddScoped<ITaskService, TaskService>();
 

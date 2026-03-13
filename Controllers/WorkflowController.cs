@@ -145,20 +145,18 @@ namespace AwningsAPI.Controllers
             return Ok(bracketsDto);
         }
 
+        /// <summary>
+        /// DEPRECATED — Arms data has been moved into the Brackets table.
+        /// This endpoint now returns an empty list. Use GeBracketsForProduct instead.
+        /// Kept for backwards compatibility so existing clients don't break.
+        /// </summary>
         [HttpGet("GeArmsForProduct")]
+        [Obsolete("Arms data is now stored in the Brackets table. Use GeBracketsForProduct.")]
         public async Task<ActionResult<IEnumerable<ArmsDto>>> GeArmsForProduct(int ProductId)
         {
-            var arms = await _workflowService.GeArmsForProductAsync(ProductId);
-
-            var armsDto = arms.Select(c => new ArmsDto
-            {
-                ArmId = c.ArmId,
-                Description = c.Description,
-                Price = c.Price,
-                BfId = c.BfId
-            }).ToList();
-
-            return Ok(armsDto);
+            // Arms data was migrated into Brackets — return empty list so any
+            // old callers receive a valid (empty) response rather than an error.
+            return Ok(new List<ArmsDto>());
         }
 
         [HttpGet("GeMotorsForProduct")]

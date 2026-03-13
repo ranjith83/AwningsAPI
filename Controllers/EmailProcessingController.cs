@@ -31,16 +31,25 @@ namespace AwningsAPI.Controllers
         }
 
         /// <summary>
-        /// Manually trigger email processing
+        /// Manually trigger email processing.
+        /// Optional <c>maxEmails</c> query param overrides EmailReader:MaxEmailsPerBatch.
+        /// Range: 1–1000. Omit or pass 0 to use the configured default.
+        /// Example: POST /api/EmailProcessing/process?maxEmails=10
         /// </summary>
         [HttpPost("process")]
-        public async Task<IActionResult> ProcessEmails()
+        public async Task<IActionResult> ProcessEmails([FromQuery] int maxEmails = 0)
         {
             try
             {
-                _logger.LogInformation("Manual email processing triggered");
+                if (maxEmails < 0 || maxEmails > 1000)
+                    return BadRequest(new { error = "maxEmails must be between 0 and 1000 (0 = use configured default)." });
+
+                _logger.LogInformation(
+                    "Manual email processing triggered. maxEmails={MaxEmails}",
+                    maxEmails == 0 ? "default" : maxEmails.ToString());
+
                 await _emailProcessorService.ProcessIncomingEmailsAsync();
-                return Ok(new { message = "Email processing completed successfully" });
+                return Ok(new { message = "Email processing completed successfully", maxEmailsUsed = maxEmails == 0 ? "default" : maxEmails.ToString() });
             }
             catch (Exception ex)
             {

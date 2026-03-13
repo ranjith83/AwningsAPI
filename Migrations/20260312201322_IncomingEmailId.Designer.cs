@@ -4,6 +4,7 @@ using AwningsAPI.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AwningsAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260312201322_IncomingEmailId")]
+    partial class IncomingEmailId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -753,6 +756,85 @@ namespace AwningsAPI.Migrations
                     b.HasKey("ArmId");
 
                     b.ToTable("Arms");
+
+                    b.HasData(
+                        new
+                        {
+                            ArmId = 1,
+                            ArmTypeId = 1,
+                            BfId = 1,
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Surcharge for face fixture",
+                            Price = 86m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            ArmId = 2,
+                            ArmTypeId = 1,
+                            BfId = 3,
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Surcharge for face fixture incl. spreader plate A",
+                            Price = 334m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            ArmId = 3,
+                            ArmTypeId = 1,
+                            BfId = 2,
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Surcharge for face fixture incl. spreader plate B",
+                            Price = 406m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            ArmId = 4,
+                            ArmTypeId = 1,
+                            BfId = 2,
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Surcharge for top fixture",
+                            Price = 86m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            ArmId = 5,
+                            ArmTypeId = 1,
+                            BfId = 2,
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Surcharge for eaves fixture",
+                            Price = 199m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            ArmId = 6,
+                            ArmTypeId = 1,
+                            BfId = 0,
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Surcharge for arms with bionic tendon",
+                            Price = 117m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            ArmId = 7,
+                            ArmTypeId = 1,
+                            BfId = 0,
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Surcharge for bespoke arms",
+                            Price = 177m,
+                            ProductId = 6
+                        });
                 });
 
             modelBuilder.Entity("AwningsAPI.Model.Products.ArmsType", b =>
@@ -914,71 +996,161 @@ namespace AwningsAPI.Migrations
                         new
                         {
                             BracketId = 1,
-                            BracketName = "Surcharge for face fixture",
+                            BracketName = "Face fixture bracket 150 mm / 3",
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            PartNumber = "",
-                            Price = 86m,
+                            PartNumber = "71624",
+                            Price = 42.70m,
                             ProductId = 6
                         },
                         new
                         {
                             BracketId = 2,
-                            BracketName = "Surcharge for face fixture incl. spreader plate A",
+                            BracketName = "Face fixture bracket 300 mm left / 4",
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            PartNumber = "",
-                            Price = 334m,
+                            PartNumber = "70617",
+                            Price = 73.50m,
                             ProductId = 6
                         },
                         new
                         {
                             BracketId = 3,
-                            BracketName = "Surcharge for face fixture incl. spreader plate B",
+                            BracketName = "Face fixture bracket 300 mm right / 4",
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            PartNumber = "",
-                            Price = 406m,
+                            PartNumber = "70600",
+                            Price = 73.50m,
                             ProductId = 6
                         },
                         new
                         {
                             BracketId = 4,
-                            BracketName = "Surcharge for top fixture",
+                            BracketName = "Stand-off bkt. 80-300 mm for face fixture for face fixture bracket 300 mm / 4",
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            PartNumber = "",
-                            Price = 86m,
+                            PartNumber = "77968",
+                            Price = 220.50m,
                             ProductId = 6
                         },
                         new
                         {
                             BracketId = 5,
-                            BracketName = "Surcharge for eaves fixture",
+                            BracketName = "Top fixture bracket 150 mm / 4",
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            PartNumber = "",
-                            Price = 199m,
+                            PartNumber = "71625",
+                            Price = 42.70m,
                             ProductId = 6
                         },
                         new
                         {
                             BracketId = 6,
-                            BracketName = "Surcharge for arms with bionic tendon",
+                            BracketName = "Eaves fixture bracket 150mm, complete / 4",
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            PartNumber = "",
-                            Price = 117m,
+                            PartNumber = "71669",
+                            Price = 99.30m,
                             ProductId = 6
                         },
                         new
                         {
                             BracketId = 7,
-                            BracketName = "Surcharge for bespoke arms",
+                            BracketName = "Eaves fixture bracket 270 mm /4",
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            PartNumber = "",
-                            Price = 177m,
+                            PartNumber = "71659",
+                            Price = 77.00m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            BracketId = 8,
+                            BracketName = "Angle and plate for eaves fixture (machine finish) / 4",
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            PartNumber = "716620",
+                            Price = 125.20m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            BracketId = 9,
+                            BracketName = "Additional eaves fixture plate 60x260x12 mm / 2",
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            PartNumber = "75383",
+                            Price = 42.60m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            BracketId = 10,
+                            BracketName = "Spreader plate A 430x160x12 mm / 8",
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            PartNumber = "75326",
+                            Price = 124.10m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            BracketId = 11,
+                            BracketName = "Spreader plate B 300x400x12 mm / 4",
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            PartNumber = "75325",
+                            Price = 160.20m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            BracketId = 12,
+                            BracketName = "Spacer block face or top fixt 136x150x20 mm / 3",
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            PartNumber = "716331",
+                            Price = 5.50m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            BracketId = 13,
+                            BracketName = "Spacer block face or top fixt 136x150x12 mm / 3",
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            PartNumber = "71644",
+                            Price = 3.60m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            BracketId = 14,
+                            BracketName = "Cover plate 230x210x2 mm",
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            PartNumber = "71843",
+                            Price = 16.50m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            BracketId = 15,
+                            BracketName = "Cover plate 290x210x2 mm",
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            PartNumber = "71841",
+                            Price = 20.50m,
+                            ProductId = 6
+                        },
+                        new
+                        {
+                            BracketId = 16,
+                            BracketName = "Vertical fixture rail incl. fixing material 624291",
+                            CreatedBy = "System",
+                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            PartNumber = "62421",
+                            Price = 174.90m,
                             ProductId = 6
                         });
                 });

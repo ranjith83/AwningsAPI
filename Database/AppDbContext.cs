@@ -26,7 +26,7 @@ namespace AwningsAPI.Database
         public DbSet<CustomerContact> CustomerContacts { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<ProductType> ProductTypes { get; set; }
-        public DbSet<Product> Products { get; set; }  
+        public DbSet<Product> Products { get; set; }
         public DbSet<WorkflowStart> WorkflowStarts { get; set; }
         public DbSet<InitialEnquiry> InitialEnquiries { get; set; }
         public DbSet<Projections> Projections { get; set; }
@@ -35,7 +35,7 @@ namespace AwningsAPI.Database
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<InvoiceItem> InvoiceItems { get; set; }
         public DbSet<InvoicePayment> InvoicePayments { get; set; }
-        public DbSet<Arms>  Arms { get; set; }
+        public DbSet<Arms> Arms { get; set; }
         public DbSet<Motors> Motors { get; set; }
         public DbSet<ValanceStyle> valanceStyles { get; set; }
         public DbSet<NonStandardRALColours> nonStandardRALColours { get; set; }
@@ -327,19 +327,19 @@ namespace AwningsAPI.Database
             var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123");
             modelBuilder.Entity<User>().HasData(
              new User
-                 {
-                     UserId = 1,
-                     FirstName = "System",
-                     LastName = "Admin",
-                     Email = "admin@awnings.ie",
-                     Username = "admin",
-                     PasswordHash = "$2a$11$lB5zG4AjL5L2gP2V22pquu8HbsUyF6q7Q8HqZQrjO2KQhkXj6nFlO", // ✔ static
-                     Role = "Admin",
-                     Department = "IT",
-                     IsActive = true,
-                     DateCreated = new DateTime(2023, 1, 1, 12, 0, 0),
-                     CreatedBy = "System"
-                 }
+             {
+                 UserId = 1,
+                 FirstName = "System",
+                 LastName = "Admin",
+                 Email = "admin@awnings.ie",
+                 Username = "admin",
+                 PasswordHash = "$2a$11$lB5zG4AjL5L2gP2V22pquu8HbsUyF6q7Q8HqZQrjO2KQhkXj6nFlO", // ✔ static
+                 Role = "Admin",
+                 Department = "IT",
+                 IsActive = true,
+                 DateCreated = new DateTime(2023, 1, 1, 12, 0, 0),
+                 CreatedBy = "System"
+             }
              );
 
 
@@ -390,6 +390,9 @@ namespace AwningsAPI.Database
 
                 entity.HasIndex(e => new { e.Status, e.DateAdded })
                     .HasDatabaseName("IX_EmailTasks_Status_DateAdded");
+
+
+
             });
 
             // TaskComment Configuration
@@ -531,6 +534,10 @@ namespace AwningsAPI.Database
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
+            modelBuilder.Entity<IncomingEmail>()
+                 .HasIndex(e => e.EmailId)
+                 .IsUnique()
+                 .HasDatabaseName("IX_IncomingEmails_EmailId_Unique");
 
             base.OnModelCreating(modelBuilder);
 
@@ -616,7 +623,7 @@ namespace AwningsAPI.Database
             );
             //Workflow Start
             modelBuilder.Entity<WorkflowStart>().HasData(
-                new WorkflowStart { WorkflowId = 1, CustomerId=1, Description = "Markilux 990 for outside garden", DateCreated = staticCreatedDate, CreatedBy = "System", SupplierId=1, ProductTypeId=1, ProductId=6 }
+                new WorkflowStart { WorkflowId = 1, CustomerId = 1, Description = "Markilux 990 for outside garden", DateCreated = staticCreatedDate, CreatedBy = "System", SupplierId = 1, ProductTypeId = 1, ProductId = 6 }
             );
             //Projection Data
             modelBuilder.Entity<Projections>().HasData(
@@ -642,44 +649,29 @@ namespace AwningsAPI.Database
                 new Projections { ProjectionId = 20, ProductId = 6, ArmTypeId = 1, Width_cm = 450, Projection_cm = 300, Price = 2904, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new Projections { ProjectionId = 21, ProductId = 6, ArmTypeId = 1, Width_cm = 500, Projection_cm = 300, Price = 3084, DateCreated = staticCreatedDate, CreatedBy = "System" }
             );
-            //Bracket Data
-            modelBuilder.Entity<Brackets>().HasData(
-                new Brackets { BracketId = 1, ProductId = 6, BracketName = "Face fixture bracket 150 mm / 3", PartNumber = "71624",  Price = 42.70m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 2, ProductId = 6, BracketName = "Face fixture bracket 300 mm left / 4", PartNumber = "70617", Price = 73.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 3, ProductId = 6, BracketName = "Face fixture bracket 300 mm right / 4", PartNumber = "70600", Price = 73.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 4, ProductId = 6, BracketName = "Stand-off bkt. 80-300 mm for face fixture for face fixture bracket 300 mm / 4", PartNumber = "77968", Price = 220.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 5, ProductId = 6, BracketName = "Top fixture bracket 150 mm / 4", PartNumber = "71625", Price = 42.70m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 6, ProductId = 6, BracketName = "Eaves fixture bracket 150mm, complete / 4", PartNumber = "71669", Price = 99.30m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 7, ProductId = 6, BracketName = "Eaves fixture bracket 270 mm /4", PartNumber = "71659", Price = 77.00m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 8, ProductId = 6, BracketName = "Angle and plate for eaves fixture (machine finish) / 4", PartNumber = "716620", Price = 125.20m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 9, ProductId = 6, BracketName = "Additional eaves fixture plate 60x260x12 mm / 2", PartNumber = "75383", Price = 42.60m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 10, ProductId = 6, BracketName = "Spreader plate A 430x160x12 mm / 8", PartNumber = "75326", Price = 124.10m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 11, ProductId = 6, BracketName = "Spreader plate B 300x400x12 mm / 4", PartNumber = "75325", Price = 160.20m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 12, ProductId = 6, BracketName = "Spacer block face or top fixt 136x150x20 mm / 3", PartNumber = "716331", Price = 5.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 13, ProductId = 6, BracketName = "Spacer block face or top fixt 136x150x12 mm / 3", PartNumber = "71644", Price = 3.60m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 14, ProductId = 6, BracketName = "Cover plate 230x210x2 mm", PartNumber = "71843", Price = 16.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 15, ProductId = 6, BracketName = "Cover plate 290x210x2 mm", PartNumber = "71841", Price = 20.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 16, ProductId = 6, BracketName = "Vertical fixture rail incl. fixing material 624291", PartNumber = "62421", Price = 174.90m, DateCreated = staticCreatedDate, CreatedBy = "System" }
-            );
+
             //BF Data
             modelBuilder.Entity<BF>().HasData(
                 new BF { BFId = 1, Description = "BF 6", Price = 312.00m, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new BF { BFId = 2, Description = "BF 8", Price = 312.00m, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new BF { BFId = 3, Description = "BF 16", Price = 312.00m, DateCreated = staticCreatedDate, CreatedBy = "System" }
             );
-            //Arms Data
+            //Bracket Data — Arms values moved here; old bracket items removed
+            modelBuilder.Entity<Brackets>().HasData(
+                new Brackets { BracketId = 1, ProductId = 6, BracketName = "Surcharge for face fixture", PartNumber = "", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 2, ProductId = 6, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = "", Price = 334m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 3, ProductId = 6, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = "", Price = 406m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 4, ProductId = 6, BracketName = "Surcharge for top fixture", PartNumber = "", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 5, ProductId = 6, BracketName = "Surcharge for eaves fixture", PartNumber = "", Price = 199m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 6, ProductId = 6, BracketName = "Surcharge for arms with bionic tendon", PartNumber = "", Price = 117m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 7, ProductId = 6, BracketName = "Surcharge for bespoke arms", PartNumber = "", Price = 177m, DateCreated = staticCreatedDate, CreatedBy = "System" }
+            );
+            //Arms Data — values moved to Brackets above; Arms table left empty
             modelBuilder.Entity<Arms>().HasData(
-                new Arms { ArmId = 1, ProductId = 6, ArmTypeId=1, BfId=1, Description  = "Surcharge for face fixture", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Arms { ArmId = 2, ProductId = 6, ArmTypeId = 1, BfId =3, Description = "Surcharge for face fixture incl. spreader plate A", Price = 334m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Arms { ArmId = 3, ProductId = 6, ArmTypeId = 1, BfId =2, Description = "Surcharge for face fixture incl. spreader plate B", Price = 406m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Arms { ArmId = 4, ProductId = 6, ArmTypeId = 1, BfId =2, Description = "Surcharge for top fixture", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Arms { ArmId = 5, ProductId = 6, ArmTypeId = 1, BfId =2, Description = "Surcharge for eaves fixture", Price = 199m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Arms { ArmId = 6, ProductId = 6, ArmTypeId = 1, Description = "Surcharge for arms with bionic tendon", Price = 117m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Arms { ArmId = 7, ProductId = 6, ArmTypeId = 1, Description = "Surcharge for bespoke arms", Price = 177m, DateCreated = staticCreatedDate, CreatedBy = "System" }
             );
             //Motors Data
             modelBuilder.Entity<Motors>().HasData(
-                new Motors { MotorId = 1, ProductId=6, Description= "Surcharge for servo-assisted gear", Price=72m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Motors { MotorId = 1, ProductId = 6, Description = "Surcharge for servo-assisted gear", Price = 72m, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new Motors { MotorId = 2, ProductId = 6, Description = "Surcharge for hard-wired motor", Price = 470m, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new Motors { MotorId = 3, ProductId = 6, Description = "Surcharge for radio-contr. motor io/RTS + 1 ch. transmitter", Price = 700m, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new Motors { MotorId = 4, ProductId = 6, Description = "Surcharge for radio-contr. motor io/RTS w/o transmitter", Price = 586m, DateCreated = staticCreatedDate, CreatedBy = "System" },
@@ -715,7 +707,7 @@ namespace AwningsAPI.Database
              );
             //Heaters Data
             modelBuilder.Entity<Heaters>().HasData(
-                new Heaters { HeaterId = 1, ProductId = 6, Description = "Markilux Infrared Heater 2500 watt Dimmable",Price = 1393m, PriceNonRALColour = 1635m, DateCreated = staticCreatedDate, CreatedBy = "System" }
+                new Heaters { HeaterId = 1, ProductId = 6, Description = "Markilux Infrared Heater 2500 watt Dimmable", Price = 1393m, PriceNonRALColour = 1635m, DateCreated = staticCreatedDate, CreatedBy = "System" }
              );
 
 
@@ -838,7 +830,7 @@ namespace AwningsAPI.Database
             );
             //RadioControlled Motors
             modelBuilder.Entity<RadioControlledMotors>().HasData(
-                 new RadioControlledMotors { RadioMotorId = 1, Description = "RadioControlled Motor",Width_cm = 250, Price=1547, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
+                 new RadioControlledMotors { RadioMotorId = 1, Description = "RadioControlled Motor", Width_cm = 250, Price = 1547, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
                  new RadioControlledMotors { RadioMotorId = 2, Description = "RadioControlled Motor", Width_cm = 300, Price = 1603, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
                  new RadioControlledMotors { RadioMotorId = 3, Description = "RadioControlled Motor", Width_cm = 350, Price = 1678, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
                  new RadioControlledMotors { RadioMotorId = 4, Description = "RadioControlled Motor", Width_cm = 400, Price = 1763, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },

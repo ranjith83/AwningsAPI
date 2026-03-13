@@ -75,7 +75,7 @@ namespace AwningsAPI.Model.Workflow
         public int QuoteId { get; set; }
 
         [Required]
-        [StringLength(200)]
+        [StringLength(500)]  // Increased from 200 — supports free-text Extras descriptions
         public string Description { get; set; }
 
         [Required]
