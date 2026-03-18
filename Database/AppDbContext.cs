@@ -664,7 +664,23 @@ namespace AwningsAPI.Database
                 new Brackets { BracketId = 4, ProductId = 6, BracketName = "Surcharge for top fixture", PartNumber = "", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new Brackets { BracketId = 5, ProductId = 6, BracketName = "Surcharge for eaves fixture", PartNumber = "", Price = 199m, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new Brackets { BracketId = 6, ProductId = 6, BracketName = "Surcharge for arms with bionic tendon", PartNumber = "", Price = 117m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 7, ProductId = 6, BracketName = "Surcharge for bespoke arms", PartNumber = "", Price = 177m, DateCreated = staticCreatedDate, CreatedBy = "System" }
+                new Brackets { BracketId = 7, ProductId = 6, BracketName = "Surcharge for bespoke arms", PartNumber = "", Price = 177m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 8, ProductId = 6, BracketName = "Face fixture bracket 150 mm", PartNumber = "71624", Price = 42.70m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 9, ProductId = 6, BracketName = "Face fixture bracket 300 mm left", PartNumber = "70617", Price = 73.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 10, ProductId = 6, BracketName = "Face fixture bracket 300 mm right", PartNumber = "70600", Price = 73.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 11, ProductId = 6, BracketName = "Stand-off bkt. 80-300 mm for face fixture bracket 300 mm", PartNumber = "77968", Price = 220.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 12, ProductId = 6, BracketName = "Top fixture bracket 150 mm", PartNumber = "71625", Price = 42.70m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 13, ProductId = 6, BracketName = "Eaves fixture bracket 150mm, complete", PartNumber = "71669", Price = 99.30m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 14, ProductId = 6, BracketName = "Eaves fixture bracket 270 mm", PartNumber = "71659", Price = 77.00m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 15, ProductId = 6, BracketName = "Angle and plate for eaves fixture (machine finish)", PartNumber = "716620", Price = 125.20m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 16, ProductId = 6, BracketName = "Additional eaves fixture plate 60x260x12 mm", PartNumber = "75383", Price = 42.60m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 17, ProductId = 6, BracketName = "Spreader plate A 430x160x12 mm", PartNumber = "75326", Price = 124.10m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 18, ProductId = 6, BracketName = "Spreader plate B 300x400x12 mm", PartNumber = "75325", Price = 160.20m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 19, ProductId = 6, BracketName = "Spacer block face or top fixt. 136x150x20 mm", PartNumber = "716331", Price = 5.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 20, ProductId = 6, BracketName = "Spacer block face or top fixt. 136x150x12 mm", PartNumber = "71644", Price = 3.60m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 21, ProductId = 6, BracketName = "Cover plate 230x210x2 mm", PartNumber = "71843", Price = 16.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 22, ProductId = 6, BracketName = "Cover plate 290x210x2 mm", PartNumber = "71841", Price = 20.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 23, ProductId = 6, BracketName = "Vertical fixture rail incl. fixing material 624291", PartNumber = "62421", Price = 174.90m, DateCreated = staticCreatedDate, CreatedBy = "System" }
             );
             //Arms Data — values moved to Brackets above; Arms table left empty
             modelBuilder.Entity<Arms>().HasData(
