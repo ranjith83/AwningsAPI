@@ -3,6 +3,7 @@ using AwningsAPI.Interceptors;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Services.AuditLogService;
 using AwningsAPI.Services.Auth;
+using AwningsAPI.Services.ConfigurationService;
 using AwningsAPI.Services.CustomerService;
 using AwningsAPI.Services.Email;
 using AwningsAPI.Services.OutlookService;
@@ -37,6 +38,8 @@ builder.Services.AddScoped<IPaymentScheduleService, PaymentScheduleService>();
 builder.Services.AddScoped<IOutlookService, OutlookService>();
 //builder.Services.AddScoped<IFollowUpService, FollowUpService>();
 builder.Services.AddScoped<FollowUpService>();
+
+builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
 
 // Configure HttpClient
 builder.Services.AddHttpClient();
