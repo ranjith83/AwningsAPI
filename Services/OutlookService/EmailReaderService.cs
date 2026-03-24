@@ -179,21 +179,58 @@ namespace AwningsAPI.Services.Email
         {
             try
             {
+                _logger.LogInformation("GetCompleteEmailAsync called. MailboxEmail={Mailbox}, EmailId={EmailId}, Length={Length}",
+                         mailboxEmail, emailId, emailId?.Length);
+
                 _logger.LogInformation($"Fetching complete email by ID: {emailId}");
+                Message? message;
 
                 // Fetch the message directly by its Graph message ID.
                 // The emailId comes from the Graph change notification resource path,
                 // so it is already the exact message ID — no filter needed.
-                var message = await _graphClient.Users[mailboxEmail]
-                    .Messages[emailId]
-                    .GetAsync(requestConfiguration =>
-                    {
-                        requestConfiguration.QueryParameters.Select = new[]
+                // Detect if it's an email address or a Graph message ID
+                if (emailId.Contains('@'))
+                {
+                    // Search by sender — returns most recent unread from that address
+                    _logger.LogInformation("Searching by sender email: {Sender}", emailId);
+
+                    var results = await _graphClient.Users[mailboxEmail]
+                        .Messages
+                        .GetAsync(req =>
                         {
-                            "id", "subject", "from", "body", "bodyPreview",
-                            "receivedDateTime", "hasAttachments", "importance", "isRead"
-                        };
-                    });
+                            req.QueryParameters.Filter = $"from/emailAddress/address eq '{emailId}'";
+                            req.QueryParameters.Top = 1;
+                            //req.QueryParameters.Orderby = new[] { "receivedDateTime DESC" };
+                            req.QueryParameters.Select = new[]
+                            {
+                    "id", "subject", "from", "body", "bodyPreview",
+                    "receivedDateTime", "hasAttachments", "importance", "isRead"
+                            };
+                        });
+
+                    message = results?.Value?.FirstOrDefault()
+                        ?? throw new Exception($"No email found from sender: {emailId}");
+                }
+                else
+                {
+                    // Normal path — bare Graph message ID
+                    var cleanId = emailId.Contains('/')
+                        ? emailId.Split('/').Last()
+                        : Uri.UnescapeDataString(emailId);
+
+                    _logger.LogInformation("Fetching email by Graph ID: {Id}", cleanId);
+
+                    message = await _graphClient.Users[mailboxEmail]
+                        .Messages[cleanId]
+                        .GetAsync(req =>
+                        {
+                            req.QueryParameters.Select = new[]
+                            {
+                    "id", "subject", "from", "body", "bodyPreview",
+                    "receivedDateTime", "hasAttachments", "importance", "isRead"
+                            };
+                        });
+                }
 
                 if (message == null)
                 {
