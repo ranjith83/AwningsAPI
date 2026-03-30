@@ -1,4 +1,6 @@
-﻿namespace AwningsAPI.Dto.Product
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace AwningsAPI.Dto.Product
 {
     /// <summary>
     /// Full product DTO used by both the workflow/addon API and the configuration API.
@@ -29,5 +31,19 @@
         public DateTime DateCreated { get; set; }
 
         public string CreatedBy { get; set; }
+    }
+
+    public class CreateProductDto
+    {
+        [Required][MaxLength(300)] public string Description { get; set; }
+        [Required][Range(1, int.MaxValue)] public int ProductTypeId { get; set; }
+        [Required][Range(1, int.MaxValue)] public int SupplierId { get; set; }
+    }
+
+    public class UpdateProductDto
+    {
+        [Required][MaxLength(300)] public string Description { get; set; }
+        [Required][Range(1, int.MaxValue)] public int ProductTypeId { get; set; }
+        [Required][Range(1, int.MaxValue)] public int SupplierId { get; set; }
     }
 }

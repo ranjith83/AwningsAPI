@@ -32,6 +32,18 @@ namespace AwningsAPI.Controllers
             _logger = logger;
         }
 
+        [HttpGet("notify")]
+        public IActionResult Validate([FromQuery] string validationToken)
+        {
+            if (!string.IsNullOrEmpty(validationToken))
+            {
+                _logger.LogInformation("✅ Graph validation handshake received (GET).");
+                return Content(validationToken, "text/plain");
+            }
+
+            return Ok();
+        }
+
         // POST /api/EmailWatch/notify
         [HttpPost("notify")]
         public async Task<IActionResult> Notify()

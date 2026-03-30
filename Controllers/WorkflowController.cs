@@ -152,19 +152,19 @@ namespace AwningsAPI.Controllers
         /// </summary>
         [HttpGet("GeArmsForProduct")]
         [Obsolete("Arms data is now stored in the Brackets table. Use GeBracketsForProduct.")]
-        public async Task<ActionResult<IEnumerable<ArmsDto>>> GeArmsForProduct(int ProductId)
+        public async Task<ActionResult<IEnumerable<ArmDto>>> GeArmsForProduct(int ProductId)
         {
             // Arms data was migrated into Brackets — return empty list so any
             // old callers receive a valid (empty) response rather than an error.
-            return Ok(new List<ArmsDto>());
+            return Ok(new List<ArmDto>());
         }
 
         [HttpGet("GeMotorsForProduct")]
-        public async Task<ActionResult<IEnumerable<MotorsDto>>> GeMotorsForProduct(int ProductId)
+        public async Task<ActionResult<IEnumerable<MotorDto>>> GeMotorsForProduct(int ProductId)
         {
             var motors = await _workflowService.GeMotorsForProductAsync(ProductId);
 
-            var motorsDto = motors.Select(c => new MotorsDto
+            var motorsDto = motors.Select(c => new MotorDto
             {
                 MotorId = c.MotorId,
                 Description = c.Description,
@@ -193,11 +193,11 @@ namespace AwningsAPI.Controllers
         }
 
         [HttpGet("GeHeatersForProduct")]
-        public async Task<ActionResult<IEnumerable<HeatersDto>>> GeHeatersForProduct(int ProductId)
+        public async Task<ActionResult<IEnumerable<HeaterDto>>> GeHeatersForProduct(int ProductId)
         {
             var heaters = await _workflowService.GeHeatersForProductAsync(ProductId);
 
-            var heatersDto = heaters.Select(c => new HeatersDto
+            var heatersDto = heaters.Select(c => new HeaterDto
             {
                 HeaterId = c.HeaterId,
                 Description = c.Description,

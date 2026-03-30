@@ -1,5 +1,6 @@
 ﻿using AwningsAPI.Dto.Configuration;
 using AwningsAPI.Dto.Product;
+using AwningsAPI.Dto.Supplier;
 
 namespace AwningsAPI.Interfaces
 {
@@ -42,5 +43,54 @@ namespace AwningsAPI.Interfaces
         Task<ProductDto> CreateProductAsync(CreateProductDto createDto, string currentUser);
         Task<ProductDto> UpdateProductAsync(int id, UpdateProductDto updateDto, string currentUser);
         Task<bool> DeleteProductAsync(int id);
+
+
+        // ── Arms ──────────────────────────────────────────────────────────────
+        Task<IEnumerable<ArmDto>> GetAllArmsAsync();
+        Task<IEnumerable<ArmDto>> GetArmsByProductIdAsync(int productId);
+        Task<ArmDto> GetArmByIdAsync(int id);
+        Task<ArmDto> CreateArmAsync(CreateArmDto createDto, string currentUser);
+        Task<ArmDto> UpdateArmAsync(int id, UpdateArmDto updateDto, string currentUser);
+        Task<bool> DeleteArmAsync(int id);
+
+        // ── Motors ────────────────────────────────────────────────────────────
+        Task<IEnumerable<MotorDto>> GetAllMotorsAsync();
+        Task<IEnumerable<MotorDto>> GetMotorsByProductIdAsync(int productId);
+        Task<MotorDto> GetMotorByIdAsync(int id);
+        Task<MotorDto> CreateMotorAsync(CreateMotorDto createDto, string currentUser);
+        Task<MotorDto> UpdateMotorAsync(int id, UpdateMotorDto updateDto, string currentUser);
+        Task<bool> DeleteMotorAsync(int id);
+
+        // ── Heaters ───────────────────────────────────────────────────────────
+        Task<IEnumerable<HeaterDto>> GetAllHeatersAsync();
+        Task<IEnumerable<HeaterDto>> GetHeatersByProductIdAsync(int productId);
+        Task<HeaterDto> GetHeaterByIdAsync(int id);
+        Task<HeaterDto> CreateHeaterAsync(CreateHeaterDto createDto, string currentUser);
+        Task<HeaterDto> UpdateHeaterAsync(int id, UpdateHeaterDto updateDto, string currentUser);
+        Task<bool> DeleteHeaterAsync(int id);
+
+        // ── Non-Standard RAL Colours ──────────────────────────────────────────
+        Task<IEnumerable<NonStandardRALColourDto>> GetAllNonStandardRALColoursAsync();
+        Task<IEnumerable<NonStandardRALColourDto>> GetNonStandardRALColoursByProductIdAsync(int productId);
+        Task<NonStandardRALColourDto> GetNonStandardRALColourByIdAsync(int id);
+        Task<NonStandardRALColourDto> CreateNonStandardRALColourAsync(CreateNonStandardRALColourDto createDto, string currentUser);
+        Task<NonStandardRALColourDto> UpdateNonStandardRALColourAsync(int id, UpdateNonStandardRALColourDto updateDto, string currentUser);
+        Task<bool> DeleteNonStandardRALColourAsync(int id);
+
+        // ── Projections ───────────────────────────────────────────────────────
+        Task<IEnumerable<ProjectionDto>> GetAllProjectionsAsync();
+        Task<IEnumerable<ProjectionDto>> GetProjectionsByProductIdAsync(int productId);
+        Task<ProjectionDto> GetProjectionByIdAsync(int id);
+        Task<ProjectionDto> CreateProjectionAsync(CreateProjectionDto createDto, string currentUser);
+        Task<ProjectionDto> UpdateProjectionAsync(int id, UpdateProjectionDto updateDto, string currentUser);
+        Task<bool> DeleteProjectionAsync(int id);
+
+        // ── Radio Controlled Motors ───────────────────────────────────────────
+        Task<IEnumerable<RadioControlledMotorDto>> GetAllRadioControlledMotorsAsync();
+        Task<IEnumerable<RadioControlledMotorDto>> GetRadioControlledMotorsByProductIdAsync(int productId);
+        Task<RadioControlledMotorDto> GetRadioControlledMotorByIdAsync(int id);
+        Task<RadioControlledMotorDto> CreateRadioControlledMotorAsync(CreateRadioControlledMotorDto createDto, string currentUser);
+        Task<RadioControlledMotorDto> UpdateRadioControlledMotorAsync(int id, UpdateRadioControlledMotorDto updateDto, string currentUser);
+        Task<bool> DeleteRadioControlledMotorAsync(int id);
     }
 }

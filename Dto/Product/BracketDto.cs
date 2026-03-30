@@ -1,4 +1,6 @@
-﻿namespace AwningsAPI.Dto.Product
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace AwningsAPI.Dto.Product
 {
     /// <summary>
     /// Used by both the product addon API (read-only) and the configuration API (CRUD).
@@ -22,5 +24,21 @@
         public DateTime DateCreated { get; set; }
 
         public string CreatedBy { get; set; }
+    }
+
+    public class CreateBracketDto
+    {
+        [Required][Range(1, int.MaxValue)] public int ProductId { get; set; }
+        [Required][MaxLength(300)] public string BracketName { get; set; }
+        [MaxLength(50)] public string PartNumber { get; set; } = string.Empty;
+        [Range(0, double.MaxValue)] public decimal Price { get; set; }
+    }
+
+    public class UpdateBracketDto
+    {
+        [Required][Range(1, int.MaxValue)] public int ProductId { get; set; }
+        [Required][MaxLength(300)] public string BracketName { get; set; }
+        [MaxLength(50)] public string PartNumber { get; set; } = string.Empty;
+        [Range(0, double.MaxValue)] public decimal Price { get; set; }
     }
 }
