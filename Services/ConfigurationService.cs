@@ -618,7 +618,7 @@ namespace AwningsAPI.Services.ConfigurationService
             return colours.Select(MapRALColourToDto);
         }
 
-        public async Task<NonStandardRALColourDto> GetNonStandardRALColourByIdAsync(intid)
+        public async Task<NonStandardRALColourDto> GetNonStandardRALColourByIdAsync(int id)
         {
             var colour = await _context.nonStandardRALColours.FindAsync(id);
             return colour != null ? MapRALColourToDto(colour) : null;

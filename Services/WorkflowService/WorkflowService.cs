@@ -20,6 +20,7 @@ namespace AwningsAPI.Services.WorkflowService
             _context = context;
             _followUpService = followUpService;
         }
+
         public async Task<IEnumerable<WorkflowStart>> GetAllWorfflowsForCustomerAsync(int CustomerId)
         {
             return await _context.WorkflowStarts.Include(p => p.Product).Where(w => w.CustomerId == CustomerId).ToListAsync();
@@ -47,10 +48,6 @@ namespace AwningsAPI.Services.WorkflowService
             _context.WorkflowStarts.Add(workflow);
             await _context.SaveChangesAsync();
 
-            // ── Auto-create InitialEnquiry when workflow originates from an initial_enquiry email ──
-            // If the caller passes a TaskId, look up the task. If its category is
-            // "initial_enquiry" (or the display label "Initial Enquiry"), create a linked
-            // InitialEnquiry record so the follow-up timer starts immediately.
             if (dto.TaskId.HasValue && dto.TaskId.Value > 0)
             {
                 await TryCreateInitialEnquiryFromTaskAsync(
@@ -67,9 +64,7 @@ namespace AwningsAPI.Services.WorkflowService
         /// Loads the EmailTask and, if the category is initial_enquiry, inserts a
         /// matching InitialEnquiry record so it immediately appears in the enquiry
         /// history and starts the 3-day follow-up clock.
-        ///
-        /// Non-fatal: any error is logged and execution continues so the workflow
-        /// is always saved even if the enquiry record fails.
+        /// Non-fatal: any error is logged and execution continues.
         /// </summary>
         private async Task TryCreateInitialEnquiryFromTaskAsync(
             int workflowId, int taskId, string currentUser)
@@ -82,22 +77,19 @@ namespace AwningsAPI.Services.WorkflowService
 
                 if (task == null) return;
 
-                // Match both the raw category key and the display label
                 var cat = (task.TaskType ?? task.Category ?? string.Empty).ToLowerInvariant();
                 bool isInitialEnquiry =
                     cat == "initial_enquiry" ||
-                    cat == "initial enquiry" || cat == "general_inquiry";
-
+                    cat == "initial enquiry" ||
+                    cat == "general_inquiry";
 
                 if (!isInitialEnquiry) return;
 
-                // Guard: don't create a duplicate if one already exists for this workflow+task
                 bool alreadyExists = await _context.InitialEnquiries
                     .AnyAsync(e => e.WorkflowId == workflowId && e.TaskId == taskId);
 
                 if (alreadyExists) return;
 
-                // Build the comments summary from subject + email body preview
                 var bodyPreview = (task.EmailBody ?? string.Empty);
                 if (bodyPreview.Length > 400) bodyPreview = bodyPreview[..400] + "…";
 
@@ -110,6 +102,7 @@ namespace AwningsAPI.Services.WorkflowService
                     Comments = comments.Trim(),
                     Email = task.FromEmail ?? string.Empty,
                     Images = null,
+                    Signature = null,   // auto-created records have no manual signature
                     TaskId = taskId,
                     IncomingEmailId = task.IncomingEmailId,
                     DateCreated = DateTime.UtcNow,
@@ -121,7 +114,6 @@ namespace AwningsAPI.Services.WorkflowService
             }
             catch (Exception ex)
             {
-                // Non-fatal: log but do not bubble up so the workflow save succeeds
                 Console.Error.WriteLine(
                     $"[WorkflowService] TryCreateInitialEnquiryFromTaskAsync failed for " +
                     $"task {taskId}: {ex.Message}");
@@ -133,9 +125,7 @@ namespace AwningsAPI.Services.WorkflowService
             var existingWorkflow = await _context.WorkflowStarts.FindAsync(dto.WorkflowId);
 
             if (existingWorkflow == null)
-            {
                 throw new Exception("Workflow not found");
-            }
 
             existingWorkflow.WorkflowName = dto.WorkflowName;
             existingWorkflow.Description = dto.Description;
@@ -170,19 +160,17 @@ namespace AwningsAPI.Services.WorkflowService
                 Comments = dto.Comments,
                 Email = dto.Email,
                 Images = dto.Images,
-                // Link to the originating email task/incoming email when available
+                Signature = dto.Signature,          // ← NEW
                 TaskId = dto.TaskId,
                 IncomingEmailId = dto.IncomingEmailId,
                 DateCreated = DateTime.UtcNow,
                 CreatedBy = currentUser
             };
+
             _context.InitialEnquiries.Add(initialEnquiry);
             await _context.SaveChangesAsync();
 
             // ── Timer reset: dismiss any active follow-up for this workflow ──
-            // A new enquiry resets the 3-day clock. The old follow-up row
-            // disappears from the grid; a new one will appear after 3 days
-            // if still no quote is raised.
             await _followUpService.DismissActiveForWorkflowAsync(dto.WorkflowId, currentUser);
 
             return initialEnquiry;
@@ -193,13 +181,12 @@ namespace AwningsAPI.Services.WorkflowService
             var existingInquiry = await _context.InitialEnquiries.FindAsync(dto.EnquiryId);
 
             if (existingInquiry == null)
-            {
                 throw new Exception("Enquiry not found");
-            }
 
             existingInquiry.Comments = dto.Comments;
             existingInquiry.Email = dto.Email;
             existingInquiry.Images = dto.Images;
+            existingInquiry.Signature = dto.Signature;  // ← NEW
 
             existingInquiry.DateUpdated = DateTime.UtcNow;
             existingInquiry.UpdatedBy = currentUser;
@@ -213,27 +200,27 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<List<int>> GetStandardWidthsForProductAsync(int productId)
         {
             return await _context.Projections
-                    .Where(p => p.ProductId == productId)
-                    .Select(p => p.Width_cm)
-                    .Distinct()
-                    .ToListAsync();
+                .Where(p => p.ProductId == productId)
+                .Select(p => p.Width_cm)
+                .Distinct()
+                .ToListAsync();
         }
 
         public async Task<List<int>> GetProjectionWidthsForProductAsync(int productId)
         {
             return await _context.Projections
-                    .Where(p => p.ProductId == productId)
-                    .Select(p => p.Projection_cm)
-                    .Distinct()
-                    .ToListAsync();
+                .Where(p => p.ProductId == productId)
+                .Select(p => p.Projection_cm)
+                .Distinct()
+                .ToListAsync();
         }
 
         public async Task<decimal> GetProjectionPriceForProductAsync(int productId, int widthcm, int projectioncm)
         {
             return await _context.Projections
-                     .Where(p => p.ProductId == productId && p.Width_cm == widthcm && p.Projection_cm == projectioncm)
-                     .Select(p => p.Price)
-                     .FirstOrDefaultAsync();
+                .Where(p => p.ProductId == productId && p.Width_cm == widthcm && p.Projection_cm == projectioncm)
+                .Select(p => p.Price)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<List<Brackets>> GeBracketsForProductAsync(int productId)
@@ -250,28 +237,29 @@ namespace AwningsAPI.Services.WorkflowService
         {
             return await _context.Motors.Where(f => f.ProductId == productId).ToListAsync();
         }
+
         public async Task<decimal> GeValanceStylePriceForProductAsync(int productId, int widthcm)
         {
             return await _context.valanceStyles
-                     .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
-                     .Select(p => p.Price)
-                     .FirstOrDefaultAsync();
+                .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
+                .Select(p => p.Price)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<decimal> GeNonStandardRALColourPriceForProductAsync(int productId, int widthcm)
         {
             return await _context.nonStandardRALColours
-                     .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
-                     .Select(p => p.Price)
-                     .FirstOrDefaultAsync();
+                .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
+                .Select(p => p.Price)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<decimal> GeWallSealingProfilerPriceForProductAsync(int productId, int widthcm)
         {
             return await _context.wallSealingProfiles
-                     .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
-                     .Select(p => p.Price)
-                     .FirstOrDefaultAsync();
+                .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
+                .Select(p => p.Price)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<List<Heaters>> GeHeatersForProductAsync(int productId)

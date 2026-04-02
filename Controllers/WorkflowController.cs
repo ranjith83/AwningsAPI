@@ -17,6 +17,7 @@ namespace AwningsAPI.Controllers
         {
             _workflowService = workflowService;
         }
+
         [Authorize]
         [HttpGet("GetAllWorfflowsForCustomer")]
         public async Task<ActionResult<IEnumerable<WorkflowStart>>> GetAllWorfflowsForCustomer(int CustomerId)
@@ -53,14 +54,12 @@ namespace AwningsAPI.Controllers
             var currentUser = User?.Identity?.Name ?? "System";
             var workflow = await _workflowService.CreateWorkflow(dto, currentUser);
 
-            // Return workflowId explicitly so the Angular caller can link it back
-            // to the originating task without a second request.
             return CreatedAtAction(nameof(CreateWorkflow), new { Id = workflow.WorkflowId }, new
             {
                 workflow.WorkflowId,
                 workflow.CustomerId,
                 workflow.WorkflowName,
-                TaskId = dto.TaskId   // echo back the TaskId the caller sent
+                TaskId = dto.TaskId
             });
         }
 
@@ -86,6 +85,7 @@ namespace AwningsAPI.Controllers
                 Comments = c.Comments,
                 Email = c.Email,
                 Images = c.Images,
+                Signature = c.Signature,          // ← NEW
                 TaskId = c.TaskId,
                 IncomingEmailId = c.IncomingEmailId,
                 DateCreated = c.DateCreated,
@@ -148,14 +148,11 @@ namespace AwningsAPI.Controllers
         /// <summary>
         /// DEPRECATED — Arms data has been moved into the Brackets table.
         /// This endpoint now returns an empty list. Use GeBracketsForProduct instead.
-        /// Kept for backwards compatibility so existing clients don't break.
         /// </summary>
         [HttpGet("GeArmsForProduct")]
         [Obsolete("Arms data is now stored in the Brackets table. Use GeBracketsForProduct.")]
         public async Task<ActionResult<IEnumerable<ArmDto>>> GeArmsForProduct(int ProductId)
         {
-            // Arms data was migrated into Brackets — return empty list so any
-            // old callers receive a valid (empty) response rather than an error.
             return Ok(new List<ArmDto>());
         }
 

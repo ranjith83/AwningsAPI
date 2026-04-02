@@ -61,6 +61,7 @@ namespace AwningsAPI.Database
         public DbSet<TaskHistory> TaskHistories { get; set; }
         public DbSet<WorkflowFollowUp> WorkflowFollowUps { get; set; }
 
+        public DbSet<UserSignature> UserSignatures { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -538,6 +539,34 @@ namespace AwningsAPI.Database
                  .HasIndex(e => e.EmailId)
                  .IsUnique()
                  .HasDatabaseName("IX_IncomingEmails_EmailId_Unique");
+
+            // ── UserSignature ─────────────────────────────────────────────────
+            modelBuilder.Entity<UserSignature>(entity =>
+            {
+                entity.ToTable("UserSignatures");
+                entity.HasKey(e => e.SignatureId);
+
+                entity.Property(e => e.Username).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.Label).IsRequired().HasMaxLength(100);
+
+                entity.Property(e => e.FullName).HasMaxLength(150);
+                entity.Property(e => e.JobTitle).HasMaxLength(150);
+                entity.Property(e => e.Company).HasMaxLength(150);
+                entity.Property(e => e.Phone).HasMaxLength(50);
+                entity.Property(e => e.Mobile).HasMaxLength(50);
+                entity.Property(e => e.Email).HasMaxLength(255);
+                entity.Property(e => e.Website).HasMaxLength(255);
+
+                entity.Property(e => e.GreetingText).HasMaxLength(100).HasDefaultValue("Kindest regards,");
+                entity.Property(e => e.SeparatorStyle).HasMaxLength(30).HasDefaultValue("blank_line");
+                entity.Property(e => e.LayoutOrder).HasMaxLength(30).HasDefaultValue("name_first");
+
+                entity.Property(e => e.SignatureText).IsRequired();
+                entity.Property(e => e.IsDefault).HasDefaultValue(false);
+
+                // Fast per-user lookups
+                entity.HasIndex(e => e.Username);
+            });
 
             base.OnModelCreating(modelBuilder);
 

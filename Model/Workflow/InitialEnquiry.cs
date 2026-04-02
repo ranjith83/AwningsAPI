@@ -10,12 +10,18 @@ namespace AwningsAPI.Model.Workflow
         public string Email { get; set; }
         public string? Images { get; set; }
 
+        /// <summary>
+        /// Plain-text email signature appended to outgoing emails for this enquiry.
+        /// NULL for enquiries where no signature was supplied.
+        /// </summary>
+        public string? Signature { get; set; }
+
         public DateTime DateCreated { get; set; }
         public string CreatedBy { get; set; }
         public DateTime? DateUpdated { get; set; }
         public string? UpdatedBy { get; set; }
 
-        //Navigation property to link to Workflow
+        // Navigation property to link to Workflow
         public int WorkflowId { get; set; }
 
         /// <summary>

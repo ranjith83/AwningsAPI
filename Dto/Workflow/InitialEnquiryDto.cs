@@ -16,6 +16,13 @@
         public string Email { get; set; } = string.Empty;
         public string? Images { get; set; }
 
+        /// <summary>
+        /// Plain-text email signature appended to outgoing emails.
+        /// e.g. "Kindest regards,\nMichael Maguire\nAwnings of Ireland\n..."
+        /// NULL for enquiries where no signature was supplied.
+        /// </summary>
+        public string? Signature { get; set; }
+
         // ── Email linkage (populated when created by the email processor) ─────
         /// <summary>
         /// The EmailTask.TaskId that originated this enquiry.
