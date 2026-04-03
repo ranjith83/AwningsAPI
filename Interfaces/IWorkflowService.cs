@@ -7,13 +7,19 @@ namespace AwningsAPI.Interfaces
 {
     public interface IWorkflowService
     {
-        Task<IEnumerable<WorkflowStart>> GetAllWorfflowsForCustomerAsync(int CustomerId);
+        // ── Workflow ──────────────────────────────────────────────────────────
+        /// <summary>Returns all workflows for a customer with computed completed-stage flags.</summary>
+        Task<IEnumerable<WorkflowDto>> GetAllWorfflowsForCustomerAsync(int CustomerId);
         Task<WorkflowStart> CreateWorkflow(WorkflowDto dto, string currentUser);
         Task<WorkflowStart> UpdateWorkflow(WorkflowDto dto, string currentUser);
         Task<bool> DeleteWorkflowAsync(int workflowId);
+
+        // ── Initial Enquiry ───────────────────────────────────────────────────
         Task<IEnumerable<InitialEnquiry>> GetInitialEnquiryForWorkflowAsync(int WorkflowId);
-        Task<InitialEnquiry> UpdateInitialEnquiry(InitialEnquiryDto dto, string currentUser);
         Task<InitialEnquiry> AddInitialEnquiry(InitialEnquiryDto dto, string currentUser);
+        Task<InitialEnquiry> UpdateInitialEnquiry(InitialEnquiryDto dto, string currentUser);
+
+        // ── Product / Pricing ─────────────────────────────────────────────────
         Task<List<int>> GetStandardWidthsForProductAsync(int productId);
         Task<List<int>> GetProjectionWidthsForProductAsync(int productId);
         Task<decimal> GetProjectionPriceForProductAsync(int productId, int widthcm, int projectioncm);
@@ -32,4 +38,4 @@ namespace AwningsAPI.Interfaces
         Task<UserSignatureDto> SetDefaultSignatureAsync(int signatureId, string username);
         Task<bool> DeleteSignatureAsync(int signatureId, string username);
     }
-}
+}   
