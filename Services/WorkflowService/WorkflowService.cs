@@ -1,12 +1,13 @@
 ﻿using AwningsAPI.Database;
+using AwningsAPI.Dto.Auth;
 using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Interfaces;
+using AwningsAPI.Model.Auth;
 using AwningsAPI.Model.Products;
 using AwningsAPI.Model.Suppliers;
 using AwningsAPI.Model.Tasks;
 using AwningsAPI.Model.Workflow;
 using Microsoft.EntityFrameworkCore;
-using System.Runtime.CompilerServices;
 
 namespace AwningsAPI.Services.WorkflowService
 {
@@ -21,9 +22,16 @@ namespace AwningsAPI.Services.WorkflowService
             _followUpService = followUpService;
         }
 
+        // ════════════════════════════════════════════════════════════════════
+        // WORKFLOW
+        // ════════════════════════════════════════════════════════════════════
+
         public async Task<IEnumerable<WorkflowStart>> GetAllWorfflowsForCustomerAsync(int CustomerId)
         {
-            return await _context.WorkflowStarts.Include(p => p.Product).Where(w => w.CustomerId == CustomerId).ToListAsync();
+            return await _context.WorkflowStarts
+                .Include(p => p.Product)
+                .Where(w => w.CustomerId == CustomerId)
+                .ToListAsync();
         }
 
         public async Task<WorkflowStart> CreateWorkflow(WorkflowDto dto, string currentUser)
@@ -60,11 +68,8 @@ namespace AwningsAPI.Services.WorkflowService
         }
 
         /// <summary>
-        /// Called by CreateWorkflow when a TaskId is provided.
-        /// Loads the EmailTask and, if the category is initial_enquiry, inserts a
-        /// matching InitialEnquiry record so it immediately appears in the enquiry
-        /// history and starts the 3-day follow-up clock.
-        /// Non-fatal: any error is logged and execution continues.
+        /// If the originating EmailTask is an initial_enquiry, auto-create a linked
+        /// InitialEnquiry record. Non-fatal — any exception is logged only.
         /// </summary>
         private async Task TryCreateInitialEnquiryFromTaskAsync(
             int workflowId, int taskId, string currentUser)
@@ -90,11 +95,12 @@ namespace AwningsAPI.Services.WorkflowService
 
                 if (alreadyExists) return;
 
-                var bodyPreview = (task.EmailBody ?? string.Empty);
+                var bodyPreview = task.EmailBody ?? string.Empty;
                 if (bodyPreview.Length > 400) bodyPreview = bodyPreview[..400] + "…";
 
                 var comments = string.IsNullOrWhiteSpace(task.Subject)
-                    ? bodyPreview : $"Subject: {task.Subject} {bodyPreview} ";
+                    ? bodyPreview
+                    : $"Subject: {task.Subject} {bodyPreview} ";
 
                 var enquiry = new InitialEnquiry
                 {
@@ -102,7 +108,7 @@ namespace AwningsAPI.Services.WorkflowService
                     Comments = comments.Trim(),
                     Email = task.FromEmail ?? string.Empty,
                     Images = null,
-                    Signature = null,   // auto-created records have no manual signature
+                    Signature = null,
                     TaskId = taskId,
                     IncomingEmailId = task.IncomingEmailId,
                     DateCreated = DateTime.UtcNow,
@@ -115,168 +121,275 @@ namespace AwningsAPI.Services.WorkflowService
             catch (Exception ex)
             {
                 Console.Error.WriteLine(
-                    $"[WorkflowService] TryCreateInitialEnquiryFromTaskAsync failed for " +
-                    $"task {taskId}: {ex.Message}");
+                    $"[WorkflowService] TryCreateInitialEnquiryFromTaskAsync failed " +
+                    $"for task {taskId}: {ex.Message}");
             }
         }
 
         public async Task<WorkflowStart> UpdateWorkflow(WorkflowDto dto, string currentUser)
         {
-            var existingWorkflow = await _context.WorkflowStarts.FindAsync(dto.WorkflowId);
+            var existing = await _context.WorkflowStarts.FindAsync(dto.WorkflowId)
+                ?? throw new Exception("Workflow not found");
 
-            if (existingWorkflow == null)
-                throw new Exception("Workflow not found");
+            existing.WorkflowName = dto.WorkflowName;
+            existing.Description = dto.Description;
+            existing.InitialEnquiry = dto.InitialEnquiry;
+            existing.CreateQuote = dto.CreateQuotation;
+            existing.InviteShowRoom = dto.InviteShowRoomVisit;
+            existing.SetupSiteVisit = dto.SetupSiteVisit;
+            existing.InvoiceSent = dto.InvoiceSent;
+            existing.SupplierId = dto.SupplierId;
+            existing.CustomerId = dto.CustomerId;
+            existing.ProductId = dto.ProductId;
+            existing.ProductTypeId = dto.ProductTypeId;
+            existing.DateUpdated = DateTime.UtcNow;
+            existing.UpdatedBy = currentUser;
 
-            existingWorkflow.WorkflowName = dto.WorkflowName;
-            existingWorkflow.Description = dto.Description;
-            existingWorkflow.InitialEnquiry = dto.InitialEnquiry;
-            existingWorkflow.CreateQuote = dto.CreateQuotation;
-            existingWorkflow.InviteShowRoom = dto.InviteShowRoomVisit;
-            existingWorkflow.SetupSiteVisit = dto.SetupSiteVisit;
-            existingWorkflow.InvoiceSent = dto.InvoiceSent;
-            existingWorkflow.SupplierId = dto.SupplierId;
-            existingWorkflow.CustomerId = dto.CustomerId;
-            existingWorkflow.ProductId = dto.ProductId;
-            existingWorkflow.ProductTypeId = dto.ProductTypeId;
-            existingWorkflow.DateUpdated = DateTime.UtcNow;
-            existingWorkflow.UpdatedBy = currentUser;
-
-            _context.WorkflowStarts.Update(existingWorkflow);
+            _context.WorkflowStarts.Update(existing);
             await _context.SaveChangesAsync();
-
-            return existingWorkflow;
+            return existing;
         }
+
+        public async Task<bool> DeleteWorkflowAsync(int workflowId)
+        {
+            var workflow = await _context.WorkflowStarts.FindAsync(workflowId);
+            if (workflow == null) return false;
+
+            _context.WorkflowStarts.Remove(workflow);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // INITIAL ENQUIRY
+        // ════════════════════════════════════════════════════════════════════
 
         public async Task<IEnumerable<InitialEnquiry>> GetInitialEnquiryForWorkflowAsync(int WorkflowId)
         {
-            return await _context.InitialEnquiries.Where(w => w.WorkflowId == WorkflowId).ToListAsync();
+            return await _context.InitialEnquiries
+                .Where(w => w.WorkflowId == WorkflowId)
+                .ToListAsync();
         }
 
         public async Task<InitialEnquiry> AddInitialEnquiry(InitialEnquiryDto dto, string currentUser)
         {
-            var initialEnquiry = new InitialEnquiry
+            var enquiry = new InitialEnquiry
             {
                 WorkflowId = dto.WorkflowId,
                 Comments = dto.Comments,
                 Email = dto.Email,
                 Images = dto.Images,
-                Signature = dto.Signature,          // ← NEW
+                Signature = dto.Signature,
                 TaskId = dto.TaskId,
                 IncomingEmailId = dto.IncomingEmailId,
                 DateCreated = DateTime.UtcNow,
                 CreatedBy = currentUser
             };
 
-            _context.InitialEnquiries.Add(initialEnquiry);
+            _context.InitialEnquiries.Add(enquiry);
             await _context.SaveChangesAsync();
 
-            // ── Timer reset: dismiss any active follow-up for this workflow ──
+            // Reset the 3-day follow-up clock
             await _followUpService.DismissActiveForWorkflowAsync(dto.WorkflowId, currentUser);
 
-            return initialEnquiry;
+            return enquiry;
         }
 
         public async Task<InitialEnquiry> UpdateInitialEnquiry(InitialEnquiryDto dto, string currentUser)
         {
-            var existingInquiry = await _context.InitialEnquiries.FindAsync(dto.EnquiryId);
+            var existing = await _context.InitialEnquiries.FindAsync(dto.EnquiryId)
+                ?? throw new Exception("Enquiry not found");
 
-            if (existingInquiry == null)
-                throw new Exception("Enquiry not found");
+            existing.Comments = dto.Comments;
+            existing.Email = dto.Email;
+            existing.Images = dto.Images;
+            existing.Signature = dto.Signature;
+            existing.DateUpdated = DateTime.UtcNow;
+            existing.UpdatedBy = currentUser;
 
-            existingInquiry.Comments = dto.Comments;
-            existingInquiry.Email = dto.Email;
-            existingInquiry.Images = dto.Images;
-            existingInquiry.Signature = dto.Signature;  // ← NEW
-
-            existingInquiry.DateUpdated = DateTime.UtcNow;
-            existingInquiry.UpdatedBy = currentUser;
-
-            _context.InitialEnquiries.Update(existingInquiry);
+            _context.InitialEnquiries.Update(existing);
             await _context.SaveChangesAsync();
-
-            return existingInquiry;
+            return existing;
         }
 
-        public async Task<List<int>> GetStandardWidthsForProductAsync(int productId)
-        {
-            return await _context.Projections
+        // ════════════════════════════════════════════════════════════════════
+        // PRODUCT / PRICING
+        // ════════════════════════════════════════════════════════════════════
+
+        public async Task<List<int>> GetStandardWidthsForProductAsync(int productId) =>
+            await _context.Projections
                 .Where(p => p.ProductId == productId)
-                .Select(p => p.Width_cm)
-                .Distinct()
-                .ToListAsync();
-        }
+                .Select(p => p.Width_cm).Distinct().ToListAsync();
 
-        public async Task<List<int>> GetProjectionWidthsForProductAsync(int productId)
-        {
-            return await _context.Projections
+        public async Task<List<int>> GetProjectionWidthsForProductAsync(int productId) =>
+            await _context.Projections
                 .Where(p => p.ProductId == productId)
-                .Select(p => p.Projection_cm)
-                .Distinct()
-                .ToListAsync();
-        }
+                .Select(p => p.Projection_cm).Distinct().ToListAsync();
 
-        public async Task<decimal> GetProjectionPriceForProductAsync(int productId, int widthcm, int projectioncm)
-        {
-            return await _context.Projections
+        public async Task<decimal> GetProjectionPriceForProductAsync(int productId, int widthcm, int projectioncm) =>
+            await _context.Projections
                 .Where(p => p.ProductId == productId && p.Width_cm == widthcm && p.Projection_cm == projectioncm)
-                .Select(p => p.Price)
-                .FirstOrDefaultAsync();
-        }
+                .Select(p => p.Price).FirstOrDefaultAsync();
 
-        public async Task<List<Brackets>> GeBracketsForProductAsync(int productId)
-        {
-            return await _context.Brackets.Where(b => b.ProductId == productId).ToListAsync();
-        }
+        public async Task<List<Brackets>> GeBracketsForProductAsync(int productId) =>
+            await _context.Brackets.Where(b => b.ProductId == productId).ToListAsync();
 
-        public async Task<List<Arms>> GeArmsForProductAsync(int productId)
-        {
-            return await _context.Arms.Where(f => f.ProductId == productId).ToListAsync();
-        }
+        public async Task<List<Arms>> GeArmsForProductAsync(int productId) =>
+            await _context.Arms.Where(f => f.ProductId == productId).ToListAsync();
 
-        public async Task<List<Motors>> GeMotorsForProductAsync(int productId)
-        {
-            return await _context.Motors.Where(f => f.ProductId == productId).ToListAsync();
-        }
+        public async Task<List<Motors>> GeMotorsForProductAsync(int productId) =>
+            await _context.Motors.Where(f => f.ProductId == productId).ToListAsync();
 
-        public async Task<decimal> GeValanceStylePriceForProductAsync(int productId, int widthcm)
-        {
-            return await _context.valanceStyles
+        public async Task<decimal> GeValanceStylePriceForProductAsync(int productId, int widthcm) =>
+            await _context.valanceStyles
                 .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
-                .Select(p => p.Price)
-                .FirstOrDefaultAsync();
-        }
+                .Select(p => p.Price).FirstOrDefaultAsync();
 
-        public async Task<decimal> GeNonStandardRALColourPriceForProductAsync(int productId, int widthcm)
-        {
-            return await _context.nonStandardRALColours
+        public async Task<decimal> GeNonStandardRALColourPriceForProductAsync(int productId, int widthcm) =>
+            await _context.nonStandardRALColours
                 .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
-                .Select(p => p.Price)
-                .FirstOrDefaultAsync();
-        }
+                .Select(p => p.Price).FirstOrDefaultAsync();
 
-        public async Task<decimal> GeWallSealingProfilerPriceForProductAsync(int productId, int widthcm)
-        {
-            return await _context.wallSealingProfiles
+        public async Task<decimal> GeWallSealingProfilerPriceForProductAsync(int productId, int widthcm) =>
+            await _context.wallSealingProfiles
                 .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
-                .Select(p => p.Price)
-                .FirstOrDefaultAsync();
+                .Select(p => p.Price).FirstOrDefaultAsync();
+
+        public async Task<List<Heaters>> GeHeatersForProductAsync(int productId) =>
+            await _context.Heaters.Where(f => f.ProductId == productId).ToListAsync();
+
+        // ════════════════════════════════════════════════════════════════════
+        // USER SIGNATURES  (moved from UserSignatureController)
+        // ════════════════════════════════════════════════════════════════════
+
+        /// <summary>Returns all signatures owned by <paramref name="username"/>,
+        /// default first then alphabetical.</summary>
+        public async Task<IEnumerable<UserSignatureDto>> GetSignaturesAsync(string username)
+        {
+            return await _context.UserSignatures
+                .Where(s => s.Username == username)
+                .OrderByDescending(s => s.IsDefault)
+                .ThenBy(s => s.Label)
+                .Select(s => MapSigToDto(s))
+                .ToListAsync();
         }
 
-        public async Task<List<Heaters>> GeHeatersForProductAsync(int productId)
+        /// <summary>Creates a new signature. Clears any existing default first
+        /// if <see cref="UserSignatureDto.IsDefault"/> is true.</summary>
+        public async Task<UserSignatureDto> CreateSignatureAsync(UserSignatureDto dto, string username)
         {
-            return await _context.Heaters.Where(f => f.ProductId == productId).ToListAsync();
+            if (dto.IsDefault)
+                await ClearSignatureDefaultAsync(username);
+
+            var entity = MapDtoToSig(new UserSignature(), dto);
+            entity.Username = username;
+            entity.DateCreated = DateTime.UtcNow;
+
+            _context.UserSignatures.Add(entity);
+            await _context.SaveChangesAsync();
+            return MapSigToDto(entity);
         }
 
-        public async Task<bool> DeleteWorkflowAsync(int workflowId)
+        /// <summary>Updates label, contact fields, format options and rendered text.</summary>
+        public async Task<UserSignatureDto> UpdateSignatureAsync(
+            int signatureId, UserSignatureDto dto, string username)
         {
-            var workflow = await _context.WorkflowStarts.FindAsync(workflowId);
+            var entity = await _context.UserSignatures
+                .FirstOrDefaultAsync(s => s.SignatureId == signatureId && s.Username == username)
+                ?? throw new Exception("Signature not found.");
 
-            if (workflow == null)
-                return false;
+            if (dto.IsDefault && !entity.IsDefault)
+                await ClearSignatureDefaultAsync(username);
 
-            _context.WorkflowStarts.Remove(workflow);
+            MapDtoToSig(entity, dto);
+            entity.DateUpdated = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return MapSigToDto(entity);
+        }
+
+        /// <summary>Promotes one signature to default, demoting all others.</summary>
+        public async Task<UserSignatureDto> SetDefaultSignatureAsync(int signatureId, string username)
+        {
+            var entity = await _context.UserSignatures
+                .FirstOrDefaultAsync(s => s.SignatureId == signatureId && s.Username == username)
+                ?? throw new Exception("Signature not found.");
+
+            await ClearSignatureDefaultAsync(username);
+            entity.IsDefault = true;
+            entity.DateUpdated = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return MapSigToDto(entity);
+        }
+
+        /// <summary>Deletes a signature. Returns false if not found.</summary>
+        public async Task<bool> DeleteSignatureAsync(int signatureId, string username)
+        {
+            var entity = await _context.UserSignatures
+                .FirstOrDefaultAsync(s => s.SignatureId == signatureId && s.Username == username);
+
+            if (entity == null) return false;
+
+            _context.UserSignatures.Remove(entity);
             await _context.SaveChangesAsync();
             return true;
         }
+
+        // ── Signature private helpers ─────────────────────────────────────────
+
+        /// <summary>Sets IsDefault = false for every signature belonging to
+        /// <paramref name="username"/>. Caller must SaveChanges afterward.</summary>
+        private async Task ClearSignatureDefaultAsync(string username)
+        {
+            var defaults = await _context.UserSignatures
+                .Where(s => s.Username == username && s.IsDefault)
+                .ToListAsync();
+
+            foreach (var s in defaults)
+            {
+                s.IsDefault = false;
+                s.DateUpdated = DateTime.UtcNow;
+            }
+            // SaveChanges is called by the caller that invokes this method
+        }
+
+        private static UserSignature MapDtoToSig(UserSignature e, UserSignatureDto d)
+        {
+            e.Label = d.Label.Trim();
+            e.FullName = d.FullName?.Trim();
+            e.JobTitle = d.JobTitle?.Trim();
+            e.Company = d.Company?.Trim();
+            e.Phone = d.Phone?.Trim();
+            e.Mobile = d.Mobile?.Trim();
+            e.Email = d.Email?.Trim();
+            e.Website = d.Website?.Trim();
+            e.GreetingText = (d.GreetingText ?? "Kindest regards,").Trim();
+            e.SeparatorStyle = (d.SeparatorStyle ?? "blank_line").Trim();
+            e.LayoutOrder = (d.LayoutOrder ?? "name_first").Trim();
+            e.SignatureText = d.SignatureText.Trim();
+            e.IsDefault = d.IsDefault;
+            return e;
+        }
+
+        private static UserSignatureDto MapSigToDto(UserSignature s) => new()
+        {
+            SignatureId = s.SignatureId,
+            Label = s.Label,
+            FullName = s.FullName,
+            JobTitle = s.JobTitle,
+            Company = s.Company,
+            Phone = s.Phone,
+            Mobile = s.Mobile,
+            Email = s.Email,
+            Website = s.Website,
+            GreetingText = s.GreetingText,
+            SeparatorStyle = s.SeparatorStyle,
+            LayoutOrder = s.LayoutOrder,
+            SignatureText = s.SignatureText,
+            IsDefault = s.IsDefault,
+            DateCreated = s.DateCreated,
+            DateUpdated = s.DateUpdated
+        };
     }
 }

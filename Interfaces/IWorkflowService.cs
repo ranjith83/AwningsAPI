@@ -1,4 +1,5 @@
-﻿using AwningsAPI.Dto.Workflow;
+﻿using AwningsAPI.Dto.Auth;
+using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Model.Products;
 using AwningsAPI.Model.Workflow;
 
@@ -23,5 +24,12 @@ namespace AwningsAPI.Interfaces
         Task<decimal> GeNonStandardRALColourPriceForProductAsync(int productId, int widthcm);
         Task<decimal> GeWallSealingProfilerPriceForProductAsync(int productId, int widthcm);
         Task<List<Heaters>> GeHeatersForProductAsync(int productId);
+
+        // ── User Signatures ───────────────────────────────────────────────────
+        Task<IEnumerable<UserSignatureDto>> GetSignaturesAsync(string username);
+        Task<UserSignatureDto> CreateSignatureAsync(UserSignatureDto dto, string username);
+        Task<UserSignatureDto> UpdateSignatureAsync(int signatureId, UserSignatureDto dto, string username);
+        Task<UserSignatureDto> SetDefaultSignatureAsync(int signatureId, string username);
+        Task<bool> DeleteSignatureAsync(int signatureId, string username);
     }
 }
