@@ -296,66 +296,99 @@ namespace AwningsAPI.Services.WorkflowService
             await _context.Heaters.Where(f => f.ProductId == productId).ToListAsync();
 
         // ════════════════════════════════════════════════════════════════════
-        // USER SIGNATURES
+        // USER SIGNATURES  (moved from UserSignatureController)
         // ════════════════════════════════════════════════════════════════════
 
-        public async Task<IEnumerable<UserSignatureDto>> GetSignaturesAsync(string username) =>
-            await _context.UserSignatures
+        /// <summary>Returns all signatures owned by <paramref name="username"/>,
+        /// default first then alphabetical.</summary>
+        public async Task<IEnumerable<UserSignatureDto>> GetSignaturesAsync(string username)
+        {
+            return await _context.UserSignatures
                 .Where(s => s.Username == username)
-                .OrderByDescending(s => s.IsDefault).ThenBy(s => s.Label)
+                .OrderByDescending(s => s.IsDefault)
+                .ThenBy(s => s.Label)
                 .Select(s => MapSigToDto(s))
                 .ToListAsync();
+        }
 
+        /// <summary>Creates a new signature. Clears any existing default first
+        /// if <see cref="UserSignatureDto.IsDefault"/> is true.</summary>
         public async Task<UserSignatureDto> CreateSignatureAsync(UserSignatureDto dto, string username)
         {
-            if (dto.IsDefault) await ClearSignatureDefaultAsync(username);
+            if (dto.IsDefault)
+                await ClearSignatureDefaultAsync(username);
+
             var entity = MapDtoToSig(new UserSignature(), dto);
             entity.Username = username;
             entity.DateCreated = DateTime.UtcNow;
+
             _context.UserSignatures.Add(entity);
             await _context.SaveChangesAsync();
             return MapSigToDto(entity);
         }
 
-        public async Task<UserSignatureDto> UpdateSignatureAsync(int signatureId, UserSignatureDto dto, string username)
+        /// <summary>Updates label, contact fields, format options and rendered text.</summary>
+        public async Task<UserSignatureDto> UpdateSignatureAsync(
+            int signatureId, UserSignatureDto dto, string username)
         {
             var entity = await _context.UserSignatures
                 .FirstOrDefaultAsync(s => s.SignatureId == signatureId && s.Username == username)
                 ?? throw new Exception("Signature not found.");
-            if (dto.IsDefault && !entity.IsDefault) await ClearSignatureDefaultAsync(username);
+
+            if (dto.IsDefault && !entity.IsDefault)
+                await ClearSignatureDefaultAsync(username);
+
             MapDtoToSig(entity, dto);
             entity.DateUpdated = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
             return MapSigToDto(entity);
         }
 
+        /// <summary>Promotes one signature to default, demoting all others.</summary>
         public async Task<UserSignatureDto> SetDefaultSignatureAsync(int signatureId, string username)
         {
             var entity = await _context.UserSignatures
                 .FirstOrDefaultAsync(s => s.SignatureId == signatureId && s.Username == username)
                 ?? throw new Exception("Signature not found.");
+
             await ClearSignatureDefaultAsync(username);
             entity.IsDefault = true;
             entity.DateUpdated = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
             return MapSigToDto(entity);
         }
 
+        /// <summary>Deletes a signature. Returns false if not found.</summary>
         public async Task<bool> DeleteSignatureAsync(int signatureId, string username)
         {
             var entity = await _context.UserSignatures
                 .FirstOrDefaultAsync(s => s.SignatureId == signatureId && s.Username == username);
+
             if (entity == null) return false;
+
             _context.UserSignatures.Remove(entity);
             await _context.SaveChangesAsync();
             return true;
         }
 
+        // ── Signature private helpers ─────────────────────────────────────────
+
+        /// <summary>Sets IsDefault = false for every signature belonging to
+        /// <paramref name="username"/>. Caller must SaveChanges afterward.</summary>
         private async Task ClearSignatureDefaultAsync(string username)
         {
             var defaults = await _context.UserSignatures
-                .Where(s => s.Username == username && s.IsDefault).ToListAsync();
-            foreach (var s in defaults) { s.IsDefault = false; s.DateUpdated = DateTime.UtcNow; }
+                .Where(s => s.Username == username && s.IsDefault)
+                .ToListAsync();
+
+            foreach (var s in defaults)
+            {
+                s.IsDefault = false;
+                s.DateUpdated = DateTime.UtcNow;
+            }
+            // SaveChanges is called by the caller that invokes this method
         }
 
         private static UserSignature MapDtoToSig(UserSignature e, UserSignatureDto d)
@@ -371,6 +404,7 @@ namespace AwningsAPI.Services.WorkflowService
             e.GreetingText = (d.GreetingText ?? "Kindest regards,").Trim();
             e.SeparatorStyle = (d.SeparatorStyle ?? "blank_line").Trim();
             e.LayoutOrder = (d.LayoutOrder ?? "name_first").Trim();
+            e.FontFamily = (d.FontFamily ?? "georgia").Trim();
             e.SignatureText = d.SignatureText.Trim();
             e.IsDefault = d.IsDefault;
             return e;
@@ -390,6 +424,7 @@ namespace AwningsAPI.Services.WorkflowService
             GreetingText = s.GreetingText,
             SeparatorStyle = s.SeparatorStyle,
             LayoutOrder = s.LayoutOrder,
+            FontFamily = s.FontFamily,
             SignatureText = s.SignatureText,
             IsDefault = s.IsDefault,
             DateCreated = s.DateCreated,
