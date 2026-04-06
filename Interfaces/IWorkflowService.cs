@@ -8,14 +8,29 @@ namespace AwningsAPI.Interfaces
     public interface IWorkflowService
     {
         // ── Workflow ──────────────────────────────────────────────────────────
-        /// <summary>Returns all workflows for a customer with computed completed-stage flags.</summary>
-        Task<IEnumerable<WorkflowDto>> GetAllWorfflowsForCustomerAsync(int CustomerId);
+
+        /// <summary>
+        /// Returns all workflows for a customer.
+        /// Each WorkflowDto includes stage-enabled flags, server-computed
+        /// stage-completed flags, and a HasDependencies guard flag.
+        /// Return type is WorkflowDto (NOT WorkflowStart) — the service builds
+        /// the full DTO including completion data in a single pass.
+        /// </summary>
+        Task<IEnumerable<WorkflowDto>> GetAllWorfflowsForCustomerAsync(int customerId);
+
         Task<WorkflowStart> CreateWorkflow(WorkflowDto dto, string currentUser);
         Task<WorkflowStart> UpdateWorkflow(WorkflowDto dto, string currentUser);
-        Task<bool> DeleteWorkflowAsync(int workflowId);
+
+        /// <summary>
+        /// Checks all dependency tables before deleting.
+        /// Returns a WorkflowDeleteResult — never throws.
+        /// result.Deleted = true  → deleted successfully.
+        /// result.Deleted = false → blocked; BlockingDependencies lists what prevents deletion.
+        /// </summary>
+        Task<WorkflowDeleteResult> DeleteWorkflowAsync(int workflowId);
 
         // ── Initial Enquiry ───────────────────────────────────────────────────
-        Task<IEnumerable<InitialEnquiry>> GetInitialEnquiryForWorkflowAsync(int WorkflowId);
+        Task<IEnumerable<InitialEnquiry>> GetInitialEnquiryForWorkflowAsync(int workflowId);
         Task<InitialEnquiry> AddInitialEnquiry(InitialEnquiryDto dto, string currentUser);
         Task<InitialEnquiry> UpdateInitialEnquiry(InitialEnquiryDto dto, string currentUser);
 
@@ -38,4 +53,4 @@ namespace AwningsAPI.Interfaces
         Task<UserSignatureDto> SetDefaultSignatureAsync(int signatureId, string username);
         Task<bool> DeleteSignatureAsync(int signatureId, string username);
     }
-}   
+}

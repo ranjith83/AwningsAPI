@@ -884,9 +884,10 @@ namespace AwningsAPI.Controllers
                 if (string.IsNullOrWhiteSpace(request.Subject))
                     return BadRequest(new { error = "Subject is required" });
 
-#if DEBUG
-                request.ToEmail = "gistyf30@hotmail.com"; // "mrk.ranjithkumar@gmail.com";
-#endif
+                var isProd = bool.TryParse(_configuration["EmailConfiguration:IsProd"], out var parsedIsProd) && parsedIsProd;
+                
+                if(!isProd)
+                    request.ToEmail = _configuration["EmailConfiguration:TestMailAddress"];
 
                 var mailboxEmail = _configuration["AzureAd:MonitoredMailbox"]
                     ?? _configuration["AzureAd:OrganizerEmail"]

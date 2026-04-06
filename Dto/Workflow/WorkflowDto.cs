@@ -44,5 +44,11 @@
         /// Populated when a user creates a workflow from the Tasks screen.
         /// </summary>
         public int? TaskId { get; set; }
+
+        /// <summary>
+        /// True when any dependency record exists (enquiry, quote, showroom, site visit or invoice).
+        /// The delete button is locked in the UI when this is true.
+        /// </summary>
+        public bool HasDependencies { get; set; }
     }
 }

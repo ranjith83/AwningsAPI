@@ -8,11 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AwningsAPI.Controllers
 {
-    /// <summary>
-    /// Unified workflow controller.
-    /// Workflow endpoints    → /api/workflow/...
-    /// Signature endpoints   → /api/workflow/signatures/...
-    /// </summary>
     [ApiController]
     [Route("api/workflow")]
     public class WorkflowController : Controller
@@ -30,16 +25,10 @@ namespace AwningsAPI.Controllers
         // WORKFLOW CRUD
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>
-        /// Returns all workflows for a customer.
-        /// Each DTO includes both the stage-enabled flags AND computed
-        /// stage-completed flags derived from real activity records.
-        /// </summary>
         [Authorize]
         [HttpGet("GetAllWorfflowsForCustomer")]
         public async Task<ActionResult<IEnumerable<WorkflowDto>>> GetAllWorfflowsForCustomer(int CustomerId)
         {
-            // Service now returns WorkflowDto directly (with completed flags populated)
             var dtos = await _workflowService.GetAllWorfflowsForCustomerAsync(CustomerId);
             return Ok(dtos);
         }
@@ -66,14 +55,23 @@ namespace AwningsAPI.Controllers
             return Ok(workflow);
         }
 
+        /// <summary>
+        /// DELETE /api/workflow/DeleteWorkflow/{workflowId}
+        ///
+        /// Returns 200 with <see cref="WorkflowDeleteResult"/> in all cases:
+        ///   • Deleted = true  → workflow removed.
+        ///   • Deleted = false → blocked; BlockingDependencies describes what is preventing deletion.
+        ///
+        /// The Angular client inspects Deleted and shows the appropriate modal state.
+        /// We return 200 even when blocked (rather than 409 Conflict) so Angular's
+        /// error handler is not triggered — the UI handles the "blocked" case inline.
+        /// </summary>
         [Authorize]
         [HttpDelete("DeleteWorkflow/{workflowId}")]
-        public async Task<IActionResult> DeleteWorkflow(int workflowId)
+        public async Task<ActionResult<WorkflowDeleteResult>> DeleteWorkflow(int workflowId)
         {
             var result = await _workflowService.DeleteWorkflowAsync(workflowId);
-            if (!result)
-                return NotFound(new { message = $"Workflow with ID {workflowId} not found" });
-            return Ok(new { message = "Workflow deleted successfully" });
+            return Ok(result);
         }
 
         // ════════════════════════════════════════════════════════════════════
