@@ -128,11 +128,32 @@ namespace AwningsAPI.Controllers
         public async Task<decimal> GetProjectionPriceForProduct(int ProductId, int widthcm, int projectioncm) =>
             await _workflowService.GetProjectionPriceForProductAsync(ProductId, widthcm, projectioncm);
 
-        [HttpGet("GeBracketsForProduct")]
-        public async Task<ActionResult<IEnumerable<BracketDto>>> GeBracketsForProduct(int ProductId)
+        /// <summary>
+        /// GET /api/workflow/GetArmTypeForProjection?ProductId=6&amp;widthcm=300&amp;projectioncm=200
+        ///
+        /// Returns the ArmTypeId for the matching Projections row.
+        /// The Angular client calls this when the user selects a width/projection
+        /// so it can re-fetch the brackets dropdown filtered to compatible items.
+        /// Returns null (HTTP 200 with null body) when no matching row is found.
+        /// </summary>
+        [HttpGet("GetArmTypeForProjection")]
+        public async Task<ActionResult<int?>> GetArmTypeForProjection(int ProductId, int widthcm, int projectioncm)
         {
-            var brackets = await _workflowService.GeBracketsForProductAsync(ProductId);
-            return Ok(brackets.Select(c => new BracketDto { BracketId = c.BracketId, BracketName = c.BracketName, Price = c.Price }).ToList());
+            var armTypeId = await _workflowService.GetArmTypeForProjectionAsync(ProductId, widthcm, projectioncm);
+            return Ok(armTypeId);
+        }
+
+        [HttpGet("GeBracketsForProduct")]
+        public async Task<ActionResult<IEnumerable<BracketDto>>> GeBracketsForProduct(int ProductId, int? armTypeId = null)
+        {
+            var brackets = await _workflowService.GetBracketsForProductAsync(ProductId, armTypeId);
+            return Ok(brackets.Select(c => new BracketDto
+            {
+                BracketId = c.BracketId,
+                BracketName = c.BracketName,
+                Price = c.Price,
+                ArmTypeId = c.ArmTypeId
+            }).ToList());
         }
 
         [HttpGet("GeArmsForProduct")]

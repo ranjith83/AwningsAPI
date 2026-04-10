@@ -294,11 +294,42 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<decimal> GetProjectionPriceForProductAsync(int productId, int widthcm, int projectioncm) =>
             await _context.Projections.Where(p => p.ProductId == productId && p.Width_cm == widthcm && p.Projection_cm == projectioncm).Select(p => p.Price).FirstOrDefaultAsync();
 
+        /**
         public async Task<List<Brackets>> GeBracketsForProductAsync(int productId) =>
             await _context.Brackets.Where(b => b.ProductId == productId).ToListAsync();
 
         public async Task<List<Arms>> GeArmsForProductAsync(int productId) =>
             await _context.Arms.Where(f => f.ProductId == productId).ToListAsync();
+
+        **/
+
+        /// <summary>
+        /// Returns the ArmTypeId from the Projections row that matches the given
+        /// product / width / projection combination.  The frontend calls this after
+        /// the user picks a width so the brackets dropdown can be filtered.
+        /// Returns null if no matching projection row is found.
+        /// </summary>
+        public async Task<int?> GetArmTypeForProjectionAsync(int productId, int widthcm, int projectioncm) =>
+            await _context.Projections
+                .Where(p => p.ProductId == productId && p.Width_cm == widthcm && p.Projection_cm == projectioncm)
+                .Select(p => (int?)p.ArmTypeId)
+                .FirstOrDefaultAsync();
+
+        /// <summary>
+        /// Returns brackets for the product.  When <paramref name="armTypeId"/> is
+        /// supplied, only brackets whose ArmTypeId matches OR whose ArmTypeId is null
+        /// (universal brackets) are returned.  When null, all brackets are returned
+        /// (e.g. before the user has selected a width).
+        /// </summary>
+        public async Task<List<Brackets>> GetBracketsForProductAsync(int productId, int? armTypeId = null)
+        {
+            var query = _context.Brackets.Where(b => b.ProductId == productId);
+
+            if (armTypeId.HasValue)
+                query = query.Where(b => b.ArmTypeId == null || b.ArmTypeId == armTypeId.Value);
+
+            return await query.ToListAsync();
+        }
 
         public async Task<List<Motors>> GeMotorsForProductAsync(int productId) =>
             await _context.Motors.Where(f => f.ProductId == productId).ToListAsync();

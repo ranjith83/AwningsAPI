@@ -53,6 +53,9 @@ namespace AwningsAPI.Database
 
         public DbSet<ArmsType> armsTypes { get; set; }
         public DbSet<RadioControlledMotors> radioControlledMotors { get; set; }
+        public DbSet<Control> Controls { get; set; }
+        public DbSet<ShadePlus> ShadePlus { get; set; }
+        public DbSet<LightingCassette> LightingCassettes { get; set; }
         public DbSet<IncomingEmail> IncomingEmails { get; set; }
         public DbSet<EmailAttachment> EmailAttachments { get; set; }
         public DbSet<EmailTask> EmailTasks { get; set; }
@@ -159,6 +162,18 @@ namespace AwningsAPI.Database
 
             modelBuilder.Entity<Heaters>()
                 .Property(p => p.PriceNonRALColour)
+                .HasPrecision(18, 4);
+
+            modelBuilder.Entity<Control>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 4);
+
+            modelBuilder.Entity<ShadePlus>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 4);
+
+            modelBuilder.Entity<LightingCassette>()
+                .Property(p => p.Price)
                 .HasPrecision(18, 4);
 
             // Invoice Configuration
@@ -648,7 +663,12 @@ namespace AwningsAPI.Database
                 new Product { ProductId = 8, Description = "Markilux 5010", ProductTypeId = 1, SupplierId = 1, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new Product { ProductId = 9, Description = "Markilux 3300", ProductTypeId = 1, SupplierId = 1, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new Product { ProductId = 10, Description = "Markilux 1710", ProductTypeId = 1, SupplierId = 1, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Product { ProductId = 11, Description = "Markilux 900", ProductTypeId = 1, SupplierId = 1, DateCreated = staticCreatedDate, CreatedBy = "System" }
+                new Product { ProductId = 11, Description = "Markilux 900", ProductTypeId = 1, SupplierId = 1, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Product { ProductId = 12, Description = "Markilux 3300 Semi", ProductTypeId = 1, SupplierId = 1, DateCreated = new DateTime(2026, 4, 6), CreatedBy = "System" },
+                new Product { ProductId = 13, Description = "Markilux 6000", ProductTypeId = 1, SupplierId = 1, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System" },
+                new Product { ProductId = 14, Description = "Markilux 779", ProductTypeId = 1, SupplierId = 1, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System" },
+                new Product { ProductId = 15, Description = "Markilux 8800", ProductTypeId = 1, SupplierId = 1, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System" },
+                new Product { ProductId = 16, Description = "Markilux 6000 XXL", ProductTypeId = 1, SupplierId = 1, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System" }
             );
             //Workflow Start
             modelBuilder.Entity<WorkflowStart>().HasData(
@@ -685,31 +705,244 @@ namespace AwningsAPI.Database
                 new BF { BFId = 2, Description = "BF 8", Price = 312.00m, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new BF { BFId = 3, Description = "BF 16", Price = 312.00m, DateCreated = staticCreatedDate, CreatedBy = "System" }
             );
-            //Bracket Data — Arms values moved here; old bracket items removed
+            //Bracket Data
             modelBuilder.Entity<Brackets>().HasData(
-                new Brackets { BracketId = 1, ProductId = 6, BracketName = "Surcharge for face fixture", PartNumber = "", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 2, ProductId = 6, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = "", Price = 334m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 3, ProductId = 6, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = "", Price = 406m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 4, ProductId = 6, BracketName = "Surcharge for top fixture", PartNumber = "", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 5, ProductId = 6, BracketName = "Surcharge for eaves fixture", PartNumber = "", Price = 199m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 6, ProductId = 6, BracketName = "Surcharge for arms with bionic tendon", PartNumber = "", Price = 117m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 7, ProductId = 6, BracketName = "Surcharge for bespoke arms", PartNumber = "", Price = 177m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 8, ProductId = 6, BracketName = "Face fixture bracket 150 mm", PartNumber = "71624", Price = 42.70m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 9, ProductId = 6, BracketName = "Face fixture bracket 300 mm left", PartNumber = "70617", Price = 73.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 10, ProductId = 6, BracketName = "Face fixture bracket 300 mm right", PartNumber = "70600", Price = 73.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 11, ProductId = 6, BracketName = "Stand-off bkt. 80-300 mm for face fixture bracket 300 mm", PartNumber = "77968", Price = 220.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 12, ProductId = 6, BracketName = "Top fixture bracket 150 mm", PartNumber = "71625", Price = 42.70m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 13, ProductId = 6, BracketName = "Eaves fixture bracket 150mm, complete", PartNumber = "71669", Price = 99.30m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 14, ProductId = 6, BracketName = "Eaves fixture bracket 270 mm", PartNumber = "71659", Price = 77.00m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 15, ProductId = 6, BracketName = "Angle and plate for eaves fixture (machine finish)", PartNumber = "716620", Price = 125.20m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 16, ProductId = 6, BracketName = "Additional eaves fixture plate 60x260x12 mm", PartNumber = "75383", Price = 42.60m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 17, ProductId = 6, BracketName = "Spreader plate A 430x160x12 mm", PartNumber = "75326", Price = 124.10m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 18, ProductId = 6, BracketName = "Spreader plate B 300x400x12 mm", PartNumber = "75325", Price = 160.20m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 19, ProductId = 6, BracketName = "Spacer block face or top fixt. 136x150x20 mm", PartNumber = "716331", Price = 5.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 20, ProductId = 6, BracketName = "Spacer block face or top fixt. 136x150x12 mm", PartNumber = "71644", Price = 3.60m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 21, ProductId = 6, BracketName = "Cover plate 230x210x2 mm", PartNumber = "71843", Price = 16.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 22, ProductId = 6, BracketName = "Cover plate 290x210x2 mm", PartNumber = "71841", Price = 20.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Brackets { BracketId = 23, ProductId = 6, BracketName = "Vertical fixture rail incl. fixing material 624291", PartNumber = "62421", Price = 174.90m, DateCreated = staticCreatedDate, CreatedBy = "System" }
+                // ProductId = 6 (Markilux 990) — ArmTypeId NULL for non-arm-specific surcharges/parts
+                new Brackets { BracketId = 1, ProductId = 6, ArmTypeId = null, BracketName = "Surcharge for face fixture", PartNumber = "", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 2, ProductId = 6, ArmTypeId = null, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = "", Price = 334m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 3, ProductId = 6, ArmTypeId = null, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = "", Price = 406m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 4, ProductId = 6, ArmTypeId = null, BracketName = "Surcharge for top fixture", PartNumber = "", Price = 86m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 5, ProductId = 6, ArmTypeId = null, BracketName = "Surcharge for eaves fixture", PartNumber = "", Price = 199m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 6, ProductId = 6, ArmTypeId = null, BracketName = "Surcharge for arms with bionic tendon", PartNumber = "", Price = 117m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 7, ProductId = 6, ArmTypeId = null, BracketName = "Surcharge for bespoke arms", PartNumber = "", Price = 177m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 8, ProductId = 6, ArmTypeId = null, BracketName = "Face fixture bracket 150 mm", PartNumber = "71624", Price = 42.70m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 9, ProductId = 6, ArmTypeId = null, BracketName = "Face fixture bracket 300 mm left", PartNumber = "70617", Price = 73.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 10, ProductId = 6, ArmTypeId = null, BracketName = "Face fixture bracket 300 mm right", PartNumber = "70600", Price = 73.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 11, ProductId = 6, ArmTypeId = null, BracketName = "Stand-off bkt. 80-300 mm for face fixture bracket 300 mm", PartNumber = "77968", Price = 220.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 12, ProductId = 6, ArmTypeId = null, BracketName = "Top fixture bracket 150 mm", PartNumber = "71625", Price = 42.70m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 13, ProductId = 6, ArmTypeId = null, BracketName = "Eaves fixture bracket 150mm, complete", PartNumber = "71669", Price = 99.30m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 14, ProductId = 6, ArmTypeId = null, BracketName = "Eaves fixture bracket 270 mm", PartNumber = "71659", Price = 77.00m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 15, ProductId = 6, ArmTypeId = null, BracketName = "Angle and plate for eaves fixture (machine finish)", PartNumber = "716620", Price = 125.20m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 16, ProductId = 6, ArmTypeId = null, BracketName = "Additional eaves fixture plate 60x260x12 mm", PartNumber = "75383", Price = 42.60m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 17, ProductId = 6, ArmTypeId = null, BracketName = "Spreader plate A 430x160x12 mm", PartNumber = "75326", Price = 124.10m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 18, ProductId = 6, ArmTypeId = null, BracketName = "Spreader plate B 300x400x12 mm", PartNumber = "75325", Price = 160.20m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 19, ProductId = 6, ArmTypeId = null, BracketName = "Spacer block face or top fixt. 136x150x20 mm", PartNumber = "716331", Price = 5.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 20, ProductId = 6, ArmTypeId = null, BracketName = "Spacer block face or top fixt. 136x150x12 mm", PartNumber = "71644", Price = 3.60m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 21, ProductId = 6, ArmTypeId = null, BracketName = "Cover plate 230x210x2 mm", PartNumber = "71843", Price = 16.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 22, ProductId = 6, ArmTypeId = null, BracketName = "Cover plate 290x210x2 mm", PartNumber = "71841", Price = 20.50m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new Brackets { BracketId = 23, ProductId = 6, ArmTypeId = null, BracketName = "Vertical fixture rail incl. fixing material 624291", PartNumber = "62421", Price = 174.90m, DateCreated = staticCreatedDate, CreatedBy = "System" },
+
+                // ProductId = 7 (Markilux 970) — ArmTypeId = 1 for surcharges
+                new Brackets { BracketId = 78, ProductId = 7, ArmTypeId = 1, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 220.00m, DateCreated = new DateTime(2026, 4, 6, 13, 41, 50, 820), CreatedBy = "System" },
+                new Brackets { BracketId = 79, ProductId = 7, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 592.00m, DateCreated = new DateTime(2026, 4, 6, 13, 41, 50, 820), CreatedBy = "System" },
+                new Brackets { BracketId = 80, ProductId = 7, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 550.00m, DateCreated = new DateTime(2026, 4, 6, 13, 41, 50, 820), CreatedBy = "System" },
+                new Brackets { BracketId = 81, ProductId = 7, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate C", PartNumber = null, Price = 592.00m, DateCreated = new DateTime(2026, 4, 6, 13, 41, 50, 820), CreatedBy = "System" },
+                new Brackets { BracketId = 82, ProductId = 7, ArmTypeId = 1, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 278.00m, DateCreated = new DateTime(2026, 4, 6, 13, 41, 50, 820), CreatedBy = "System" },
+                new Brackets { BracketId = 83, ProductId = 7, ArmTypeId = 1, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 371.00m, DateCreated = new DateTime(2026, 4, 6, 13, 41, 50, 820), CreatedBy = "System" },
+
+                // ProductId = 1 (Markilux MX-1 compact) — ArmTypeId varies per row
+                new Brackets { BracketId = 110, ProductId = 1, ArmTypeId = 1, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 7, 19, 20, 47, 870), CreatedBy = "System" },
+                new Brackets { BracketId = 111, ProductId = 1, ArmTypeId = 2, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 7, 19, 20, 47, 870), CreatedBy = "System" },
+                new Brackets { BracketId = 112, ProductId = 1, ArmTypeId = 3, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 269.00m, DateCreated = new DateTime(2026, 4, 7, 19, 20, 47, 870), CreatedBy = "System" },
+                new Brackets { BracketId = 113, ProductId = 1, ArmTypeId = 1, BracketName = "Surcharge for face fixture A", PartNumber = null, Price = 22.00m, DateCreated = new DateTime(2026, 4, 7, 19, 20, 47, 870), CreatedBy = "System" },
+                new Brackets { BracketId = 114, ProductId = 1, ArmTypeId = 2, BracketName = "Surcharge for face fixture A", PartNumber = null, Price = 22.00m, DateCreated = new DateTime(2026, 4, 7, 19, 20, 47, 870), CreatedBy = "System" },
+                new Brackets { BracketId = 115, ProductId = 1, ArmTypeId = 3, BracketName = "Surcharge for face fixture A", PartNumber = null, Price = 32.00m, DateCreated = new DateTime(2026, 4, 7, 19, 20, 47, 870), CreatedBy = "System" },
+                new Brackets { BracketId = 116, ProductId = 1, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 330.00m, DateCreated = new DateTime(2026, 4, 7, 19, 20, 47, 870), CreatedBy = "System" },
+                new Brackets { BracketId = 117, ProductId = 1, ArmTypeId = 2, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 339.00m, DateCreated = new DateTime(2026, 4, 7, 19, 20, 47, 870), CreatedBy = "System" },
+                new Brackets { BracketId = 118, ProductId = 1, ArmTypeId = 3, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 504.00m, DateCreated = new DateTime(2026, 4, 7, 19, 20, 47, 870), CreatedBy = "System" },
+
+                // ProductId = 2 (Markilux MX-4)
+                new Brackets { BracketId = 119, ProductId = 2, ArmTypeId = 1, BracketName = "Surcharge face fixture bracket A 300 mm", PartNumber = null, Price = 44.00m, DateCreated = new DateTime(2026, 4, 7, 20, 18, 15, 206), CreatedBy = "System" },
+                new Brackets { BracketId = 120, ProductId = 2, ArmTypeId = 2, BracketName = "Surcharge face fixture bracket A 300 mm", PartNumber = null, Price = 44.00m, DateCreated = new DateTime(2026, 4, 7, 20, 18, 15, 206), CreatedBy = "System" },
+                new Brackets { BracketId = 121, ProductId = 2, ArmTypeId = 3, BracketName = "Surcharge face fixture bracket A 300 mm", PartNumber = null, Price = 66.00m, DateCreated = new DateTime(2026, 4, 7, 20, 18, 15, 206), CreatedBy = "System" },
+                new Brackets { BracketId = 122, ProductId = 2, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 330.00m, DateCreated = new DateTime(2026, 4, 7, 20, 18, 15, 206), CreatedBy = "System" },
+                new Brackets { BracketId = 123, ProductId = 2, ArmTypeId = 2, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 339.00m, DateCreated = new DateTime(2026, 4, 7, 20, 18, 15, 206), CreatedBy = "System" },
+                new Brackets { BracketId = 124, ProductId = 2, ArmTypeId = 3, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 504.00m, DateCreated = new DateTime(2026, 4, 7, 20, 18, 15, 206), CreatedBy = "System" },
+                new Brackets { BracketId = 125, ProductId = 2, ArmTypeId = 1, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 7, 20, 18, 15, 206), CreatedBy = "System" },
+                new Brackets { BracketId = 126, ProductId = 2, ArmTypeId = 2, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 7, 20, 18, 15, 206), CreatedBy = "System" },
+                new Brackets { BracketId = 127, ProductId = 2, ArmTypeId = 3, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 269.00m, DateCreated = new DateTime(2026, 4, 7, 20, 18, 15, 206), CreatedBy = "System" },
+
+                // ProductId = 13 (Markilux 6000)
+                new Brackets { BracketId = 135, ProductId = 13, ArmTypeId = 4, BracketName = "Surcharge face fixture bracket A 300 mm", PartNumber = null, Price = 88.00m, DateCreated = new DateTime(2026, 4, 7, 20, 49, 38, 263), CreatedBy = "System" },
+                new Brackets { BracketId = 136, ProductId = 13, ArmTypeId = 6, BracketName = "Surcharge face fixture bracket A 300 mm", PartNumber = null, Price = 88.00m, DateCreated = new DateTime(2026, 4, 7, 20, 49, 38, 263), CreatedBy = "System" },
+                new Brackets { BracketId = 137, ProductId = 13, ArmTypeId = 7, BracketName = "Surcharge face fixture bracket A 300 mm", PartNumber = null, Price = 132.00m, DateCreated = new DateTime(2026, 4, 7, 20, 49, 38, 263), CreatedBy = "System" },
+                new Brackets { BracketId = 138, ProductId = 13, ArmTypeId = 4, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 659.00m, DateCreated = new DateTime(2026, 4, 7, 20, 49, 38, 263), CreatedBy = "System" },
+                new Brackets { BracketId = 139, ProductId = 13, ArmTypeId = 6, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 677.00m, DateCreated = new DateTime(2026, 4, 7, 20, 49, 38, 263), CreatedBy = "System" },
+                new Brackets { BracketId = 140, ProductId = 13, ArmTypeId = 7, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 1007.00m, DateCreated = new DateTime(2026, 4, 7, 20, 49, 38, 263), CreatedBy = "System" },
+                new Brackets { BracketId = 141, ProductId = 13, ArmTypeId = 4, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 361.00m, DateCreated = new DateTime(2026, 4, 7, 20, 49, 38, 263), CreatedBy = "System" },
+                new Brackets { BracketId = 142, ProductId = 13, ArmTypeId = 6, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 361.00m, DateCreated = new DateTime(2026, 4, 7, 20, 49, 38, 263), CreatedBy = "System" },
+                new Brackets { BracketId = 143, ProductId = 13, ArmTypeId = 7, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 536.00m, DateCreated = new DateTime(2026, 4, 7, 20, 49, 38, 263), CreatedBy = "System" },
+
+                // ProductId = 3 (Markilux MX-2)
+                new Brackets { BracketId = 146, ProductId = 3, ArmTypeId = 1, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 220.00m, DateCreated = new DateTime(2026, 4, 7, 21, 7, 50, 610), CreatedBy = "System" },
+                new Brackets { BracketId = 147, ProductId = 3, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 592.00m, DateCreated = new DateTime(2026, 4, 7, 21, 7, 50, 610), CreatedBy = "System" },
+                new Brackets { BracketId = 148, ProductId = 3, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 550.00m, DateCreated = new DateTime(2026, 4, 7, 21, 7, 50, 610), CreatedBy = "System" },
+                new Brackets { BracketId = 149, ProductId = 3, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate C", PartNumber = null, Price = 592.00m, DateCreated = new DateTime(2026, 4, 7, 21, 7, 50, 610), CreatedBy = "System" },
+                new Brackets { BracketId = 150, ProductId = 3, ArmTypeId = 1, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 287.00m, DateCreated = new DateTime(2026, 4, 7, 21, 7, 50, 610), CreatedBy = "System" },
+                new Brackets { BracketId = 151, ProductId = 3, ArmTypeId = 1, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 371.00m, DateCreated = new DateTime(2026, 4, 7, 21, 7, 50, 610), CreatedBy = "System" },
+                new Brackets { BracketId = 152, ProductId = 3, ArmTypeId = 1, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 7, 21, 7, 50, 610), CreatedBy = "System" },
+                new Brackets { BracketId = 153, ProductId = 3, ArmTypeId = 1, BracketName = "Surcharge for the two-tone housing, markilux \"MX- colour\" in the colour combinations 1-10", PartNumber = null, Price = 300.00m, DateCreated = new DateTime(2026, 4, 7, 21, 7, 50, 610), CreatedBy = "System" },
+                new Brackets { BracketId = 154, ProductId = 3, ArmTypeId = 1, BracketName = "Face fixture bracket left / 3", PartNumber = "72826", Price = 109.80m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 155, ProductId = 3, ArmTypeId = 1, BracketName = "Face fixture bracket right / 3", PartNumber = "72827", Price = 109.80m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 156, ProductId = 3, ArmTypeId = 1, BracketName = "Stand-off bkt. 80-300 mm for face fixture bkt. / 4", PartNumber = "72872", Price = 253.50m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 157, ProductId = 3, ArmTypeId = 1, BracketName = "Top fixture bracket left / 4", PartNumber = "60523", Price = 143.20m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 158, ProductId = 3, ArmTypeId = 1, BracketName = "Top fixture bracket right / 4", PartNumber = "60524", Price = 143.20m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 159, ProductId = 3, ArmTypeId = 1, BracketName = "Eaves fixture bracket left 150 mm, complete / 4", PartNumber = "60603", Price = 185.30m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 160, ProductId = 3, ArmTypeId = 1, BracketName = "Eaves fixture bracket right 150 mm, complete / 4", PartNumber = "60604", Price = 185.30m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 161, ProductId = 3, ArmTypeId = 1, BracketName = "Eaves fixture bracket 270 mm / 4", PartNumber = "71659", Price = 79.30m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 162, ProductId = 3, ArmTypeId = 1, BracketName = "Angle and plate for eaves fixture (machine finish) / 4", PartNumber = "716620", Price = 128.90m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 163, ProductId = 3, ArmTypeId = 1, BracketName = "Additional eaves fixture plate 60x260x12 mm / 2", PartNumber = "75383", Price = 43.90m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 164, ProductId = 3, ArmTypeId = 1, BracketName = "Spreader plate A 430x160x12 mm / 8", PartNumber = "72870", Price = 186.00m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 165, ProductId = 3, ArmTypeId = 1, BracketName = "Spreader plate B 300x400x12 mm / 4", PartNumber = "73465", Price = 164.90m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 166, ProductId = 3, ArmTypeId = 1, BracketName = "Spreader Plate C 310x130x12 mm / 6", PartNumber = "72526", Price = 186.00m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 167, ProductId = 3, ArmTypeId = 1, BracketName = "Spacer block face fixture 100x120x20 mm / 3", PartNumber = "718581", Price = 14.70m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 168, ProductId = 3, ArmTypeId = 1, BracketName = "Spacer block face fixture 100x120x12 mm / 3", PartNumber = "718571", Price = 14.30m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 169, ProductId = 3, ArmTypeId = 1, BracketName = "Spacer block for top fixture 90x140x20 mm / 4", PartNumber = "716311", Price = 4.40m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 170, ProductId = 3, ArmTypeId = 1, BracketName = "Spacer block for top fixture 90x140x12 mm / 4", PartNumber = "716411", Price = 5.00m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 171, ProductId = 3, ArmTypeId = 1, BracketName = "Cover plate 230x210x2 mm", PartNumber = "71843", Price = 17.00m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+                new Brackets { BracketId = 172, ProductId = 3, ArmTypeId = 1, BracketName = "Vertical fixture rail incl. fixing material 624291", PartNumber = "62421", Price = 180.00m, DateCreated = new DateTime(2026, 4, 7, 21, 19, 27, 960), CreatedBy = "System" },
+
+                // ProductId = 4 (Markilux 6000)
+                new Brackets { BracketId = 173, ProductId = 4, ArmTypeId = 4, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 596.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 174, ProductId = 4, ArmTypeId = 5, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 894.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 175, ProductId = 4, ArmTypeId = 7, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 1192.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 176, ProductId = 4, ArmTypeId = 4, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 1107.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 177, ProductId = 4, ArmTypeId = 5, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 1421.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 178, ProductId = 4, ArmTypeId = 7, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 1975.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 179, ProductId = 4, ArmTypeId = 4, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 1256.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 180, ProductId = 4, ArmTypeId = 5, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 1570.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 181, ProductId = 4, ArmTypeId = 7, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 2198.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 182, ProductId = 4, ArmTypeId = 4, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 794.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 183, ProductId = 4, ArmTypeId = 5, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 1191.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 184, ProductId = 4, ArmTypeId = 7, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 1588.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 185, ProductId = 4, ArmTypeId = 4, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 950.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 186, ProductId = 4, ArmTypeId = 5, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 1424.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 187, ProductId = 4, ArmTypeId = 7, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 1899.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 188, ProductId = 4, ArmTypeId = 4, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 361.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 189, ProductId = 4, ArmTypeId = 5, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 361.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+                new Brackets { BracketId = 190, ProductId = 4, ArmTypeId = 7, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 536.00m, DateCreated = new DateTime(2026, 4, 8, 17, 43, 59, 706), CreatedBy = "System" },
+
+                // ProductId = 14 (Markilux 779)
+                new Brackets { BracketId = 193, ProductId = 14, ArmTypeId = 1, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 298.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 194, ProductId = 14, ArmTypeId = 8, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 447.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 195, ProductId = 14, ArmTypeId = 3, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 596.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 196, ProductId = 14, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 554.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 197, ProductId = 14, ArmTypeId = 8, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 711.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 198, ProductId = 14, ArmTypeId = 3, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 988.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 199, ProductId = 14, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 628.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 200, ProductId = 14, ArmTypeId = 8, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 785.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 201, ProductId = 14, ArmTypeId = 3, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 1099.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 202, ProductId = 14, ArmTypeId = 1, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 397.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 203, ProductId = 14, ArmTypeId = 8, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 596.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 204, ProductId = 14, ArmTypeId = 3, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 794.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 205, ProductId = 14, ArmTypeId = 1, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 475.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 206, ProductId = 14, ArmTypeId = 8, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 712.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 207, ProductId = 14, ArmTypeId = 3, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 950.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 208, ProductId = 14, ArmTypeId = 1, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 209, ProductId = 14, ArmTypeId = 8, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+                new Brackets { BracketId = 210, ProductId = 14, ArmTypeId = 3, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 269.00m, DateCreated = new DateTime(2026, 4, 8, 19, 48, 32, 840), CreatedBy = "System" },
+
+                // ProductId = 8 (Markilux 5010)
+                new Brackets { BracketId = 226, ProductId = 8, ArmTypeId = 1, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 263.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 227, ProductId = 8, ArmTypeId = 8, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 394.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 228, ProductId = 8, ArmTypeId = 3, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 525.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 229, ProductId = 8, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 518.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 230, ProductId = 8, ArmTypeId = 8, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 653.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 231, ProductId = 8, ArmTypeId = 3, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 912.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 232, ProductId = 8, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 593.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 233, ProductId = 8, ArmTypeId = 8, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 728.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 234, ProductId = 8, ArmTypeId = 3, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 1024.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 235, ProductId = 8, ArmTypeId = 1, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 326.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 236, ProductId = 8, ArmTypeId = 8, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 489.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 237, ProductId = 8, ArmTypeId = 3, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 652.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 238, ProductId = 8, ArmTypeId = 1, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 404.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 239, ProductId = 8, ArmTypeId = 8, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 605.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 240, ProductId = 8, ArmTypeId = 3, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 807.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 241, ProductId = 8, ArmTypeId = 1, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 242, ProductId = 8, ArmTypeId = 8, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 243, ProductId = 8, ArmTypeId = 3, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 269.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 244, ProductId = 8, ArmTypeId = 1, BracketName = "Surcharge for arms with bionic tendon", PartNumber = null, Price = 121.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 245, ProductId = 8, ArmTypeId = 8, BracketName = "Surcharge for arms with bionic tendon", PartNumber = null, Price = 121.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+                new Brackets { BracketId = 246, ProductId = 8, ArmTypeId = 3, BracketName = "Surcharge for arms with bionic tendon", PartNumber = null, Price = 177.00m, DateCreated = new DateTime(2026, 4, 9, 8, 23, 24, 643), CreatedBy = "System" },
+
+                // ProductId = 15 (Markilux 8800)
+                new Brackets { BracketId = 262, ProductId = 15, ArmTypeId = 4, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 525.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 263, ProductId = 15, ArmTypeId = 5, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 788.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 264, ProductId = 15, ArmTypeId = 7, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 1050.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 265, ProductId = 15, ArmTypeId = 4, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 1036.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 266, ProductId = 15, ArmTypeId = 5, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 1306.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 267, ProductId = 15, ArmTypeId = 7, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 1824.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 268, ProductId = 15, ArmTypeId = 4, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 1185.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 269, ProductId = 15, ArmTypeId = 5, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 1455.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 270, ProductId = 15, ArmTypeId = 7, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 2047.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 271, ProductId = 15, ArmTypeId = 4, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 652.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 272, ProductId = 15, ArmTypeId = 5, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 978.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 273, ProductId = 15, ArmTypeId = 7, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 1304.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 274, ProductId = 15, ArmTypeId = 4, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 807.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 275, ProductId = 15, ArmTypeId = 5, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 1210.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 276, ProductId = 15, ArmTypeId = 7, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 1613.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 277, ProductId = 15, ArmTypeId = 4, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 361.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 278, ProductId = 15, ArmTypeId = 5, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 361.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 279, ProductId = 15, ArmTypeId = 7, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 536.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 280, ProductId = 15, ArmTypeId = 4, BracketName = "Surcharge for arms with bionic tendon", PartNumber = null, Price = 234.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 281, ProductId = 15, ArmTypeId = 5, BracketName = "Surcharge for arms with bionic tendon", PartNumber = null, Price = 234.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 282, ProductId = 15, ArmTypeId = 7, BracketName = "Surcharge for arms with bionic tendon", PartNumber = null, Price = 348.00m, DateCreated = new DateTime(2026, 4, 9, 9, 15, 44, 326), CreatedBy = "System" },
+                new Brackets { BracketId = 305, ProductId = 15, ArmTypeId = 1, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 9, 9, 51, 21, 433), CreatedBy = "System" },
+                new Brackets { BracketId = 306, ProductId = 15, ArmTypeId = 9, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 9, 9, 51, 21, 433), CreatedBy = "System" },
+                new Brackets { BracketId = 307, ProductId = 15, ArmTypeId = 11, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 9, 9, 51, 21, 433), CreatedBy = "System" },
+                new Brackets { BracketId = 308, ProductId = 15, ArmTypeId = 10, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 269.00m, DateCreated = new DateTime(2026, 4, 9, 9, 51, 21, 433), CreatedBy = "System" },
+
+                // ProductId = 9 (Markilux 3300)
+                new Brackets { BracketId = 309, ProductId = 9, ArmTypeId = 1, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 79.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 310, ProductId = 9, ArmTypeId = 9, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 130.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 311, ProductId = 9, ArmTypeId = 11, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 156.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 312, ProductId = 9, ArmTypeId = 10, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 195.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 313, ProductId = 9, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 335.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 314, ProductId = 9, ArmTypeId = 9, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 394.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 315, ProductId = 9, ArmTypeId = 11, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 424.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 316, ProductId = 9, ArmTypeId = 10, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 591.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 317, ProductId = 9, ArmTypeId = 1, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 409.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 318, ProductId = 9, ArmTypeId = 9, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 468.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 319, ProductId = 9, ArmTypeId = 11, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 498.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 320, ProductId = 9, ArmTypeId = 10, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 702.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 321, ProductId = 9, ArmTypeId = 1, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 140.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 322, ProductId = 9, ArmTypeId = 9, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 279.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 323, ProductId = 9, ArmTypeId = 11, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 348.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 324, ProductId = 9, ArmTypeId = 10, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 418.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 325, ProductId = 9, ArmTypeId = 1, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 246.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 326, ProductId = 9, ArmTypeId = 9, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 492.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 327, ProductId = 9, ArmTypeId = 11, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 615.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 328, ProductId = 9, ArmTypeId = 10, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 738.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 329, ProductId = 9, ArmTypeId = 1, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 330, ProductId = 9, ArmTypeId = 9, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 331, ProductId = 9, ArmTypeId = 11, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+                new Brackets { BracketId = 332, ProductId = 9, ArmTypeId = 10, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 269.00m, DateCreated = new DateTime(2026, 4, 9, 9, 52, 58, 963), CreatedBy = "System" },
+
+                // ProductId = 16 (Markilux 6000 XXL)
+                new Brackets { BracketId = 351, ProductId = 16, ArmTypeId = 12, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 158.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 352, ProductId = 16, ArmTypeId = 13, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 260.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 353, ProductId = 16, ArmTypeId = 14, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 311.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 354, ProductId = 16, ArmTypeId = 15, BracketName = "Surcharge for face fixture", PartNumber = null, Price = 390.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 355, ProductId = 16, ArmTypeId = 12, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 669.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 356, ProductId = 16, ArmTypeId = 13, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 788.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 357, ProductId = 16, ArmTypeId = 14, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 847.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 358, ProductId = 16, ArmTypeId = 15, BracketName = "Surcharge for face fixture incl. spreader plate A", PartNumber = null, Price = 1181.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 359, ProductId = 16, ArmTypeId = 12, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 818.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 360, ProductId = 16, ArmTypeId = 13, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 936.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 361, ProductId = 16, ArmTypeId = 14, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 996.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 362, ProductId = 16, ArmTypeId = 15, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 1404.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 363, ProductId = 16, ArmTypeId = 12, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 279.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 364, ProductId = 16, ArmTypeId = 13, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 557.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 365, ProductId = 16, ArmTypeId = 14, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 696.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 366, ProductId = 16, ArmTypeId = 15, BracketName = "Surcharge for top fixture", PartNumber = null, Price = 836.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 367, ProductId = 16, ArmTypeId = 12, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 492.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 368, ProductId = 16, ArmTypeId = 13, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 984.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 369, ProductId = 16, ArmTypeId = 14, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 1230.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 370, ProductId = 16, ArmTypeId = 15, BracketName = "Surcharge for eaves fixture", PartNumber = null, Price = 1476.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 371, ProductId = 16, ArmTypeId = 12, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 361.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 372, ProductId = 16, ArmTypeId = 13, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 361.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 373, ProductId = 16, ArmTypeId = 14, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 361.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" },
+                new Brackets { BracketId = 374, ProductId = 16, ArmTypeId = 15, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 536.00m, DateCreated = new DateTime(2026, 4, 9, 10, 25, 31, 153), CreatedBy = "System" }
             );
             //Arms Data — values moved to Brackets above; Arms table left empty
             modelBuilder.Entity<Arms>().HasData(
@@ -871,7 +1104,19 @@ namespace AwningsAPI.Database
             modelBuilder.Entity<ArmsType>().HasData(
                  new ArmsType { ArmTypeId = 1, Description = "2-0-2", DateCreated = staticCreatedDate, CreatedBy = "System" },
                  new ArmsType { ArmTypeId = 2, Description = "2-1-3", DateCreated = staticCreatedDate, CreatedBy = "System" },
-                 new ArmsType { ArmTypeId = 3, Description = "3-2-4", DateCreated = staticCreatedDate, CreatedBy = "System" }
+                 new ArmsType { ArmTypeId = 3, Description = "3-2-4", DateCreated = staticCreatedDate, CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 4, Description = "4-0-4", DateCreated = new DateTime(2026, 4, 6, 13, 0, 30), CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 5, Description = "4-0-6", DateCreated = new DateTime(2026, 4, 6, 13, 0, 30), CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 6, Description = "4-2-6", DateCreated = new DateTime(2026, 4, 6, 13, 0, 30), CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 7, Description = "6-4-8", DateCreated = new DateTime(2026, 4, 6, 13, 0, 30), CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 8, Description = "2-0-3", DateCreated = new DateTime(2026, 4, 8, 19, 35, 51), CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 9, Description = "2-0-4", DateCreated = new DateTime(2026, 4, 9, 9, 27, 27), CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 10, Description = "3-2-6", DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 11, Description = "2-1-5", DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 12, Description = "4-0-5", DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 13, Description = "4-0-7", DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 14, Description = "4-2-9", DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System" },
+                 new ArmsType { ArmTypeId = 15, Description = "6-4-11", DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System" }
             );
             //RadioControlled Motors
             modelBuilder.Entity<RadioControlledMotors>().HasData(
@@ -885,6 +1130,140 @@ namespace AwningsAPI.Database
                  new RadioControlledMotors { RadioMotorId = 8, Description = "RadioControlled Motor", Width_cm = 600, Price = 2068, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
                  new RadioControlledMotors { RadioMotorId = 9, Description = "RadioControlled Motor", Width_cm = 650, Price = 2143, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
                  new RadioControlledMotors { RadioMotorId = 10, Description = "RadioControlled Motor", Width_cm = 700, Price = 2219, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 }
+            );
+
+            //Control Data
+            modelBuilder.Entity<Control>().HasData(
+                new Control { ControlId = 1, Description = "markilux io-5 designcontrol transmitter - 5 channel", PartNumber = "8272099", Price = 154.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 2 },
+                new Control { ControlId = 2, Description = "Somfy TaHoma Switch", PartNumber = "8272377", Price = 362.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 2 },
+                new Control { ControlId = 3, Description = "markilux io-1 designcontrol transmitter - 1 channel", PartNumber = "8272087", Price = 118.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new Control { ControlId = 4, Description = "markilux io-5 designcontrol transmitter - 5 channel", PartNumber = "8272099", Price = 154.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 }
+            );
+
+            //ShadePlus Data
+            modelBuilder.Entity<ShadePlus>().HasData(
+                new ShadePlus { ShadePlusId = 1, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 250, Price = 1592.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 1 },
+                new ShadePlus { ShadePlusId = 2, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 300, Price = 1650.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 1 },
+                new ShadePlus { ShadePlusId = 3, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 350, Price = 1727.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 1 },
+                new ShadePlus { ShadePlusId = 4, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 400, Price = 1815.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 1 },
+                new ShadePlus { ShadePlusId = 5, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 450, Price = 1875.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 1 },
+                new ShadePlus { ShadePlusId = 6, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 500, Price = 1951.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 1 },
+                new ShadePlus { ShadePlusId = 7, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 550, Price = 2044.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 1 },
+                new ShadePlus { ShadePlusId = 8, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 600, Price = 2128.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 1 },
+                new ShadePlus { ShadePlusId = 9, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 650, Price = 2206.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 1 },
+                new ShadePlus { ShadePlusId = 10, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 700, Price = 2284.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 1 },
+                new ShadePlus { ShadePlusId = 11, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 500, Price = 1424.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 12, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 600, Price = 1581.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 13, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 700, Price = 1726.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 14, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 800, Price = 1878.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 15, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 900, Price = 2027.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 16, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 1000, Price = 2179.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 17, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 1100, Price = 2329.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 18, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 1200, Price = 2479.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 19, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 1300, Price = 2628.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 20, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 1390, Price = 2779.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 21, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 500, Price = 3060.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 22, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 600, Price = 3183.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 23, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 700, Price = 3374.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 24, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 800, Price = 3546.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 25, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 900, Price = 3649.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 26, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 1000, Price = 3787.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 27, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 1100, Price = 3959.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 28, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 1200, Price = 4128.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 29, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 1300, Price = 4318.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 30, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 1390, Price = 4511.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 31, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 500, Price = 3325.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 32, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 600, Price = 3449.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 33, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 700, Price = 3638.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 34, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 800, Price = 3809.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 35, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 900, Price = 3913.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 36, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 1000, Price = 4053.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 37, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 1100, Price = 4225.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 38, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 1200, Price = 4392.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 39, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 1300, Price = 4585.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 40, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 1390, Price = 4776.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 4 },
+                new ShadePlus { ShadePlusId = 41, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 250, Price = 719.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 42, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 300, Price = 798.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 43, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 350, Price = 865.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 44, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 400, Price = 945.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 45, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 450, Price = 1019.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 46, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 500, Price = 1096.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 47, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 550, Price = 1173.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 48, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 600, Price = 1248.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 49, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 650, Price = 1319.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 50, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 700, Price = 1396.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 51, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 250, Price = 1538.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 52, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 300, Price = 1596.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 53, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 350, Price = 1693.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 54, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 400, Price = 1778.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 55, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 450, Price = 1830.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 56, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 500, Price = 1898.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 57, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 550, Price = 1986.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 58, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 600, Price = 2070.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 59, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 650, Price = 2163.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 60, Description = "Surcharge for height 210 cm with hard-wired motor", WidthCm = 700, Price = 2262.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 61, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 250, Price = 1669.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 62, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 300, Price = 1729.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 63, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 350, Price = 1828.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 64, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 400, Price = 1911.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 65, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 450, Price = 1961.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 66, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 500, Price = 2032.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 67, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 550, Price = 2119.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 68, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 600, Price = 2204.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 69, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 650, Price = 2297.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 70, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", WidthCm = 700, Price = 2395.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 14 },
+                new ShadePlus { ShadePlusId = 71, Description = "Surcharge for height 170 cm with gearbox", WidthCm = 250, Price = 718.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 72, Description = "Surcharge for height 170 cm with gearbox", WidthCm = 300, Price = 797.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 73, Description = "Surcharge for height 170 cm with gearbox", WidthCm = 350, Price = 865.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 74, Description = "Surcharge for height 170 cm with gearbox", WidthCm = 400, Price = 944.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 75, Description = "Surcharge for height 170 cm with gearbox", WidthCm = 450, Price = 1018.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 76, Description = "Surcharge for height 170 cm with gearbox", WidthCm = 500, Price = 1095.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 77, Description = "Surcharge for height 170 cm with gearbox", WidthCm = 550, Price = 1170.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 78, Description = "Surcharge for height 170 cm with gearbox", WidthCm = 600, Price = 1247.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 79, Description = "Surcharge for height 170 cm with hard-wired motor", WidthCm = 250, Price = 1538.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 80, Description = "Surcharge for height 170 cm with hard-wired motor", WidthCm = 300, Price = 1596.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 81, Description = "Surcharge for height 170 cm with hard-wired motor", WidthCm = 350, Price = 1693.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 82, Description = "Surcharge for height 170 cm with hard-wired motor", WidthCm = 400, Price = 1777.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 83, Description = "Surcharge for height 170 cm with hard-wired motor", WidthCm = 450, Price = 1829.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 84, Description = "Surcharge for height 170 cm with hard-wired motor", WidthCm = 500, Price = 1898.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 85, Description = "Surcharge for height 170 cm with hard-wired motor", WidthCm = 550, Price = 1986.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 86, Description = "Surcharge for height 170 cm with hard-wired motor", WidthCm = 600, Price = 2069.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 87, Description = "Surcharge for height 170 cm with radio-controlled motor io (w/o transm.)", WidthCm = 250, Price = 1667.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 88, Description = "Surcharge for height 170 cm with radio-controlled motor io (w/o transm.)", WidthCm = 300, Price = 1729.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 89, Description = "Surcharge for height 170 cm with radio-controlled motor io (w/o transm.)", WidthCm = 350, Price = 1827.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 90, Description = "Surcharge for height 170 cm with radio-controlled motor io (w/o transm.)", WidthCm = 400, Price = 1911.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 91, Description = "Surcharge for height 170 cm with radio-controlled motor io (w/o transm.)", WidthCm = 450, Price = 1960.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 92, Description = "Surcharge for height 170 cm with radio-controlled motor io (w/o transm.)", WidthCm = 500, Price = 2032.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 93, Description = "Surcharge for height 170 cm with radio-controlled motor io (w/o transm.)", WidthCm = 550, Price = 2119.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 94, Description = "Surcharge for height 170 cm with radio-controlled motor io (w/o transm.)", WidthCm = 600, Price = 2204.00m, DateCreated = new DateTime(2026, 4, 8), CreatedBy = "System", ProductId = 7 },
+                new ShadePlus { ShadePlusId = 95, Description = null, WidthCm = 250, Price = 719.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 8 },
+                new ShadePlus { ShadePlusId = 96, Description = null, WidthCm = 300, Price = 798.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 8 },
+                new ShadePlus { ShadePlusId = 97, Description = null, WidthCm = 350, Price = 865.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 8 },
+                new ShadePlus { ShadePlusId = 98, Description = null, WidthCm = 400, Price = 945.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 8 },
+                new ShadePlus { ShadePlusId = 99, Description = null, WidthCm = 450, Price = 1019.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 8 },
+                new ShadePlus { ShadePlusId = 100, Description = null, WidthCm = 500, Price = 1096.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 8 },
+                new ShadePlus { ShadePlusId = 101, Description = null, WidthCm = 550, Price = 1173.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 8 },
+                new ShadePlus { ShadePlusId = 102, Description = null, WidthCm = 600, Price = 1248.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 8 },
+                new ShadePlus { ShadePlusId = 103, Description = null, WidthCm = 650, Price = 1319.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 8 },
+                new ShadePlus { ShadePlusId = 104, Description = null, WidthCm = 700, Price = 1396.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 8 },
+                new ShadePlus { ShadePlusId = 105, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 500, Price = 1424.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 15 },
+                new ShadePlus { ShadePlusId = 106, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 600, Price = 1581.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 15 },
+                new ShadePlus { ShadePlusId = 107, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 700, Price = 1726.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 15 },
+                new ShadePlus { ShadePlusId = 108, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 800, Price = 1878.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 15 },
+                new ShadePlus { ShadePlusId = 109, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 900, Price = 2027.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 15 },
+                new ShadePlus { ShadePlusId = 110, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 1000, Price = 2179.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 15 },
+                new ShadePlus { ShadePlusId = 111, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 1100, Price = 2329.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 15 },
+                new ShadePlus { ShadePlusId = 112, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 1200, Price = 2479.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 15 },
+                new ShadePlus { ShadePlusId = 113, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 1300, Price = 2628.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 15 },
+                new ShadePlus { ShadePlusId = 114, Description = "Surcharge for height 210 cm with gearbox", WidthCm = 1390, Price = 2779.00m, DateCreated = new DateTime(2026, 4, 9), CreatedBy = "System", ProductId = 15 }
+            );
+
+            //LightingCassette Data
+            modelBuilder.Entity<LightingCassette>().HasData(
+                new LightingCassette { LightingId = 1, Description = "Surcharge for LED Line RGB-WW Radio-controlled io - dimmable (without remote control)", Price = 1555.00m, DateCreated = new DateTime(2026, 4, 6), CreatedBy = "System", ProductId = 5 },
+                new LightingCassette { LightingId = 2, Description = "Surcharge for LED Line RGB-WW Zigbee radio control - dimmable (without transmitter)", Price = 1386.00m, DateCreated = new DateTime(2026, 4, 6), CreatedBy = "System", ProductId = 5 },
+                new LightingCassette { LightingId = 3, Description = "Surcharge for LED Line RGB-WW Radio-controlled io - dimmable (without remote control)", Price = 1555.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 3 },
+                new LightingCassette { LightingId = 4, Description = "Surcharge for LED Line RGB-WW Zigbee radio control - dimmable (without transmitter)", Price = 1386.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 3 }
             );
         }
     }

@@ -17,9 +17,11 @@ namespace AwningsAPI.Dto.Product
         public string BracketName { get; set; }
 
         /// <summary>Manufacturer part / catalogue number.  Empty string when not set.</summary>
-        public string PartNumber { get; set; } = string.Empty;
+        public string? PartNumber { get; set; } = string.Empty;
 
         public decimal Price { get; set; }
+
+        public int? ArmTypeId { get; set; }
 
         public DateTime DateCreated { get; set; }
 
@@ -30,7 +32,7 @@ namespace AwningsAPI.Dto.Product
     {
         [Required][Range(1, int.MaxValue)] public int ProductId { get; set; }
         [Required][MaxLength(300)] public string BracketName { get; set; }
-        [MaxLength(50)] public string PartNumber { get; set; } = string.Empty;
+        [MaxLength(50)] public string? PartNumber { get; set; } = string.Empty;
         [Range(0, double.MaxValue)] public decimal Price { get; set; }
     }
 
@@ -38,7 +40,7 @@ namespace AwningsAPI.Dto.Product
     {
         [Required][Range(1, int.MaxValue)] public int ProductId { get; set; }
         [Required][MaxLength(300)] public string BracketName { get; set; }
-        [MaxLength(50)] public string PartNumber { get; set; } = string.Empty;
+        [MaxLength(50)] public string? PartNumber { get; set; } = string.Empty;
         [Range(0, double.MaxValue)] public decimal Price { get; set; }
     }
 }

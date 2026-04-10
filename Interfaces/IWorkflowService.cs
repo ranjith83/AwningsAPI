@@ -38,8 +38,8 @@ namespace AwningsAPI.Interfaces
         Task<List<int>> GetStandardWidthsForProductAsync(int productId);
         Task<List<int>> GetProjectionWidthsForProductAsync(int productId);
         Task<decimal> GetProjectionPriceForProductAsync(int productId, int widthcm, int projectioncm);
-        Task<List<Brackets>> GeBracketsForProductAsync(int productId);
-        Task<List<Arms>> GeArmsForProductAsync(int productId);
+       // Task<List<Brackets>> GeBracketsForProductAsync(int productId);
+      //  Task<List<Arms>> GeArmsForProductAsync(int productId);
         Task<List<Motors>> GeMotorsForProductAsync(int productId);
         Task<decimal> GeValanceStylePriceForProductAsync(int productId, int widthcm);
         Task<decimal> GeNonStandardRALColourPriceForProductAsync(int productId, int widthcm);
@@ -52,5 +52,8 @@ namespace AwningsAPI.Interfaces
         Task<UserSignatureDto> UpdateSignatureAsync(int signatureId, UserSignatureDto dto, string username);
         Task<UserSignatureDto> SetDefaultSignatureAsync(int signatureId, string username);
         Task<bool> DeleteSignatureAsync(int signatureId, string username);
+
+        Task<int?> GetArmTypeForProjectionAsync(int productId, int widthcm, int projectioncm);
+        Task<List<Brackets>> GetBracketsForProductAsync(int productId, int? armTypeId = null);
     }
 }

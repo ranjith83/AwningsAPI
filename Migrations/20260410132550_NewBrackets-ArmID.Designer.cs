@@ -4,6 +4,7 @@ using AwningsAPI.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AwningsAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260410132550_NewBrackets-ArmID")]
+    partial class NewBracketsArmID
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1085,6 +1088,8 @@ namespace AwningsAPI.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("BracketId");
+
+                    b.HasIndex("ProductId");
 
                     b.ToTable("Brackets");
 
@@ -7530,6 +7535,17 @@ namespace AwningsAPI.Migrations
                         .IsRequired();
 
                     b.Navigation("IncomingEmail");
+                });
+
+            modelBuilder.Entity("AwningsAPI.Model.Products.Brackets", b =>
+                {
+                    b.HasOne("AwningsAPI.Model.Suppliers.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("AwningsAPI.Model.Products.Control", b =>
