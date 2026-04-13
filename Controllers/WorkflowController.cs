@@ -146,7 +146,7 @@ namespace AwningsAPI.Controllers
         [HttpGet("GeBracketsForProduct")]
         public async Task<ActionResult<IEnumerable<BracketDto>>> GeBracketsForProduct(int ProductId, int? armTypeId = null)
         {
-            var brackets = await _workflowService.GetBracketsForProductAsync(ProductId, armTypeId);
+            var brackets = await _workflowService.GeBracketsForProductAsync(ProductId, armTypeId);
             return Ok(brackets.Select(c => new BracketDto
             {
                 BracketId = c.BracketId,
@@ -176,9 +176,35 @@ namespace AwningsAPI.Controllers
         public async Task<decimal> GeNonStandardRALColourPriceForProduct(int ProductId, int widthcm) =>
             await _workflowService.GeNonStandardRALColourPriceForProductAsync(ProductId, widthcm);
 
+        [HttpGet("GeShadePlusPriceForProduct")]
+        public async Task<decimal> GeShadePlusPriceForProduct(int ProductId, int widthcm) =>
+            await _workflowService.GeShadePlusPriceForProductAsync(ProductId, widthcm);
+
         [HttpGet("GeWallSealingProfilerPriceForProduct")]
         public async Task<decimal> GeWallSealingProfilerPriceForProduct(int ProductId, int widthcm) =>
             await _workflowService.GeWallSealingProfilerPriceForProductAsync(ProductId, widthcm);
+
+        // ── Addon availability checks ─────────────────────────────────────────
+
+        /// <summary>Returns true if the product has any non-standard RAL colour records.</summary>
+        [HttpGet("HasNonStandardRALColours")]
+        public async Task<bool> HasNonStandardRALColours(int ProductId) =>
+            await _workflowService.HasNonStandardRALColoursAsync(ProductId);
+
+        /// <summary>Returns true if the product has any ShadePlus records.</summary>
+        [HttpGet("HasShadePlus")]
+        public async Task<bool> HasShadePlus(int ProductId) =>
+            await _workflowService.HasShadePlusAsync(ProductId);
+
+        /// <summary>Returns true if the product has any ValanceStyle records.</summary>
+        [HttpGet("HasValanceStyles")]
+        public async Task<bool> HasValanceStyles(int ProductId) =>
+            await _workflowService.HasValanceStylesAsync(ProductId);
+
+        /// <summary>Returns true if the product has any WallSealingProfile records.</summary>
+        [HttpGet("HasWallSealingProfiles")]
+        public async Task<bool> HasWallSealingProfiles(int ProductId) =>
+            await _workflowService.HasWallSealingProfilesAsync(ProductId);
 
         [HttpGet("GeHeatersForProduct")]
         public async Task<ActionResult<IEnumerable<HeaterDto>>> GeHeatersForProduct(int ProductId)

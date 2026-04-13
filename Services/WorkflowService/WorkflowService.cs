@@ -294,15 +294,6 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<decimal> GetProjectionPriceForProductAsync(int productId, int widthcm, int projectioncm) =>
             await _context.Projections.Where(p => p.ProductId == productId && p.Width_cm == widthcm && p.Projection_cm == projectioncm).Select(p => p.Price).FirstOrDefaultAsync();
 
-        /**
-        public async Task<List<Brackets>> GeBracketsForProductAsync(int productId) =>
-            await _context.Brackets.Where(b => b.ProductId == productId).ToListAsync();
-
-        public async Task<List<Arms>> GeArmsForProductAsync(int productId) =>
-            await _context.Arms.Where(f => f.ProductId == productId).ToListAsync();
-
-        **/
-
         /// <summary>
         /// Returns the ArmTypeId from the Projections row that matches the given
         /// product / width / projection combination.  The frontend calls this after
@@ -321,7 +312,7 @@ namespace AwningsAPI.Services.WorkflowService
         /// (universal brackets) are returned.  When null, all brackets are returned
         /// (e.g. before the user has selected a width).
         /// </summary>
-        public async Task<List<Brackets>> GetBracketsForProductAsync(int productId, int? armTypeId = null)
+        public async Task<List<Brackets>> GeBracketsForProductAsync(int productId, int? armTypeId = null)
         {
             var query = _context.Brackets.Where(b => b.ProductId == productId);
 
@@ -330,6 +321,9 @@ namespace AwningsAPI.Services.WorkflowService
 
             return await query.ToListAsync();
         }
+
+        public async Task<List<Arms>> GeArmsForProductAsync(int productId) =>
+            await _context.Arms.Where(f => f.ProductId == productId).ToListAsync();
 
         public async Task<List<Motors>> GeMotorsForProductAsync(int productId) =>
             await _context.Motors.Where(f => f.ProductId == productId).ToListAsync();
@@ -340,8 +334,26 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<decimal> GeNonStandardRALColourPriceForProductAsync(int productId, int widthcm) =>
             await _context.nonStandardRALColours.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price).FirstOrDefaultAsync();
 
+        public async Task<decimal> GeShadePlusPriceForProductAsync(int productId, int widthcm) =>
+            await _context.ShadePlus.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price).FirstOrDefaultAsync();
+
         public async Task<decimal> GeWallSealingProfilerPriceForProductAsync(int productId, int widthcm) =>
             await _context.wallSealingProfiles.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price).FirstOrDefaultAsync();
+
+        // ── Addon availability checks ─────────────────────────────────────────
+        // Used by the frontend to show/hide optional addon checkboxes.
+
+        public async Task<bool> HasNonStandardRALColoursAsync(int productId) =>
+            await _context.nonStandardRALColours.AnyAsync(p => p.ProductId == productId);
+
+        public async Task<bool> HasShadePlusAsync(int productId) =>
+            await _context.ShadePlus.AnyAsync(p => p.ProductId == productId);
+
+        public async Task<bool> HasValanceStylesAsync(int productId) =>
+            await _context.valanceStyles.AnyAsync(p => p.ProductId == productId);
+
+        public async Task<bool> HasWallSealingProfilesAsync(int productId) =>
+            await _context.wallSealingProfiles.AnyAsync(p => p.ProductId == productId);
 
         public async Task<List<Heaters>> GeHeatersForProductAsync(int productId) =>
             await _context.Heaters.Where(f => f.ProductId == productId).ToListAsync();
