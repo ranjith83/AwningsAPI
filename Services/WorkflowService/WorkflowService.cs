@@ -344,7 +344,7 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<ShadePlusOptionsDto> GetShadePlusOptionsAsync(int productId, int widthcm)
         {
             var rows = await _context.ShadePlus
-                .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
+                .Where(p => p.ProductId == productId ) // && p.WidthCm == widthcm)
                 .OrderBy(p => p.ShadePlusId)
                 .Select(p => new ShadePlusDto
                 {
