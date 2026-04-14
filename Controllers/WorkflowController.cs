@@ -176,9 +176,22 @@ namespace AwningsAPI.Controllers
         public async Task<decimal> GeNonStandardRALColourPriceForProduct(int ProductId, int widthcm) =>
             await _workflowService.GeNonStandardRALColourPriceForProductAsync(ProductId, widthcm);
 
-        [HttpGet("GeShadePlusPriceForProduct")]
-        public async Task<decimal> GeShadePlusPriceForProduct(int ProductId, int widthcm) =>
-            await _workflowService.GeShadePlusPriceForProductAsync(ProductId, widthcm);
+        /// <summary>
+        /// GET /api/workflow/GetShadePlusOptionsForProduct?ProductId=8&amp;widthcm=500
+        ///
+        /// Returns all ShadePlus options for the given product and width.
+        /// When HasMultiple is true the frontend renders a dropdown so the user can
+        /// choose which surcharge applies (e.g. gearbox vs hard-wired motor vs radio).
+        /// The chosen option's Description is stored on the quote line — NOT "ShadePlus".
+        /// The text field must remain editable after selection so the user can refine it.
+        /// When HasMultiple is false a single price is shown with an editable text field.
+        /// </summary>
+        [HttpGet("GetShadePlusOptionsForProduct")]
+        public async Task<ActionResult<ShadePlusOptionsDto>> GetShadePlusOptionsForProduct(int ProductId, int widthcm)
+        {
+            var options = await _workflowService.GetShadePlusOptionsAsync(ProductId, widthcm);
+            return Ok(options);
+        }
 
         [HttpGet("GeWallSealingProfilerPriceForProduct")]
         public async Task<decimal> GeWallSealingProfilerPriceForProduct(int ProductId, int widthcm) =>

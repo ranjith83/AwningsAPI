@@ -1,5 +1,37 @@
 ﻿namespace AwningsAPI.Dto.Workflow
 {
+    /// <summary>
+    /// Represents a single ShadePlus option (one description/price row for a given width).
+    /// </summary>
+    public class ShadePlusDto
+    {
+        public int ShadePlusId { get; set; }
+
+        /// <summary>
+        /// The description of this ShadePlus option (e.g. "Surcharge for height 210 cm with gearbox").
+        /// Null for products that have a single unnamed entry — the frontend will use a plain text field.
+        /// </summary>
+        public string? Description { get; set; }
+
+        public int WidthCm { get; set; }
+        public decimal Price { get; set; }
+    }
+
+    /// <summary>
+    /// Returned by GetShadePlusOptionsForProduct.
+    /// When HasMultiple is true the frontend shows a dropdown so the user can pick
+    /// which surcharge applies; the selected Description is stored rather than "ShadePlus".
+    /// When HasMultiple is false the frontend falls back to a single price + editable text field.
+    /// </summary>
+    public class ShadePlusOptionsDto
+    {
+        /// <summary>True when more than one distinct Description exists for this product + width.</summary>
+        public bool HasMultiple { get; set; }
+
+        /// <summary>All matching ShadePlus rows for the requested product + width.</summary>
+        public List<ShadePlusDto> Options { get; set; } = new();
+    }
+
     public class WorkflowDto
     {
         public int WorkflowId { get; set; }

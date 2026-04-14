@@ -334,8 +334,33 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<decimal> GeNonStandardRALColourPriceForProductAsync(int productId, int widthcm) =>
             await _context.nonStandardRALColours.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price).FirstOrDefaultAsync();
 
-        public async Task<decimal> GeShadePlusPriceForProductAsync(int productId, int widthcm) =>
-            await _context.ShadePlus.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price).FirstOrDefaultAsync();
+        /// <summary>
+        /// Returns all ShadePlus rows for the given product and width, together with a
+        /// HasMultiple flag.  The frontend uses HasMultiple to decide whether to render
+        /// a plain price field (single option) or a dropdown (multiple options).
+        /// When multiple options exist the user picks one and its Description is stored
+        /// on the quote line instead of the generic "ShadePlus" label.
+        /// </summary>
+        public async Task<ShadePlusOptionsDto> GetShadePlusOptionsAsync(int productId, int widthcm)
+        {
+            var rows = await _context.ShadePlus
+                .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
+                .OrderBy(p => p.ShadePlusId)
+                .Select(p => new ShadePlusDto
+                {
+                    ShadePlusId = p.ShadePlusId,
+                    Description = p.Description,
+                    WidthCm = p.WidthCm,
+                    Price = p.Price
+                })
+                .ToListAsync();
+
+            return new ShadePlusOptionsDto
+            {
+                HasMultiple = rows.Count > 1,
+                Options = rows
+            };
+        }
 
         public async Task<decimal> GeWallSealingProfilerPriceForProductAsync(int productId, int widthcm) =>
             await _context.wallSealingProfiles.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price).FirstOrDefaultAsync();

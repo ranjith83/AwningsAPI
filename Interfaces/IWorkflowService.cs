@@ -46,7 +46,7 @@ namespace AwningsAPI.Interfaces
         Task<decimal> GeWallSealingProfilerPriceForProductAsync(int productId, int widthcm);
         Task<List<Heaters>> GeHeatersForProductAsync(int productId);
 
-        Task<decimal> GeShadePlusPriceForProductAsync(int productId, int widthcm);
+        Task<ShadePlusOptionsDto> GetShadePlusOptionsAsync(int productId, int widthcm);
 
 
         // ── User Signatures ───────────────────────────────────────────────────
@@ -63,5 +63,6 @@ namespace AwningsAPI.Interfaces
         Task<bool> HasShadePlusAsync(int productId);
         Task<bool> HasValanceStylesAsync(int productId);
         Task<bool> HasWallSealingProfilesAsync(int productId);
+
     }
 }
