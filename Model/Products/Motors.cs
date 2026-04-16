@@ -15,5 +15,7 @@ namespace AwningsAPI.Model.Products
 
         //Navigation Properties
         public int ProductId { get; set; }
+
+        public int? ArmTypeId { get; set; }
     }
 }
