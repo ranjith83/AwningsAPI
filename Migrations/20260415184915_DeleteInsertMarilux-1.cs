@@ -141,55 +141,61 @@ namespace AwningsAPI.Migrations
 
             // 6) Insert Projections using server GETDATE()
             migrationBuilder.Sql(@"
-                    INSERT INTO dbo.Projections (Width_cm, Projection_cm, Price, DateCreated, CreatedBy, ProductId, ArmTypeId) VALUES
-                    (250,165,4639,GETDATE(),'System',1,2),
-                    (300,165,4821,GETDATE(),'System',1,2),
-                    (350,165,5050,GETDATE(),'System',1,2),
-                    (400,165,5278,GETDATE(),'System',1,2),
-                    (450,165,5525,GETDATE(),'System',1,5),
-                    (500,165,6111,GETDATE(),'System',1,5),
-                    (550,165,6414,GETDATE(),'System',1,5),
-                    (600,165,6806,GETDATE(),'System',1,5),
-                    (650,165,7430,GETDATE(),'System',1,5),
-                    (700,165,8247,GETDATE(),'System',1,8),
+                  SET IDENTITY_INSERT dbo.Projections ON;
 
-                    (300,215,5037,GETDATE(),'System',1,2),
-                    (350,215,5282,GETDATE(),'System',1,2),
-                    (400,215,5524,GETDATE(),'System',1,2),
-                    (450,215,5775,GETDATE(),'System',1,5),
-                    (500,215,6379,GETDATE(),'System',1,5),
-                    (550,215,6683,GETDATE(),'System',1,5),
-                    (600,215,7058,GETDATE(),'System',1,5),
-                    (650,215,7733,GETDATE(),'System',1,5),
-                    (700,215,8551,GETDATE(),'System',1,8),
+                INSERT INTO dbo.Projections
+                (ProjectionId, Width_cm, Projection_cm, Price, DateCreated, CreatedBy, ProductId, ArmTypeId)
+                VALUES
+                  (1, 250,165,4639,GETDATE(),'System',1,2),
+                  (2, 300,165,4821,GETDATE(),'System',1,2),
+                  (3, 350,165,5050,GETDATE(),'System',1,2),
+                  (4, 400,165,5278,GETDATE(),'System',1,2),
+                  (5, 450,165,5525,GETDATE(),'System',1,5),
+                  (6, 500,165,6111,GETDATE(),'System',1,5),
+                  (7, 550,165,6414,GETDATE(),'System',1,5),
+                  (8, 600,165,6806,GETDATE(),'System',1,5),
+                  (9, 650,165,7430,GETDATE(),'System',1,5),
+                  (10,700,165,8247,GETDATE(),'System',1,8),
 
-                    (350,265,5506,GETDATE(),'System',1,2),
-                    (400,265,5747,GETDATE(),'System',1,2),
-                    (450,265,6025,GETDATE(),'System',1,5),
-                    (500,265,6686,GETDATE(),'System',1,5),
-                    (550,265,7023,GETDATE(),'System',1,5),
-                    (600,265,7346,GETDATE(),'System',1,5),
-                    (650,265,8029,GETDATE(),'System',1,5),
-                    (700,265,8883,GETDATE(),'System',1,8),
+                  (11,300,215,5037,GETDATE(),'System',1,2),
+                  (12,350,215,5282,GETDATE(),'System',1,2),
+                  (13,400,215,5524,GETDATE(),'System',1,2),
+                  (14,450,215,5775,GETDATE(),'System',1,5),
+                  (15,500,215,6379,GETDATE(),'System',1,5),
+                  (16,550,215,6683,GETDATE(),'System',1,5),
+                  (17,600,215,7058,GETDATE(),'System',1,5),
+                  (18,650,215,7733,GETDATE(),'System',1,5),
+                  (19,700,215,8551,GETDATE(),'System',1,8),
 
-                    (400,315,5961,GETDATE(),'System',1,2),
-                    (450,315,6249,GETDATE(),'System',1,5),
-                    (500,315,6939,GETDATE(),'System',1,5),
-                    (550,315,7278,GETDATE(),'System',1,5),
-                    (600,315,7581,GETDATE(),'System',1,5),
-                    (650,315,8318,GETDATE(),'System',1,5),
-                    (700,315,9181,GETDATE(),'System',1,8),
+                  (20,350,265,5506,GETDATE(),'System',1,2),
+                  (21,400,265,5747,GETDATE(),'System',1,2),
+                  (22,450,265,6025,GETDATE(),'System',1,5),
+                  (23,500,265,6686,GETDATE(),'System',1,5),
+                  (24,550,265,7023,GETDATE(),'System',1,5),
+                  (25,600,265,7346,GETDATE(),'System',1,5),
+                  (26,650,265,8029,GETDATE(),'System',1,5),
+                  (27,700,265,8883,GETDATE(),'System',1,8),
 
-                    (450,365,6872,GETDATE(),'System',1,5),
-                    (500,365,7383,GETDATE(),'System',1,5),
-                    (550,365,7744,GETDATE(),'System',1,5),
-                    (600,365,8144,GETDATE(),'System',1,5),
-                    (650,365,9007,GETDATE(),'System',1,8),
-                    (700,365,9442,GETDATE(),'System',1,8),
+                  (28,400,315,5961,GETDATE(),'System',1,2),
+                  (29,450,315,6249,GETDATE(),'System',1,5),
+                  (30,500,315,6939,GETDATE(),'System',1,5),
+                  (31,550,315,7278,GETDATE(),'System',1,5),
+                  (32,600,315,7581,GETDATE(),'System',1,5),
+                  (33,650,315,8318,GETDATE(),'System',1,5),
+                  (34,700,315,9181,GETDATE(),'System',1,8),
 
-                    (500,415,8009,GETDATE(),'System',1,5),
-                    (550,415,8362,GETDATE(),'System',1,5),
-                    (700,415,9712,GETDATE(),'System',1,8);
+                  (35,450,365,6872,GETDATE(),'System',1,5),
+                  (36,500,365,7383,GETDATE(),'System',1,5),
+                  (37,550,365,7744,GETDATE(),'System',1,5),
+                  (38,600,365,8144,GETDATE(),'System',1,5),
+                  (39,650,365,9007,GETDATE(),'System',1,8),
+                  (40,700,365,9442,GETDATE(),'System',1,8),
+
+                  (41,500,415,8009,GETDATE(),'System',1,5),
+                  (42,550,415,8362,GETDATE(),'System',1,5),
+                  (43,700,415,9712,GETDATE(),'System',1,8);
+
+                SET IDENTITY_INSERT dbo.Projections OFF;
                     ");
         }
 

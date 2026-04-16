@@ -725,7 +725,203 @@ namespace AwningsAPI.Database
 
                 new Projections { ProjectionId = 41, Width_cm = 500, Projection_cm = 415, Price = 8009m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1, ArmTypeId = 5 },
                 new Projections { ProjectionId = 42, Width_cm = 550, Projection_cm = 415, Price = 8362m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1, ArmTypeId = 5 },
-                new Projections { ProjectionId = 43, Width_cm = 700, Projection_cm = 415, Price = 9712m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1, ArmTypeId = 8 }
+                new Projections { ProjectionId = 43, Width_cm = 700, Projection_cm = 415, Price = 9712m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1, ArmTypeId = 8 },
+
+                new Projections { ProjectionId = 44, Width_cm = 250, Projection_cm = 150, Price = 4931m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 45, Width_cm = 300, Projection_cm = 150, Price = 5132m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 46, Width_cm = 350, Projection_cm = 150, Price = 5382m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 47, Width_cm = 400, Projection_cm = 150, Price = 5634m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 48, Width_cm = 450, Projection_cm = 150, Price = 5840m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 49, Width_cm = 500, Projection_cm = 150, Price = 6484m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 50, Width_cm = 550, Projection_cm = 150, Price = 6885m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 51, Width_cm = 600, Projection_cm = 150, Price = 7315m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 52, Width_cm = 650, Projection_cm = 150, Price = 8002m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 53, Width_cm = 700, Projection_cm = 150, Price = 8899m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 8 },
+
+                new Projections { ProjectionId = 54, Width_cm = 300, Projection_cm = 200, Price = 5369m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 55, Width_cm = 350, Projection_cm = 200, Price = 5638m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 56, Width_cm = 400, Projection_cm = 200, Price = 5904m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 57, Width_cm = 450, Projection_cm = 200, Price = 6116m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 58, Width_cm = 500, Projection_cm = 200, Price = 6780m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 59, Width_cm = 550, Projection_cm = 200, Price = 7179m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 60, Width_cm = 600, Projection_cm = 200, Price = 7591m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 61, Width_cm = 650, Projection_cm = 200, Price = 8336m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 62, Width_cm = 700, Projection_cm = 200, Price = 9235m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 8 },
+
+                new Projections { ProjectionId = 63, Width_cm = 350, Projection_cm = 250, Price = 5884m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 64, Width_cm = 400, Projection_cm = 250, Price = 6150m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 65, Width_cm = 450, Projection_cm = 250, Price = 6390m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 66, Width_cm = 500, Projection_cm = 250, Price = 7116m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 67, Width_cm = 550, Projection_cm = 250, Price = 7553m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 68, Width_cm = 600, Projection_cm = 250, Price = 7909m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 69, Width_cm = 650, Projection_cm = 250, Price = 8661m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 70, Width_cm = 700, Projection_cm = 250, Price = 9599m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 8 },
+
+                new Projections { ProjectionId = 71, Width_cm = 400, Projection_cm = 300, Price = 6386m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 72, Width_cm = 450, Projection_cm = 300, Price = 6635m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 73, Width_cm = 500, Projection_cm = 300, Price = 7396m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 74, Width_cm = 550, Projection_cm = 300, Price = 7834m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 75, Width_cm = 600, Projection_cm = 300, Price = 8168m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 76, Width_cm = 650, Projection_cm = 300, Price = 8979m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 77, Width_cm = 700, Projection_cm = 300, Price = 9928m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 8 },
+
+                new Projections { ProjectionId = 78, Width_cm = 450, Projection_cm = 350, Price = 7322m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 79, Width_cm = 500, Projection_cm = 350, Price = 7883m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 80, Width_cm = 550, Projection_cm = 350, Price = 8347m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 81, Width_cm = 600, Projection_cm = 350, Price = 8787m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 82, Width_cm = 700, Projection_cm = 350, Price = 10215m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 8 },
+
+                new Projections { ProjectionId = 83, Width_cm = 500, Projection_cm = 400, Price = 8586m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 2 },
+                new Projections { ProjectionId = 84, Width_cm = 550, Projection_cm = 400, Price = 9027m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                new Projections { ProjectionId = 85, Width_cm = 600, Projection_cm = 400, Price = 9431m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, ArmTypeId = 5 },
+                 new { ProjectionId = 86, Width_cm = 500, Projection_cm = 150, Price = 9884m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 87, Width_cm = 600, Projection_cm = 150, Price = 10284m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 88, Width_cm = 700, Projection_cm = 150, Price = 10784m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 89, Width_cm = 800, Projection_cm = 150, Price = 11290m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 90, Width_cm = 900, Projection_cm = 150, Price = 11701m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 91, Width_cm = 1000, Projection_cm = 150, Price = 12990m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 92, Width_cm = 1100, Projection_cm = 150, Price = 13790m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 93, Width_cm = 1200, Projection_cm = 150, Price = 14650m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 94, Width_cm = 1300, Projection_cm = 150, Price = 16025m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 95, Width_cm = 1400, Projection_cm = 150, Price = 17821m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 18 },
+
+                // 200 projection
+                new { ProjectionId = 96, Width_cm = 600, Projection_cm = 200, Price = 10760m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 97, Width_cm = 700, Projection_cm = 200, Price = 11298m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 98, Width_cm = 800, Projection_cm = 200, Price = 11829m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 99, Width_cm = 900, Projection_cm = 200, Price = 12253m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 100, Width_cm = 1000, Projection_cm = 200, Price = 13579m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 101, Width_cm = 1100, Projection_cm = 200, Price = 14379m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 102, Width_cm = 1200, Projection_cm = 200, Price = 15205m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 103, Width_cm = 1300, Projection_cm = 200, Price = 16694m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 104, Width_cm = 1400, Projection_cm = 200, Price = 18492m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 18 },
+
+                // 250 projection
+                new { ProjectionId = 105, Width_cm = 700, Projection_cm = 250, Price = 11790m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 106, Width_cm = 800, Projection_cm = 250, Price = 12321m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 107, Width_cm = 900, Projection_cm = 250, Price = 12800m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 108, Width_cm = 1000, Projection_cm = 250, Price = 14252m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 109, Width_cm = 1100, Projection_cm = 250, Price = 15128m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 110, Width_cm = 1200, Projection_cm = 250, Price = 15840m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 111, Width_cm = 1300, Projection_cm = 250, Price = 17341m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 112, Width_cm = 1400, Projection_cm = 250, Price = 19220m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 18 },
+
+                // 300 projection
+                new { ProjectionId = 113, Width_cm = 800, Projection_cm = 300, Price = 12793m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 114, Width_cm = 900, Projection_cm = 300, Price = 13292m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 115, Width_cm = 1000, Projection_cm = 300, Price = 14813m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 116, Width_cm = 1100, Projection_cm = 300, Price = 15691m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 117, Width_cm = 1200, Projection_cm = 300, Price = 16357m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 118, Width_cm = 1300, Projection_cm = 300, Price = 17978m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 119, Width_cm = 1400, Projection_cm = 300, Price = 19878m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 18 },
+
+                // 350 projection
+                new { ProjectionId = 120, Width_cm = 900, Projection_cm = 350, Price = 14664m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 121, Width_cm = 1000, Projection_cm = 350, Price = 15786m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 122, Width_cm = 1100, Projection_cm = 350, Price = 16715m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 123, Width_cm = 1200, Projection_cm = 350, Price = 17594m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 124, Width_cm = 1400, Projection_cm = 350, Price = 20940m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 18 },
+
+                // 400 projection
+                new { ProjectionId = 125, Width_cm = 1000, Projection_cm = 400, Price = 17248m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 10 },
+                new { ProjectionId = 126, Width_cm = 1100, Projection_cm = 400, Price = 18127m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                new { ProjectionId = 127, Width_cm = 1200, Projection_cm = 400, Price = 18884m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3, ArmTypeId = 15 },
+                //Markilux1-MX-2
+                // 150 projection
+                new { ProjectionId = 128, Width_cm = 250, Projection_cm = 150, Price = 3949m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 129, Width_cm = 300, Projection_cm = 150, Price = 4198m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 130, Width_cm = 350, Projection_cm = 150, Price = 4537m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 131, Width_cm = 400, Projection_cm = 150, Price = 4819m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 132, Width_cm = 450, Projection_cm = 150, Price = 5078m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 133, Width_cm = 500, Projection_cm = 150, Price = 5367m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 134, Width_cm = 550, Projection_cm = 150, Price = 5689m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 135, Width_cm = 600, Projection_cm = 150, Price = 6007m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+
+                // 200 projection
+                new { ProjectionId = 136, Width_cm = 250, Projection_cm = 200, Price = 4070m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 137, Width_cm = 300, Projection_cm = 200, Price = 4399m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 138, Width_cm = 350, Projection_cm = 200, Price = 4694m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 139, Width_cm = 400, Projection_cm = 200, Price = 5000m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 140, Width_cm = 450, Projection_cm = 200, Price = 5259m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 141, Width_cm = 500, Projection_cm = 200, Price = 5557m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 142, Width_cm = 550, Projection_cm = 200, Price = 5884m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 143, Width_cm = 600, Projection_cm = 200, Price = 6214m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+
+                // 250 projection
+                new { ProjectionId = 144, Width_cm = 300, Projection_cm = 250, Price = 4492m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 145, Width_cm = 350, Projection_cm = 250, Price = 4942m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 146, Width_cm = 400, Projection_cm = 250, Price = 5223m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 147, Width_cm = 450, Projection_cm = 250, Price = 5483m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 148, Width_cm = 500, Projection_cm = 250, Price = 5769m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 149, Width_cm = 550, Projection_cm = 250, Price = 6109m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 150, Width_cm = 600, Projection_cm = 250, Price = 6445m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+
+                // 300 projection
+                new { ProjectionId = 151, Width_cm = 350, Projection_cm = 300, Price = 5071m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 152, Width_cm = 400, Projection_cm = 300, Price = 5400m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 153, Width_cm = 450, Projection_cm = 300, Price = 5659m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 154, Width_cm = 500, Projection_cm = 300, Price = 5955m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 155, Width_cm = 550, Projection_cm = 300, Price = 6303m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 156, Width_cm = 600, Projection_cm = 300, Price = 6654m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+
+                // 350 projection
+                new { ProjectionId = 157, Width_cm = 400, Projection_cm = 350, Price = 5606m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 158, Width_cm = 450, Projection_cm = 350, Price = 5873m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+                new { ProjectionId = 159, Width_cm = 500, Projection_cm = 350, Price = 6187m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4, ArmTypeId = 2 },
+
+                 new { ProjectionId = 160, Width_cm = 250, Projection_cm = 150, Price = 2826m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 2 },
+            new { ProjectionId = 161, Width_cm = 350, Projection_cm = 150, Price = 2979m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 2 },
+            new { ProjectionId = 162, Width_cm = 400, Projection_cm = 150, Price = 3174m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 2 },
+            new { ProjectionId = 163, Width_cm = 450, Projection_cm = 150, Price = 3372m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 2 },
+            new { ProjectionId = 164, Width_cm = 500, Projection_cm = 150, Price = 3579m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 165, Width_cm = 550, Projection_cm = 150, Price = 4039m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 166, Width_cm = 600, Projection_cm = 150, Price = 4516m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 167, Width_cm = 650, Projection_cm = 150, Price = 5050m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 168, Width_cm = 700, Projection_cm = 150, Price = 5838m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 8 },
+
+            // Block 2
+            new { ProjectionId = 169, Width_cm = 300, Projection_cm = 150, Price = 3165m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 2 },
+            new { ProjectionId = 170, Width_cm = 350, Projection_cm = 150, Price = 3375m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 2 },
+            new { ProjectionId = 171, Width_cm = 400, Projection_cm = 150, Price = 3577m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 2 },
+            new { ProjectionId = 172, Width_cm = 450, Projection_cm = 150, Price = 3793m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 2 },
+            new { ProjectionId = 173, Width_cm = 500, Projection_cm = 150, Price = 4012m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 174, Width_cm = 550, Projection_cm = 150, Price = 4260m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 175, Width_cm = 600, Projection_cm = 150, Price = 4733m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 176, Width_cm = 650, Projection_cm = 150, Price = 5304m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 177, Width_cm = 700, Projection_cm = 150, Price = 6110m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 8 },
+
+            // Block 3
+            new { ProjectionId = 178, Width_cm = 350, Projection_cm = 150, Price = 3564m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 2 },
+            new { ProjectionId = 179, Width_cm = 400, Projection_cm = 150, Price = 3769m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 2 },
+            new { ProjectionId = 180, Width_cm = 450, Projection_cm = 150, Price = 4005m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 2 },
+            new { ProjectionId = 181, Width_cm = 500, Projection_cm = 150, Price = 4263m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 182, Width_cm = 550, Projection_cm = 150, Price = 4543m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 183, Width_cm = 600, Projection_cm = 150, Price = 4980m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 184, Width_cm = 650, Projection_cm = 150, Price = 5624m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 185, Width_cm = 700, Projection_cm = 150, Price = 6404m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 8 },
+
+            // Block 4
+            new { ProjectionId = 186, Width_cm = 400, Projection_cm = 150, Price = 3952m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 2 },
+            new { ProjectionId = 187, Width_cm = 450, Projection_cm = 150, Price = 4196m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 2 },
+            new { ProjectionId = 188, Width_cm = 500, Projection_cm = 150, Price = 4474m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 189, Width_cm = 550, Projection_cm = 150, Price = 4922m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 190, Width_cm = 600, Projection_cm = 150, Price = 5237m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 191, Width_cm = 650, Projection_cm = 150, Price = 5870m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 192, Width_cm = 700, Projection_cm = 150, Price = 6673m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 8 },
+
+            // Block 5
+            new { ProjectionId = 193, Width_cm = 450, Projection_cm = 150, Price = 4581m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 194, Width_cm = 500, Projection_cm = 150, Price = 4895m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 195, Width_cm = 550, Projection_cm = 150, Price = 5316m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 196, Width_cm = 600, Projection_cm = 150, Price = 5656m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 197, Width_cm = 650, Projection_cm = 150, Price = 6439m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 8 },
+            new { ProjectionId = 198, Width_cm = 700, Projection_cm = 150, Price = 6822m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 8 },
+
+            // Block 6
+            new { ProjectionId = 199, Width_cm = 500, Projection_cm = 150, Price = 5541m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 200, Width_cm = 550, Projection_cm = 150, Price = 5978m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 201, Width_cm = 600, Projection_cm = 150, Price = 6231m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 3 },
+            new { ProjectionId = 202, Width_cm = 700, Projection_cm = 150, Price = 7146m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5, ArmTypeId = 8 }
             );
 
 
@@ -753,7 +949,115 @@ namespace AwningsAPI.Database
                 new Brackets { BracketId = 10, BracketName = "Face fixture 280 x 180 mm", PartNumber = "72611", Price = 78.40m, ProductId = 1, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 },
                 new Brackets { BracketId = 11, BracketName = "Face fixture bracket A 300 x 180 mm", PartNumber = "72714", Price = 89.00m, ProductId = 1, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 },
                 new Brackets { BracketId = 12, BracketName = "Spreader plate B 300 x 400 x 12 mm", PartNumber = "75327", Price = 164.90m, ProductId = 1, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 },
-                new Brackets { BracketId = 13, BracketName = "Stand-off bkt. 80-300 mm for face fixture", PartNumber = "77970", Price = 243.90m, ProductId = 1, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 }
+                new Brackets { BracketId = 13, BracketName = "Stand-off bkt. 80-300 mm for face fixture", PartNumber = "77970", Price = 243.90m, ProductId = 1, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 },
+
+                new Brackets { BracketId = 14, BracketName = "Surcharge face fixture bracket A 300 mm", PartNumber = null, Price = 44m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new Brackets { BracketId = 15, BracketName = "Surcharge face fixture bracket A 300 mm", PartNumber = null, Price = 44m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 5 },
+                new Brackets { BracketId = 16, BracketName = "Surcharge face fixture bracket A 300 mm", PartNumber = null, Price = 66m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 8 },
+
+                new Brackets { BracketId = 17, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 330m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new Brackets { BracketId = 18, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 339m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 5 },
+                new Brackets { BracketId = 19, BracketName = "Surcharge for face fixture incl. spreader plate B", PartNumber = null, Price = 504m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 8 },
+
+                new Brackets { BracketId = 20, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new Brackets { BracketId = 21, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 183m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 5 },
+                new Brackets { BracketId = 22, BracketName = "Surcharge for bespoke arms", PartNumber = null, Price = 269m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 8 },
+
+                // Part-numbered items (PartNumber as string)
+                new Brackets { BracketId = 23, BracketName = "Face fixture bracket 200 mm", PartNumber = "62143", Price = 66.40m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 },
+                new Brackets { BracketId = 24, BracketName = "Face fixture bracket A 300 mm", PartNumber = "60775", Price = 88.40m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 },
+                new Brackets { BracketId = 25, BracketName = "Spreader plate B 250 x 23 x 49 mm", PartNumber = "75327", Price = 164.90m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 },
+                new Brackets { BracketId = 26, BracketName = "Stand-off bkt. 80-300 mm for face fixture bkt. / 4", PartNumber = "77970", Price = 243.90m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 },
+                new Brackets { BracketId = 27, BracketName = "Spacer block face fixture 180x150x12 mm / 4", PartNumber = "74989", Price = 8.40m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 },
+                new Brackets { BracketId = 28, BracketName = "Spacer block face fixture 180x150x20 mm / 4", PartNumber = "749881", Price = 11.20m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 },
+                new Brackets { BracketId = 29, BracketName = "Cover plate 320x210x2 mm", PartNumber = "71842", Price = 21.90m, ProductId = 2, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 },
+                new { BracketId = 30, ProductId = 3, BracketName = "Surcharge face fixture bracket A 300 mm", Price = 88m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 10 },
+                new { BracketId = 31, ProductId = 3, BracketName = "Surcharge face fixture bracket A 300 mm", Price = 88m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 15 },
+                new { BracketId = 32, ProductId = 3, BracketName = "Surcharge face fixture bracket A 300 mm", Price = 132m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 18 },
+
+                new { BracketId = 33, ProductId = 3, BracketName = "Surcharge for face fixture incl. spreader plate B", Price = 659m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 10 },
+                new { BracketId = 34, ProductId = 3, BracketName = "Surcharge for face fixture incl. spreader plate B", Price = 677m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 15 },
+                new { BracketId = 35, ProductId = 3, BracketName = "Surcharge for face fixture incl. spreader plate B", Price = 1007m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 18 },
+
+                new { BracketId = 36, ProductId = 3, BracketName = "Surcharge for bespoke arms", Price = 361m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 10 },
+                new { BracketId = 37, ProductId = 3, BracketName = "Surcharge for bespoke arms", Price = 361m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 15 },
+                new { BracketId = 38, ProductId = 3, BracketName = "Surcharge for bespoke arms", Price = 536m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 18 },
+
+                new { BracketId = 39, ProductId = 3, BracketName = "Surcharge for junction roller", Price = 291m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 },
+                new { BracketId = 40, ProductId = 3, BracketName = "Surcharge for one-piece cover", Price = 291m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 1 },
+
+                // Markilux MX‑2
+                new { BracketId = 41, ProductId = 4, BracketName = "Surcharge for face fixture", Price = 220m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 42, ProductId = 4, BracketName = "Surcharge for face fixture incl. spreader plate A", Price = 592m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 43, ProductId = 4, BracketName = "Surcharge for face fixture incl. spreader plate B", Price = 550m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 44, ProductId = 4, BracketName = "Surcharge for face fixture incl. spreader plate C", Price = 592m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 45, ProductId = 4, BracketName = "Surcharge for top fixture", Price = 287m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 46, ProductId = 4, BracketName = "Surcharge for eaves fixture", Price = 371m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 47, ProductId = 4, BracketName = "Surcharge for bespoke arms", Price = 183m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 48, ProductId = 4, BracketName = "Surcharge for the two-tone housing, markilux \"MX- colour\" in the colour combinations 1-10", Price = 300m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+
+
+                new { BracketId = 49, ProductId = 4, BracketName = "Face fixture bracket left / 3", PartNumber = "72826", Price = 109.80m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 50, ProductId = 4, BracketName = "Face fixture bracket right / 3", PartNumber = "72827", Price = 109.80m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 51, ProductId = 4, BracketName = "Stand-off bkt. 80-300 mm for face fixture bkt. / 4", PartNumber = "72872", Price = 253.50m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 52, ProductId = 4, BracketName = "Top fixture bracket left / 4", PartNumber = "60523", Price = 143.20m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 53, ProductId = 4, BracketName = "Top fixture bracket right / 4", PartNumber = "60524", Price = 143.20m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 54, ProductId = 4, BracketName = "Eaves fixture bracket left 150 mm, complete / 4", PartNumber = "60603", Price = 185.30m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 55, ProductId = 4, BracketName = "Eaves fixture bracket right 150 mm, complete / 4", PartNumber = "60604", Price = 185.30m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 56, ProductId = 4, BracketName = "Eaves fixture bracket 270 mm / 4", PartNumber = "71659", Price = 79.30m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 57, ProductId = 4, BracketName = "Angle and plate for eaves fixture (machine finish) / 4", PartNumber = "716620", Price = 128.90m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 58, ProductId = 4, BracketName = "Additional eaves fixture plate 60x260x12 mm / 2", PartNumber = "75383", Price = 43.90m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 59, ProductId = 4, BracketName = "Spreader plate A 430x160x12 mm / 8", PartNumber = "72870", Price = 186m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 60, ProductId = 4, BracketName = "Spreader plate B 300x400x12 mm / 4", PartNumber = "73465", Price = 164.90m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 61, ProductId = 4, BracketName = "Spreader Plate C 310x130x12 mm / 6", PartNumber = "72526", Price = 186m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 62, ProductId = 4, BracketName = "Spacer block face fixture 100x120x20 mm / 3", PartNumber = "718581", Price = 14.70m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 63, ProductId = 4, BracketName = "Spacer block face fixture 100x120x12 mm / 3", PartNumber = "718571", Price = 14.30m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 64, ProductId = 4, BracketName = "Spacer block for top fixture 90x140x20 mm / 4", PartNumber = "716311", Price = 4.40m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 65, ProductId = 4, BracketName = "Spacer block for top fixture 90x140x12 mm / 4", PartNumber = "716411", Price = 5m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 66, ProductId = 4, BracketName = "Cover plate 230x210x2 mm", PartNumber = "71843", Price = 17m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 67, ProductId = 4, BracketName = "Vertical fixture rail incl. fixing material 624291", PartNumber = "62421", Price = 180m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+
+                //MARKILUX 6000 Single
+                new { BracketId = 68, ProductId = 5, BracketName = "Surcharge for face fixture", Price = 298m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 69, ProductId = 5, BracketName = "Surcharge for face fixture", Price = 447m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 3 },
+                new { BracketId = 70, ProductId = 5, BracketName = "Surcharge for face fixture", Price = 596m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 8 },
+
+                new { BracketId = 71, ProductId = 5, BracketName = "Surcharge for face fixture incl. spreader plate A", Price = 554m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 72, ProductId = 5, BracketName = "Surcharge for face fixture incl. spreader plate A", Price = 711m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 3 },
+                new { BracketId = 73, ProductId = 5, BracketName = "Surcharge for face fixture incl. spreader plate A", Price = 988m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 8 },
+
+                new { BracketId = 74, ProductId = 5, BracketName = "Surcharge for face fixture incl. spreader plate B", Price = 628m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 75, ProductId = 5, BracketName = "Surcharge for face fixture incl. spreader plate B", Price = 785m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 3 },
+                new { BracketId = 76, ProductId = 5, BracketName = "Surcharge for face fixture incl. spreader plate B", Price = 1099m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 8 },
+
+                new { BracketId = 77, ProductId = 5, BracketName = "Surcharge for top fixture", Price = 397m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 78, ProductId = 5, BracketName = "Surcharge for top fixture", Price = 596m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 3 },
+                new { BracketId = 79, ProductId = 5, BracketName = "Surcharge for top fixture", Price = 794m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 8 },
+
+                new { BracketId = 80, ProductId = 5, BracketName = "Surcharge for eaves fixture", Price = 475m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 81, ProductId = 5, BracketName = "Surcharge for eaves fixture", Price = 712m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 3 },
+                new { BracketId = 82, ProductId = 5, BracketName = "Surcharge for eaves fixture", Price = 950m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 8 },
+
+                new { BracketId = 83, ProductId = 5, BracketName = "Surcharge for bespoke arms", Price = 183m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 2 },
+                new { BracketId = 84, ProductId = 5, BracketName = "Surcharge for bespoke arms", Price = 183m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 3 },
+                new { BracketId = 85, ProductId = 5, BracketName = "Surcharge for bespoke arms", Price = 269m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = 8 },
+
+                // Part-numbered brackets
+                new { BracketId = 86, ProductId = 5, BracketName = "Face fixture bracket assembly 5 - 35° / 4", PartNumber = "74909", Price = 148.90m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 87, ProductId = 5, BracketName = "Face fixture bracket assembly 36 - 70° / 4", PartNumber = "74928", Price = 148.90m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 88, ProductId = 5, BracketName = "Stand-off bkt. 80-300 mm for face fixture bkt. / 4", PartNumber = "77970", Price = 243.90m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 89, ProductId = 5, BracketName = "Top fixture bracket 5 - 35° / 4", PartNumber = "74903", Price = 198.40m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 90, ProductId = 5, BracketName = "Top fixture bracket 36 - 70° / 4", PartNumber = "74905", Price = 198.40m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 91, ProductId = 5, BracketName = "Eaves fixture bracket 150mm, complete / 4", PartNumber = "74944", Price = 237.30m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 92, ProductId = 5, BracketName = "Eaves fixture bracket 270 mm, complete / 4", PartNumber = "74970", Price = 276.40m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 93, ProductId = 5, BracketName = "Angle and plate for eaves fixture (machine finish) / 4", PartNumber = "741290", Price = 142.80m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 94, ProductId = 5, BracketName = "Additional eaves fixture plate 60x260x12 mm / 2", PartNumber = "75383", Price = 43.90m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 95, ProductId = 5, BracketName = "Spreader plate A 430x160x12 mm / 8", PartNumber = "75328", Price = 127.70m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 96, ProductId = 5, BracketName = "Spreader plate B 300x400x12 mm / 4", PartNumber = "75327", Price = 164.90m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 97, ProductId = 5, BracketName = "Spacer block face fixture 180x150x20 mm / 4", PartNumber = "749881", Price = 11.20m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 98, ProductId = 5, BracketName = "Spacer block for top fixture 136x150x20 mm /4", PartNumber = "716331", Price = 5.70m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 99, ProductId = 5, BracketName = "Spacer block face fixture 180x150x12 mm / 4", PartNumber = "74989", Price = 8.40m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null },
+                new { BracketId = 100, ProductId = 5, BracketName = "Cover plate 320x210x2 mm", PartNumber = "71842", Price = 21.90m, DateCreated = staticCreatedDate, CreatedBy = "System", ArmTypeId = (int?)null }
             );
 
             //Arms Data — values moved to Brackets above; Arms table left empty
@@ -761,22 +1065,44 @@ namespace AwningsAPI.Database
             );
             //Motors Data
             modelBuilder.Entity<Motors>().HasData(
-                new Motors { MotorId = 1, ProductId = 6, Description = "Surcharge for servo-assisted gear", Price = 72m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Motors { MotorId = 2, ProductId = 6, Description = "Surcharge for hard-wired motor", Price = 470m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Motors { MotorId = 3, ProductId = 6, Description = "Surcharge for radio-contr. motor io/RTS + 1 ch. transmitter", Price = 700m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Motors { MotorId = 4, ProductId = 6, Description = "Surcharge for radio-contr. motor io/RTS w/o transmitter", Price = 586m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Motors { MotorId = 5, ProductId = 6, Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter", Price = 1082m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new Motors { MotorId = 6, ProductId = 6, Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter", Price = 968m, DateCreated = staticCreatedDate, CreatedBy = "System" }
+                new { MotorId = 1, Description = "Surcharge for servo-assisted gear", Price = 75m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { MotorId = 2, Description = "Surcharge for servo-assisted gear", Price = 75m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { MotorId = 3, Description = "Surcharge for servo-assisted gear", Price = 0m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+
+                new { MotorId = 4, Description = "Surcharge for hard-wired motor", Price = 484m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { MotorId = 5, Description = "Surcharge for hard-wired motor", Price = 484m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { MotorId = 6, Description = "Surcharge for hard-wired motor", Price = 574m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+
+                new { MotorId = 7, Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter", Price = 721m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { MotorId = 8, Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter", Price = 721m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { MotorId = 9, Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter", Price = 809m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+
+                new { MotorId = 10, Description = "Surcharge for radio-contr. motor io w/o transmitter", Price = 603m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { MotorId = 11, Description = "Surcharge for radio-contr. motor io w/o transmitter", Price = 603m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { MotorId = 12, Description = "Surcharge for radio-contr. motor io w/o transmitter", Price = 691m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+
+                new { MotorId = 13, Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter", Price = 1115m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { MotorId = 14, Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter", Price = 1115m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { MotorId = 15, Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter", Price = 0m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+
+                new { MotorId = 16, Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter", Price = 997m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { MotorId = 17, Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter", Price = 997m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { MotorId = 18, Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter", Price = 0m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 }
              );
             //ValanceStyle Data
             modelBuilder.Entity<ValanceStyle>().HasData(
-                new ValanceStyle { ValanceStyleId = 1, ProductId = 6, WidthCm = 250, Price = 76m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new ValanceStyle { ValanceStyleId = 2, ProductId = 6, WidthCm = 300, Price = 84m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new ValanceStyle { ValanceStyleId = 3, ProductId = 6, WidthCm = 350, Price = 93m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new ValanceStyle { ValanceStyleId = 4, ProductId = 6, WidthCm = 400, Price = 105m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new ValanceStyle { ValanceStyleId = 5, ProductId = 6, WidthCm = 450, Price = 118m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new ValanceStyle { ValanceStyleId = 6, ProductId = 6, WidthCm = 500, Price = 130m, DateCreated = staticCreatedDate, CreatedBy = "System" }
+                 new { ValanceStyleId = 1, WidthCm = 250, Price = 79m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { ValanceStyleId = 2, WidthCm = 300, Price = 87m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { ValanceStyleId = 3, WidthCm = 350, Price = 96m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { ValanceStyleId = 4, WidthCm = 400, Price = 109m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { ValanceStyleId = 5, WidthCm = 450, Price = 122m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { ValanceStyleId = 6, WidthCm = 500, Price = 134m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { ValanceStyleId = 7, WidthCm = 550, Price = 145m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { ValanceStyleId = 8, WidthCm = 600, Price = 158m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { ValanceStyleId = 9, WidthCm = 650, Price = 166m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { ValanceStyleId = 10, WidthCm = 700, Price = 177m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 }
              );
+
             //NonStandardRALColours Data
             modelBuilder.Entity<NonStandardRALColours>().HasData(
              new NonStandardRALColours { RALColourId = 1, WidthCm = 250, Price = 316m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1, MultiplyBy = 2.5m },
@@ -788,17 +1114,62 @@ namespace AwningsAPI.Database
                 new NonStandardRALColours { RALColourId = 7, WidthCm = 550, Price = 477m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1, MultiplyBy = 2.5m },
                 new NonStandardRALColours { RALColourId = 8, WidthCm = 600, Price = 509m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1, MultiplyBy = 2.5m },
                 new NonStandardRALColours { RALColourId = 9, WidthCm = 650, Price = 539m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1, MultiplyBy = 2.5m },
-                new NonStandardRALColours { RALColourId = 10, WidthCm = 700, Price = 640m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1, MultiplyBy = 2.5m }
+                new NonStandardRALColours { RALColourId = 10, WidthCm = 700, Price = 640m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1, MultiplyBy = 2.5m },
+                 new NonStandardRALColours { RALColourId = 11, WidthCm = 250, Price = 315m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, MultiplyBy = 2.5m },
+                new NonStandardRALColours { RALColourId = 12, WidthCm = 300, Price = 328m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, MultiplyBy = 2.5m },
+                new NonStandardRALColours { RALColourId = 13, WidthCm = 350, Price = 351m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, MultiplyBy = 2.5m },
+                new NonStandardRALColours { RALColourId = 14, WidthCm = 400, Price = 371m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, MultiplyBy = 2.5m },
+                new NonStandardRALColours { RALColourId = 15, WidthCm = 450, Price = 396m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, MultiplyBy = 2.5m },
+                new NonStandardRALColours { RALColourId = 16, WidthCm = 500, Price = 444m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, MultiplyBy = 2.5m },
+                new NonStandardRALColours { RALColourId = 17, WidthCm = 550, Price = 476m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, MultiplyBy = 2.5m },
+                new NonStandardRALColours { RALColourId = 18, WidthCm = 600, Price = 508m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, MultiplyBy = 2.5m },
+                new NonStandardRALColours { RALColourId = 19, WidthCm = 650, Price = 539m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, MultiplyBy = 2.5m },
+                new NonStandardRALColours { RALColourId = 20, WidthCm = 700, Price = 640m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 2, MultiplyBy = 2.5m },
+                new { RALColourId = 21, WidthCm = 500, Price = 625m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3 },
+                new { RALColourId = 22, WidthCm = 600, Price = 650m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3 },
+                new { RALColourId = 23, WidthCm = 700, Price = 692m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3 },
+                new { RALColourId = 24, WidthCm = 800, Price = 730m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3 },
+                new { RALColourId = 25, WidthCm = 900, Price = 783m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3 },
+                new { RALColourId = 26, WidthCm = 1000, Price = 879m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3 },
+                new { RALColourId = 27, WidthCm = 1100, Price = 939m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3 },
+                new { RALColourId = 28, WidthCm = 1200, Price = 1008m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3 },
+                new { RALColourId = 29, WidthCm = 1300, Price = 1066m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3 },
+                new { RALColourId = 30, WidthCm = 1400, Price = 1274m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 3 },
+               //Markilu-MX-2
+                new { RALColourId = 31, WidthCm = 250, Price = 329m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4 },
+                new { RALColourId = 32, WidthCm = 300, Price = 352m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4 },
+                new { RALColourId = 33, WidthCm = 350, Price = 371m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4 },
+                new { RALColourId = 34, WidthCm = 400, Price = 388m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4 },
+                new { RALColourId = 35, WidthCm = 450, Price = 406m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4 },
+                new { RALColourId = 36, WidthCm = 500, Price = 423m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4 },
+                new { RALColourId = 37, WidthCm = 550, Price = 439m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4 },
+                new { RALColourId = 38, WidthCm = 600, Price = 458m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 4 },
+                //MARKILUX 6000 Single
+                new { RALColourId = 39, WidthCm = 250, Price = 316m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { RALColourId = 40, WidthCm = 300, Price = 329m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { RALColourId = 41, WidthCm = 350, Price = 352m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { RALColourId = 42, WidthCm = 400, Price = 371m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { RALColourId = 43, WidthCm = 450, Price = 396m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { RALColourId = 44, WidthCm = 500, Price = 445m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { RALColourId = 45, WidthCm = 550, Price = 477m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { RALColourId = 46, WidthCm = 600, Price = 509m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { RALColourId = 47, WidthCm = 650, Price = 539m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { RALColourId = 48, WidthCm = 700, Price = 640m, MultiplyBy = 2.5m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 }
             );
             //WallSealingProfile Data
             modelBuilder.Entity<WallSealingProfile>().HasData(
-                new WallSealingProfile { WallSealingProfileId = 1, ProductId = 6, WidthCm = 250, Price = 87m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new WallSealingProfile { WallSealingProfileId = 2, ProductId = 6, WidthCm = 300, Price = 101m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new WallSealingProfile { WallSealingProfileId = 3, ProductId = 6, WidthCm = 350, Price = 110m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new WallSealingProfile { WallSealingProfileId = 4, ProductId = 6, WidthCm = 400, Price = 126m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new WallSealingProfile { WallSealingProfileId = 5, ProductId = 6, WidthCm = 450, Price = 141m, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new WallSealingProfile { WallSealingProfileId = 6, ProductId = 6, WidthCm = 500, Price = 157m, DateCreated = staticCreatedDate, CreatedBy = "System" }
+                 new { WallSealingProfileId = 1, WidthCm = 250, Price = 90m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { WallSealingProfileId = 2, WidthCm = 300, Price = 104m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { WallSealingProfileId = 3, WidthCm = 350, Price = 114m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { WallSealingProfileId = 4, WidthCm = 400, Price = 130m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { WallSealingProfileId = 5, WidthCm = 450, Price = 146m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { WallSealingProfileId = 6, WidthCm = 500, Price = 162m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { WallSealingProfileId = 7, WidthCm = 550, Price = 177m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { WallSealingProfileId = 8, WidthCm = 600, Price = 193m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { WallSealingProfileId = 9, WidthCm = 650, Price = 207m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                 new { WallSealingProfileId = 10, WidthCm = 700, Price = 223m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 }
              );
+
             //Heaters Data
             modelBuilder.Entity<Heaters>().HasData(
                 new Heaters { HeaterId = 1, ProductId = 6, Description = "Markilux Infrared Heater 2500 watt Dimmable", Price = 1393m, PriceNonRALColour = 1635m, DateCreated = staticCreatedDate, CreatedBy = "System" }
@@ -971,15 +1342,50 @@ namespace AwningsAPI.Database
                 new ShadePlus { ShadePlusId = 7, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 550, Price = 2044m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
                 new ShadePlus { ShadePlusId = 8, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 600, Price = 2128m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
                 new ShadePlus { ShadePlusId = 9, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 650, Price = 2206m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
-                new ShadePlus { ShadePlusId = 10, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 700, Price = 2284m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 }
+                new ShadePlus { ShadePlusId = 10, Description = "Surcharge for height 170 cm - radio-controlled motor", WidthCm = 700, Price = 2284m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 1 },
+
+                //Mark - 6000 single
+                new { ShadePlusId = 11, WidthCm = 250, Description = "Surcharge for height 210 cm with gearbox", Price = 719m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 12, WidthCm = 300, Description = "Surcharge for height 210 cm with gearbox", Price = 798m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 13, WidthCm = 350, Description = "Surcharge for height 210 cm with gearbox", Price = 865m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 14, WidthCm = 400, Description = "Surcharge for height 210 cm with gearbox", Price = 945m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 15, WidthCm = 450, Description = "Surcharge for height 210 cm with gearbox", Price = 1019m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 16, WidthCm = 500, Description = "Surcharge for height 210 cm with gearbox", Price = 1096m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 17, WidthCm = 550, Description = "Surcharge for height 210 cm with gearbox", Price = 1173m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 18, WidthCm = 600, Description = "Surcharge for height 210 cm with gearbox", Price = 1248m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 19, WidthCm = 650, Description = "Surcharge for height 210 cm with gearbox", Price = 1319m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 20, WidthCm = 700, Description = "Surcharge for height 210 cm with gearbox", Price = 1396m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+
+                new { ShadePlusId = 21, WidthCm = 250, Description = "Surcharge for height 210 cm with hard-wired motor", Price = 1538m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 22, WidthCm = 300, Description = "Surcharge for height 210 cm with hard-wired motor", Price = 1596m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 23, WidthCm = 350, Description = "Surcharge for height 210 cm with hard-wired motor", Price = 1693m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 24, WidthCm = 400, Description = "Surcharge for height 210 cm with hard-wired motor", Price = 1778m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 25, WidthCm = 450, Description = "Surcharge for height 210 cm with hard-wired motor", Price = 1830m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 26, WidthCm = 500, Description = "Surcharge for height 210 cm with hard-wired motor", Price = 1898m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 27, WidthCm = 550, Description = "Surcharge for height 210 cm with hard-wired motor", Price = 1986m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 28, WidthCm = 600, Description = "Surcharge for height 210 cm with hard-wired motor", Price = 2070m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 29, WidthCm = 650, Description = "Surcharge for height 210 cm with hard-wired motor", Price = 2163m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 30, WidthCm = 700, Description = "Surcharge for height 210 cm with hard-wired motor", Price = 2262m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+
+                new { ShadePlusId = 31, WidthCm = 250, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", Price = 1669m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 32, WidthCm = 300, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", Price = 1729m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 33, WidthCm = 350, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", Price = 1828m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 34, WidthCm = 400, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", Price = 1911m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 35, WidthCm = 450, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", Price = 1961m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 36, WidthCm = 500, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", Price = 2032m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 37, WidthCm = 550, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", Price = 2119m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 38, WidthCm = 600, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", Price = 2204m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 39, WidthCm = 650, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", Price = 2297m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 },
+                new { ShadePlusId = 40, WidthCm = 700, Description = "Surcharge for height 210 cm with radio-controlled motor io (w/o transm.)", Price = 2395m, DateCreated = staticCreatedDate, CreatedBy = "System", ProductId = 5 }
+
             );
 
             //LightingCassette Data
             modelBuilder.Entity<LightingCassette>().HasData(
-                new LightingCassette { LightingId = 1, Description = "Surcharge for LED Line RGB-WW Radio-controlled io - dimmable (without remote control)", Price = 1555.00m, DateCreated = new DateTime(2026, 4, 6), CreatedBy = "System", ProductId = 5 },
-                new LightingCassette { LightingId = 2, Description = "Surcharge for LED Line RGB-WW Zigbee radio control - dimmable (without transmitter)", Price = 1386.00m, DateCreated = new DateTime(2026, 4, 6), CreatedBy = "System", ProductId = 5 },
-                new LightingCassette { LightingId = 3, Description = "Surcharge for LED Line RGB-WW Radio-controlled io - dimmable (without remote control)", Price = 1555.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 3 },
-                new LightingCassette { LightingId = 4, Description = "Surcharge for LED Line RGB-WW Zigbee radio control - dimmable (without transmitter)", Price = 1386.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 3 }
+                //new LightingCassette { LightingId = 1, Description = "Surcharge for LED Line RGB-WW Radio-controlled io - dimmable (without remote control)", Price = 1555.00m, DateCreated = new DateTime(2026, 4, 6), CreatedBy = "System", ProductId = 5 },
+                //new LightingCassette { LightingId = 2, Description = "Surcharge for LED Line RGB-WW Zigbee radio control - dimmable (without transmitter)", Price = 1386.00m, DateCreated = new DateTime(2026, 4, 6), CreatedBy = "System", ProductId = 5 },
+                new LightingCassette { LightingId = 1, Description = "Surcharge for LED Line RGB-WW Radio-controlled io - dimmable (without remote control)", Price = 1555.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 4 },
+                new LightingCassette { LightingId = 2, Description = "Surcharge for LED Line RGB-WW Zigbee radio control - dimmable (without transmitter)", Price = 1386.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 4 }
             );
         }
     }
