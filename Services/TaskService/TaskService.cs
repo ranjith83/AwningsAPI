@@ -74,7 +74,7 @@ namespace AwningsAPI.Services.Tasks
                 Subject = createDto.Subject,
                 Category = createDto.Category,
                 EmailBody = createDto.EmailBody,
-                CompanyNumber = createDto.CompanyNumber,
+                //CompanyNumber = createDto.CompanyNumber,
                 Priority = createDto.Priority ?? "Normal",
                 Status = TaskStatusValue.New,         // all tasks start as New
                 AssignedToUserId = null,                       // no assignee on creation
@@ -873,6 +873,7 @@ namespace AwningsAPI.Services.Tasks
                 Subject = email.Subject,
                 Category = category,
                 EmailBody = email.BodyContent,
+                //CustomerId = email.cus
                 CompanyNumber = companyNumber,
                 Priority = priority,
                 DueDate = dueDate

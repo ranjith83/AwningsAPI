@@ -349,9 +349,9 @@ namespace AwningsAPI.Controllers
                    // EmailBody = BuildSiteVisitSummary(dto),
                     Priority = "Normal",
                     WorkflowId = dto.WorkflowId,
-                   // CompanyNumber = dto.CompanyNumber,
-                   // CustomerId = dto.CustomerId,
-                    // IncomingEmailId intentionally left null — no email for manual site visits
+                    CustomerName = dto.CustomerName,
+                    CustomerEmail = dto.CustomerEmail,
+                    CustomerId = dto.CustomerId,
                 };
 
                 var task = await _taskService.CreateTaskAsync(taskDto, currentUser);

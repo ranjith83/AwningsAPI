@@ -193,12 +193,15 @@ namespace AwningsAPI.Dto.Tasks
         public string? Subject { get; set; }
         public string? Category { get; set; }
         public string? EmailBody { get; set; }
-        public string? CompanyNumber { get; set; }
+        public string? CompanyName { get; set; }
         public string Priority { get; set; } = "Normal";
         public DateTime? DueDate { get; set; }
         public int? AssignedToUserId { get; set; }
         public int? CustomerId { get; set; }
         public int? WorkflowId { get; set; }
+        public string? CustomerName { get; set; }
+        public string? CustomerEmail { get; set; }
+        public string? CompanyNumber { get; set; }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

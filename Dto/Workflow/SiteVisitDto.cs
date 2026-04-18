@@ -72,6 +72,9 @@
     public class CreateSiteVisitDto
     {
         public int WorkflowId { get; set; }
+        public string? CustomerName { get; set; }
+        public int? CustomerId { get; set; }
+        public string? CustomerEmail { get; set; }
         public string ProductModelType { get; set; } = string.Empty;
         public string? Model { get; set; }
         public string? OtherPleaseSpecify { get; set; }
