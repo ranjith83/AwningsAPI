@@ -23,9 +23,9 @@ namespace AwningsAPI.Services.Tasks
 
         #region Basic CRUD Operations
 
-        public async Task<EmailTaskDto> GetTaskByIdAsync(int taskId)
+        public async Task<AppTaskDto> GetTaskByIdAsync(int taskId)
         {
-            var task = await _context.EmailTasks
+            var task = await _context.Tasks
                 .Include(t => t.TaskComments)
                 .Include(t => t.TaskAttachments)
                 .Include(t => t.TaskHistories)
@@ -37,15 +37,15 @@ namespace AwningsAPI.Services.Tasks
             return await MapToDto(task);
         }
 
-        public async Task<IEnumerable<EmailTaskDto>> GetAllTasksAsync()
+        public async Task<IEnumerable<AppTaskDto>> GetAllTasksAsync()
         {
-            var tasks = await _context.EmailTasks
+            var tasks = await _context.Tasks
                 .Include(t => t.TaskComments)
                 .Include(t => t.TaskAttachments)
                 .OrderByDescending(t => t.DateAdded)
                 .ToListAsync();
 
-            var taskDtos = new List<EmailTaskDto>();
+            var taskDtos = new List<AppTaskDto>();
             foreach (var task in tasks)
             {
                 taskDtos.Add(await MapToDto(task));
@@ -54,11 +54,21 @@ namespace AwningsAPI.Services.Tasks
             return taskDtos;
         }
 
-        public async Task<EmailTaskDto> CreateTaskAsync(CreateTaskDto createDto, string currentUser)
+
+        public async Task<AppTaskDto> CreateTaskAsync(CreateTaskDto createDto, string currentUser)
         {
-            var task = new EmailTask
+            // Derive the display title
+            var title = !string.IsNullOrWhiteSpace(createDto.Title)
+                ? createDto.Title
+                : createDto.Subject ?? "(No title)";
+
+            var task = new AppTask
             {
-                IncomingEmailId = createDto.IncomingEmailId,
+                // Discriminator — ALWAYS set explicitly
+                SourceType = createDto.SourceType,
+
+                Title = title,
+                IncomingEmailId = createDto.IncomingEmailId,   // null for non-email
                 FromName = createDto.FromName,
                 FromEmail = createDto.FromEmail,
                 Subject = createDto.Subject,
@@ -66,78 +76,83 @@ namespace AwningsAPI.Services.Tasks
                 EmailBody = createDto.EmailBody,
                 CompanyNumber = createDto.CompanyNumber,
                 Priority = createDto.Priority ?? "Normal",
-                Status = "New",           // New tasks always start as "New" with no assignee
-                AssignedToUserId = null,  // No assignee on creation
+                Status = TaskStatusValue.New,         // all tasks start as New
+                AssignedToUserId = null,                       // no assignee on creation
                 DueDate = createDto.DueDate,
                 CustomerId = createDto.CustomerId,
                 WorkflowId = createDto.WorkflowId,
+                SiteVisitId = createDto.SiteVisitId,       // set by SiteVisitController
                 DateAdded = DateTime.UtcNow,
                 DateCreated = DateTime.UtcNow,
                 CreatedBy = currentUser
             };
 
-            _context.EmailTasks.Add(task);
+            _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
 
-            // Add history entry
+            // History entry — subject/category context used in audit grid
             await AddHistoryEntry(
                 taskId: task.TaskId,
                 action: "Created",
                 oldValue: null,
                 newValue: null,
-                details: "Task created from email",
+                details: createDto.SourceType == TaskSourceType.Email
+                                 ? "Task created from email"
+                                 : $"Task created manually (source: {createDto.SourceType})",
                 createdBy: currentUser,
                 customerName: task.CustomerName,
-                subject: task.Subject,
+                subject: task.Subject ?? task.Title,
                 category: task.Category);
 
             return await GetTaskByIdAsync(task.TaskId);
         }
 
-        public async Task<EmailTaskDto> UpdateTaskAsync(int taskId, UpdateTaskDto updateDto, string currentUser)
+        public async Task<AppTaskDto> UpdateTaskAsync(
+             int taskId, UpdateTaskDto updateDto, string currentUser)
         {
-            var task = await _context.EmailTasks.FindAsync(taskId);
-            if (task == null)
-                return null;
+            var task = await _context.Tasks.FindAsync(taskId);
+            if (task == null) return null;
 
             var changes = new List<string>();
 
             if (!string.IsNullOrEmpty(updateDto.Status) && task.Status != updateDto.Status)
             {
-                await AddHistoryEntry(
-                    taskId: taskId,
-                    action: "StatusChanged",
-                    oldValue: task.Status,
-                    newValue: updateDto.Status,
-                    details: null,
-                    createdBy: currentUser);
+                await AddHistoryEntry(taskId, "StatusChanged",
+                    task.Status, updateDto.Status, null, currentUser);
                 task.Status = updateDto.Status;
 
-                if (updateDto.Status == "In Progress")
+                if (updateDto.Status == TaskStatusValue.InProgress)
                 {
                     task.DateProcessed = DateTime.UtcNow;
                     task.ProcessedBy = currentUser;
                 }
-                else if (updateDto.Status == "Completed")
+                else if (updateDto.Status == TaskStatusValue.Completed)
                 {
                     task.CompletedDate = DateTime.UtcNow;
                     task.CompletedBy = currentUser;
                 }
             }
 
+            if (!string.IsNullOrEmpty(updateDto.Title) && task.Title != updateDto.Title)
+            {
+                changes.Add($"Title changed to '{updateDto.Title}'");
+                task.Title = updateDto.Title;
+            }
+
             if (!string.IsNullOrEmpty(updateDto.Priority) && task.Priority != updateDto.Priority)
             {
-                changes.Add($"Priority changed from {task.Priority} to {updateDto.Priority}");
+                changes.Add($"Priority: {task.Priority} → {updateDto.Priority}");
                 task.Priority = updateDto.Priority;
             }
 
             if (updateDto.DueDate.HasValue && task.DueDate != updateDto.DueDate)
             {
-                changes.Add($"Due date changed");
+                changes.Add("Due date changed");
                 task.DueDate = updateDto.DueDate;
             }
 
-            if (updateDto.AssignedToUserId.HasValue && task.AssignedToUserId != updateDto.AssignedToUserId)
+            if (updateDto.AssignedToUserId.HasValue &&
+                task.AssignedToUserId != updateDto.AssignedToUserId)
             {
                 var user = await _context.Users.FindAsync(updateDto.AssignedToUserId.Value);
                 if (user != null)
@@ -151,15 +166,11 @@ namespace AwningsAPI.Services.Tasks
             if (!string.IsNullOrEmpty(updateDto.SelectedAction))
             {
                 task.SelectedAction = updateDto.SelectedAction;
-                changes.Add($"Action set to: {updateDto.SelectedAction}");
+                changes.Add($"Action: {updateDto.SelectedAction}");
             }
 
-            if (updateDto.CustomerId.HasValue)
-                task.CustomerId = updateDto.CustomerId;
-
-            if (updateDto.WorkflowId.HasValue)
-                task.WorkflowId = updateDto.WorkflowId;
-
+            if (updateDto.CustomerId.HasValue) task.CustomerId = updateDto.CustomerId;
+            if (updateDto.WorkflowId.HasValue) task.WorkflowId = updateDto.WorkflowId;
             if (!string.IsNullOrEmpty(updateDto.CompanyNumber))
                 task.CompanyNumber = updateDto.CompanyNumber;
 
@@ -169,26 +180,19 @@ namespace AwningsAPI.Services.Tasks
             await _context.SaveChangesAsync();
 
             if (changes.Any())
-            {
-                await AddHistoryEntry(
-                    taskId: taskId,
-                    action: "Updated",
-                    oldValue: null,
-                    newValue: null,
-                    details: string.Join("; ", changes),
-                    createdBy: currentUser);
-            }
+                await AddHistoryEntry(taskId, "Updated", null, null,
+                    string.Join("; ", changes), currentUser);
 
             return await GetTaskByIdAsync(taskId);
         }
 
         public async Task<bool> DeleteTaskAsync(int taskId)
         {
-            var task = await _context.EmailTasks.FindAsync(taskId);
+            var task = await _context.Tasks.FindAsync(taskId);
             if (task == null)
                 return false;
 
-            _context.EmailTasks.Remove(task);
+            _context.Tasks.Remove(task);
             await _context.SaveChangesAsync();
             return true;
         }
@@ -197,9 +201,9 @@ namespace AwningsAPI.Services.Tasks
 
         #region Status Management
 
-        public async Task<EmailTaskDto> UpdateTaskStatusAsync(int taskId, UpdateTaskStatusDto statusDto, string currentUser)
+        public async Task<AppTaskDto> UpdateTaskStatusAsync(int taskId, UpdateTaskStatusDto statusDto, string currentUser)
         {
-            var task = await _context.EmailTasks.FindAsync(taskId);
+            var task = await _context.Tasks.FindAsync(taskId);
             if (task == null)
                 return null;
 
@@ -256,7 +260,7 @@ namespace AwningsAPI.Services.Tasks
             return await GetTaskByIdAsync(taskId);
         }
 
-        public async Task<EmailTaskDto> CompleteTaskAsync(int taskId, string completionNotes, string currentUser)
+        public async Task<AppTaskDto> CompleteTaskAsync(int taskId, string completionNotes, string currentUser)
         {
             var statusDto = new UpdateTaskStatusDto
             {
@@ -271,11 +275,11 @@ namespace AwningsAPI.Services.Tasks
 
         #region Assignment
 
-        public async Task<EmailTaskDto> AssignTaskAsync(int taskId, AssignTaskDto assignDto, string currentUser)
+        public async Task<AppTaskDto> AssignTaskAsync(int taskId, AssignTaskDto assignDto, string currentUser)
         {
             try
             {
-                var task = await _context.EmailTasks.FindAsync(taskId);
+                var task = await _context.Tasks.FindAsync(taskId);
                 if (task == null)
                     return null;
 
@@ -343,9 +347,9 @@ namespace AwningsAPI.Services.Tasks
             return await GetTaskByIdAsync(taskId);
         }
 
-        public async Task<EmailTaskDto> UnassignTaskAsync(int taskId, string currentUser)
+        public async Task<AppTaskDto> UnassignTaskAsync(int taskId, string currentUser)
         {
-            var task = await _context.EmailTasks.FindAsync(taskId);
+            var task = await _context.Tasks.FindAsync(taskId);
             if (task == null)
                 return null;
 
@@ -446,9 +450,9 @@ namespace AwningsAPI.Services.Tasks
 
         #region Filtering & Queries
 
-        public async Task<(IEnumerable<EmailTaskDto> Tasks, int TotalCount)> GetTasksWithFiltersAsync(TaskFilterDto filterDto)
+        public async Task<(IEnumerable<AppTaskDto> Tasks, int TotalCount)> GetTasksWithFiltersAsync(TaskFilterDto filterDto)
         {
-            var query = _context.EmailTasks
+            var query = _context.Tasks
                 .Include(t => t.TaskComments)
                 .Include(t => t.TaskAttachments)
                 .AsQueryable();
@@ -515,7 +519,7 @@ namespace AwningsAPI.Services.Tasks
                 .Take(filterDto.PageSize)
                 .ToListAsync();
 
-            var taskDtos = new List<EmailTaskDto>();
+            var taskDtos = new List<AppTaskDto>();
             foreach (var task in tasks)
             {
                 taskDtos.Add(await MapToDto(task));
@@ -524,16 +528,16 @@ namespace AwningsAPI.Services.Tasks
             return (taskDtos, totalCount);
         }
 
-        public async Task<IEnumerable<EmailTaskDto>> GetTasksByUserAsync(int userId)
+        public async Task<IEnumerable<AppTaskDto>> GetTasksByUserAsync(int userId)
         {
-            var tasks = await _context.EmailTasks
+            var tasks = await _context.Tasks
                 .Include(t => t.TaskComments)
                 .Include(t => t.TaskAttachments)
                 .Where(t => t.AssignedToUserId == userId)
                 .OrderByDescending(t => t.DateAdded)
                 .ToListAsync();
 
-            var taskDtos = new List<EmailTaskDto>();
+            var taskDtos = new List<AppTaskDto>();
             foreach (var task in tasks)
             {
                 taskDtos.Add(await MapToDto(task));
@@ -542,16 +546,16 @@ namespace AwningsAPI.Services.Tasks
             return taskDtos;
         }
 
-        public async Task<IEnumerable<EmailTaskDto>> GetTasksByCustomerAsync(int customerId)
+        public async Task<IEnumerable<AppTaskDto>> GetTasksByCustomerAsync(int customerId)
         {
-            var tasks = await _context.EmailTasks
+            var tasks = await _context.Tasks
                 .Include(t => t.TaskComments)
                 .Include(t => t.TaskAttachments)
                 .Where(t => t.CustomerId == customerId)
                 .OrderByDescending(t => t.DateAdded)
                 .ToListAsync();
 
-            var taskDtos = new List<EmailTaskDto>();
+            var taskDtos = new List<AppTaskDto>();
             foreach (var task in tasks)
             {
                 taskDtos.Add(await MapToDto(task));
@@ -560,16 +564,16 @@ namespace AwningsAPI.Services.Tasks
             return taskDtos;
         }
 
-        public async Task<IEnumerable<EmailTaskDto>> GetTasksByTypeAsync(string taskType)
+        public async Task<IEnumerable<AppTaskDto>> GetTasksByTypeAsync(string taskType)
         {
-            var tasks = await _context.EmailTasks
+            var tasks = await _context.Tasks
                 .Include(t => t.TaskComments)
                 .Include(t => t.TaskAttachments)
                 .Where(t => t.TaskType == taskType || t.Category == taskType)
                 .OrderByDescending(t => t.DateAdded)
                 .ToListAsync();
 
-            var taskDtos = new List<EmailTaskDto>();
+            var taskDtos = new List<AppTaskDto>();
             foreach (var task in tasks)
             {
                 taskDtos.Add(await MapToDto(task));
@@ -578,17 +582,17 @@ namespace AwningsAPI.Services.Tasks
             return taskDtos;
         }
 
-        public async Task<IEnumerable<EmailTaskDto>> GetOverdueTasksAsync()
+        public async Task<IEnumerable<AppTaskDto>> GetOverdueTasksAsync()
         {
             var today = DateTime.UtcNow.Date;
-            var tasks = await _context.EmailTasks
+            var tasks = await _context.Tasks
                 .Include(t => t.TaskComments)
                 .Include(t => t.TaskAttachments)
                 .Where(t => t.DueDate.HasValue && t.DueDate.Value.Date < today && t.Status != "Completed" && t.Status != "Processed")
                 .OrderBy(t => t.DueDate)
                 .ToListAsync();
 
-            var taskDtos = new List<EmailTaskDto>();
+            var taskDtos = new List<AppTaskDto>();
             foreach (var task in tasks)
             {
                 taskDtos.Add(await MapToDto(task));
@@ -597,23 +601,142 @@ namespace AwningsAPI.Services.Tasks
             return taskDtos;
         }
 
-        public async Task<IEnumerable<EmailTaskDto>> GetTasksDueTodayAsync()
+        public async Task<IEnumerable<AppTaskDto>> GetTasksDueTodayAsync()
         {
             var today = DateTime.UtcNow.Date;
-            var tasks = await _context.EmailTasks
+            var tasks = await _context.Tasks
                 .Include(t => t.TaskComments)
                 .Include(t => t.TaskAttachments)
                 .Where(t => t.DueDate.HasValue && t.DueDate.Value.Date == today && t.Status != "Completed" && t.Status != "Processed")
                 .OrderBy(t => t.Priority)
                 .ToListAsync();
 
-            var taskDtos = new List<EmailTaskDto>();
+            var taskDtos = new List<AppTaskDto>();
             foreach (var task in tasks)
             {
                 taskDtos.Add(await MapToDto(task));
             }
 
             return taskDtos;
+        }
+
+
+        // ────────────────────────────────────────────────────────────────────
+        // GetFilteredTasksAsync — applies SourceType filter for tab routing
+        // (replaces / supplements whatever paging method you already have)
+        // ────────────────────────────────────────────────────────────────────
+        public async Task<(IEnumerable<AppTaskDto> Items, int TotalCount)>  GetFilteredTasksAsync(TaskFilterDto filter)
+        {
+            var query = _context.Tasks.AsQueryable();
+
+            // ── Source type filter (tabs: All | Email | Site Visits | Manual) ─
+            var sourceTypes = filter.SourceTypes ?? (
+                filter.SourceType != null ? new List<string> { filter.SourceType } : null);
+
+            if (sourceTypes != null && sourceTypes.Count > 0)
+                query = query.Where(t => sourceTypes.Contains(t.SourceType));
+
+            // ── Status filter ─────────────────────────────────────────────────
+            var statuses = filter.Statuses ?? (
+                filter.Status != null ? new List<string> { filter.Status } : null);
+
+            if (statuses != null && statuses.Count > 0)
+                query = query.Where(t => statuses.Contains(t.Status));
+
+            // ── Other filters ─────────────────────────────────────────────────
+            if (!string.IsNullOrEmpty(filter.TaskType))
+                query = query.Where(t => t.TaskType == filter.TaskType);
+
+            if (!string.IsNullOrEmpty(filter.Priority))
+                query = query.Where(t => t.Priority == filter.Priority);
+
+            if (filter.AssignedToUserId.HasValue)
+                query = query.Where(t => t.AssignedToUserId == filter.AssignedToUserId);
+
+            if (filter.CustomerId.HasValue)
+                query = query.Where(t => t.CustomerId == filter.CustomerId);
+
+            if (filter.DueDateFrom.HasValue)
+                query = query.Where(t => t.DueDate >= filter.DueDateFrom);
+
+            if (filter.DueDateTo.HasValue)
+                query = query.Where(t => t.DueDate <= filter.DueDateTo);
+
+            if (filter.CreatedDateFrom.HasValue)
+                query = query.Where(t => t.DateCreated >= filter.CreatedDateFrom);
+
+            if (filter.CreatedDateTo.HasValue)
+                query = query.Where(t => t.DateCreated <= filter.CreatedDateTo);
+
+            if (!string.IsNullOrEmpty(filter.SearchTerm))
+            {
+                var term = filter.SearchTerm.ToLower();
+                query = query.Where(t =>
+                    (t.Title != null && t.Title.ToLower().Contains(term)) ||
+                    (t.Subject != null && t.Subject.ToLower().Contains(term)) ||
+                    (t.FromName != null && t.FromName.ToLower().Contains(term)) ||
+                    (t.CustomerName != null && t.CustomerName.ToLower().Contains(term)));
+            }
+
+            // ── Visibility: non-admins see only their own tasks ───────────────
+            if (!filter.IsAdmin && filter.CurrentUserId.HasValue)
+                query = query.Where(t => t.AssignedToUserId == filter.CurrentUserId);
+
+            // ── Sort ──────────────────────────────────────────────────────────
+            query = (filter.SortBy, filter.SortDirection.ToUpper()) switch
+            {
+                ("DateAdded", "ASC") => query.OrderBy(t => t.DateAdded),
+                ("DateAdded", _) => query.OrderByDescending(t => t.DateAdded),
+                ("DueDate", "ASC") => query.OrderBy(t => t.DueDate),
+                ("DueDate", _) => query.OrderByDescending(t => t.DueDate),
+                ("Priority", "ASC") => query.OrderBy(t => t.Priority),
+                ("Priority", _) => query.OrderByDescending(t => t.Priority),
+                _ => query.OrderByDescending(t => t.DateAdded)
+            };
+
+            var totalCount = await query.CountAsync();
+
+            var tasks = await query
+                .Skip((filter.Page - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .Include(t => t.TaskComments)
+                .Include(t => t.TaskAttachments)
+                .ToListAsync();
+
+            var dtos = new List<AppTaskDto>();
+            foreach (var t in tasks)
+                dtos.Add(await MapToDto(t));
+
+            return (dtos, totalCount);
+        }
+
+
+        public async Task StoreSiteVisitLinkAsync(
+          int taskId, int siteVisitId, string currentUser)
+        {
+            var task = await _context.Tasks.FindAsync(taskId);
+            if (task == null) return;
+
+            task.SiteVisitId = siteVisitId;
+            task.DateUpdated = DateTime.UtcNow;
+            task.UpdatedBy = currentUser;
+
+            await _context.SaveChangesAsync();
+
+            await AddHistoryEntry(
+                taskId: taskId,
+                action: "SiteVisitLinked",
+                oldValue: null,
+                newValue: siteVisitId.ToString(),
+                details: $"Site visit {siteVisitId} linked to task",
+                createdBy: currentUser,
+                customerName: task.CustomerName,
+                subject: task.Subject ?? task.Title,
+                category: task.Category);
+
+            _logger.LogInformation(
+                "SiteVisit {SiteVisitId} linked to task {TaskId} by {User}",
+                siteVisitId, taskId, currentUser);
         }
 
         #endregion
@@ -626,23 +749,23 @@ namespace AwningsAPI.Services.Tasks
 
             var stats = new TaskStatistics
             {
-                TotalTasks = await _context.EmailTasks.CountAsync(),
-                PendingTasks = await _context.EmailTasks.CountAsync(t => t.Status == "Pending"),
-                InProgressTasks = await _context.EmailTasks.CountAsync(t => t.Status == "In Progress"),
-                CompletedTasks = await _context.EmailTasks.CountAsync(t => t.Status == "Completed" || t.Status == "Processed"),
-                OverdueTasks = await _context.EmailTasks.CountAsync(t => t.DueDate.HasValue && t.DueDate.Value.Date < today && t.Status != "Completed" && t.Status != "Processed"),
-                HighPriorityTasks = await _context.EmailTasks.CountAsync(t => t.Priority == "High" && t.Status != "Completed"),
-                UrgentTasks = await _context.EmailTasks.CountAsync(t => t.Priority == "Urgent" && t.Status != "Completed")
+                TotalTasks = await _context.Tasks.CountAsync(),
+                PendingTasks = await _context.Tasks.CountAsync(t => t.Status == "Pending"),
+                InProgressTasks = await _context.Tasks.CountAsync(t => t.Status == "In Progress"),
+                CompletedTasks = await _context.Tasks.CountAsync(t => t.Status == "Completed" || t.Status == "Processed"),
+                OverdueTasks = await _context.Tasks.CountAsync(t => t.DueDate.HasValue && t.DueDate.Value.Date < today && t.Status != "Completed" && t.Status != "Processed"),
+                HighPriorityTasks = await _context.Tasks.CountAsync(t => t.Priority == "High" && t.Status != "Completed"),
+                UrgentTasks = await _context.Tasks.CountAsync(t => t.Priority == "Urgent" && t.Status != "Completed")
             };
 
             // Tasks by type
-            stats.TasksByType = await _context.EmailTasks
+            stats.TasksByType = await _context.Tasks
                 .GroupBy(t => t.Category)
                 .Select(g => new { Type = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.Type ?? "Unknown", x => x.Count);
 
             // Tasks by assignee
-            stats.TasksByAssignee = await _context.EmailTasks
+            stats.TasksByAssignee = await _context.Tasks
                 .Where(t => t.AssignedToUserName != null)
                 .GroupBy(t => t.AssignedToUserName)
                 .Select(g => new { Assignee = g.Key, Count = g.Count() })
@@ -657,17 +780,17 @@ namespace AwningsAPI.Services.Tasks
 
             var stats = new TaskStatistics
             {
-                TotalTasks = await _context.EmailTasks.CountAsync(t => t.AssignedToUserId == userId),
-                PendingTasks = await _context.EmailTasks.CountAsync(t => t.AssignedToUserId == userId && t.Status == "Pending"),
-                InProgressTasks = await _context.EmailTasks.CountAsync(t => t.AssignedToUserId == userId && t.Status == "In Progress"),
-                CompletedTasks = await _context.EmailTasks.CountAsync(t => t.AssignedToUserId == userId && (t.Status == "Completed" || t.Status == "Processed")),
-                OverdueTasks = await _context.EmailTasks.CountAsync(t => t.AssignedToUserId == userId && t.DueDate.HasValue && t.DueDate.Value.Date < today && t.Status != "Completed" && t.Status != "Processed"),
-                HighPriorityTasks = await _context.EmailTasks.CountAsync(t => t.AssignedToUserId == userId && t.Priority == "High" && t.Status != "Completed"),
-                UrgentTasks = await _context.EmailTasks.CountAsync(t => t.AssignedToUserId == userId && t.Priority == "Urgent" && t.Status != "Completed")
+                TotalTasks = await _context.Tasks.CountAsync(t => t.AssignedToUserId == userId),
+                PendingTasks = await _context.Tasks.CountAsync(t => t.AssignedToUserId == userId && t.Status == "Pending"),
+                InProgressTasks = await _context.Tasks.CountAsync(t => t.AssignedToUserId == userId && t.Status == "In Progress"),
+                CompletedTasks = await _context.Tasks.CountAsync(t => t.AssignedToUserId == userId && (t.Status == "Completed" || t.Status == "Processed")),
+                OverdueTasks = await _context.Tasks.CountAsync(t => t.AssignedToUserId == userId && t.DueDate.HasValue && t.DueDate.Value.Date < today && t.Status != "Completed" && t.Status != "Processed"),
+                HighPriorityTasks = await _context.Tasks.CountAsync(t => t.AssignedToUserId == userId && t.Priority == "High" && t.Status != "Completed"),
+                UrgentTasks = await _context.Tasks.CountAsync(t => t.AssignedToUserId == userId && t.Priority == "Urgent" && t.Status != "Completed")
             };
 
             // Tasks by type for this user
-            stats.TasksByType = await _context.EmailTasks
+            stats.TasksByType = await _context.Tasks
                 .Where(t => t.AssignedToUserId == userId)
                 .GroupBy(t => t.Category)
                 .Select(g => new { Type = g.Key, Count = g.Count() })
@@ -704,7 +827,7 @@ namespace AwningsAPI.Services.Tasks
 
         #region Create Task From Email
 
-        public async Task<EmailTaskDto> CreateTaskFromEmailAsync(int incomingEmailId, string currentUser)
+        public async Task<AppTaskDto> CreateTaskFromEmailAsync(int incomingEmailId, string currentUser)
         {
             var email = await _context.IncomingEmails
                 .Include(e => e.Attachments)
@@ -782,7 +905,7 @@ namespace AwningsAPI.Services.Tasks
             }
 
             // Update the task with AI data
-            var dbTask = await _context.EmailTasks.FindAsync(task.TaskId);
+            var dbTask = await _context.Tasks.FindAsync(task.TaskId);
             if (dbTask != null)
             {
                 dbTask.TaskType = taskType;
@@ -860,7 +983,7 @@ namespace AwningsAPI.Services.Tasks
                     customer.CustomerId, customer.Name, fromEmail);
 
                 // ── 2. Apply customer (+ optional single workflow) to the task ───────
-                var task = await _context.EmailTasks.FindAsync(taskId);
+                var task = await _context.Tasks.FindAsync(taskId);
                 if (task == null) return;
 
                 task.CustomerId = customer.CustomerId;
@@ -973,7 +1096,7 @@ namespace AwningsAPI.Services.Tasks
             try
             {
                 // Find the task's WorkflowId (may be null if no workflow yet)
-                var dbTask = await _context.EmailTasks
+                var dbTask = await _context.Tasks
                     .AsNoTracking()
                     .FirstOrDefaultAsync(t => t.TaskId == taskId);
 
@@ -1135,11 +1258,18 @@ namespace AwningsAPI.Services.Tasks
             };
         }
 
-        private async Task<EmailTaskDto> MapToDto(EmailTask task)
+        private async Task<AppTaskDto> MapToDto(AppTask task)
         {
-            return new EmailTaskDto
+            // Resolve the display title (Title takes priority; fall back to Subject)
+            var displayTitle = !string.IsNullOrWhiteSpace(task.Title)
+                ? task.Title
+                : task.Subject ?? "(No title)";
+
+            var dto = new AppTaskDto
             {
                 TaskId = task.TaskId,
+                SourceType = task.SourceType,
+                DisplayTitle = displayTitle,
                 IncomingEmailId = task.IncomingEmailId,
                 FromName = task.FromName,
                 FromEmail = task.FromEmail,
@@ -1163,6 +1293,7 @@ namespace AwningsAPI.Services.Tasks
                 CustomerName = task.CustomerName,
                 CustomerEmail = task.CustomerEmail,
                 WorkflowId = task.WorkflowId,
+                SiteVisitId = task.SiteVisitId,      // ← NEW
                 DueDate = task.DueDate,
                 DateProcessed = task.DateProcessed,
                 ProcessedBy = task.ProcessedBy,
@@ -1176,6 +1307,7 @@ namespace AwningsAPI.Services.Tasks
                 DateUpdated = task.DateUpdated,
                 CreatedBy = task.CreatedBy,
                 UpdatedBy = task.UpdatedBy,
+
                 Comments = task.TaskComments?.Select(c => new TaskCommentDto
                 {
                     CommentId = c.CommentId,
@@ -1186,7 +1318,8 @@ namespace AwningsAPI.Services.Tasks
                     DateCreated = c.DateCreated,
                     DateUpdated = c.DateUpdated,
                     IsEdited = c.IsEdited
-                }).ToList() ?? new List<TaskCommentDto>(),
+                }).ToList() ?? new(),
+
                 Attachments = task.TaskAttachments?.Select(a => new TaskAttachmentDto
                 {
                     AttachmentId = a.AttachmentId,
@@ -1198,27 +1331,35 @@ namespace AwningsAPI.Services.Tasks
                     BlobUrl = a.BlobUrl,
                     DateUploaded = a.DateUploaded,
                     UploadedBy = a.UploadedBy
-                }).ToList() ?? new List<TaskAttachmentDto>(),
-                History = task.TaskHistories?.Select(h => new TaskHistoryDto
-                {
-                    HistoryId = h.HistoryId,
-                    TaskId = h.TaskId,
-                    Action = h.Action,
-                    OldValue = h.OldValue,
-                    NewValue = h.NewValue,
-                    Details = h.Details,
-                    DateCreated = h.DateCreated,
-                    CreatedBy = h.CreatedBy,
-                    CustomerName = h.CustomerName,
-                    Subject = h.Subject,
-                    Category = h.Category,
-                    AssignedTo = h.Action == "Assigned" ? h.NewValue :
-                                 h.Action == "Unassigned" ? h.OldValue : null,
-                    AssignedBy = (h.Action == "Assigned" || h.Action == "Unassigned")
-                                 ? h.CreatedBy : null
-                }).OrderByDescending(h => h.DateCreated).ToList() ?? new List<TaskHistoryDto>()
+                }).ToList() ?? new(),
             };
+
+            // History is fetched separately to keep the query lean
+            var histories = await _context.TaskHistories
+                .Where(h => h.TaskId == task.TaskId)
+                .OrderByDescending(h => h.DateCreated)
+                .ToListAsync();
+
+            dto.History = histories.Select(h => new TaskHistoryDto
+            {
+                HistoryId = h.HistoryId,
+                TaskId = h.TaskId,
+                Action = h.Action,
+                OldValue = h.OldValue,
+                NewValue = h.NewValue,
+                Details = h.Details,
+                DateCreated = h.DateCreated,
+                CreatedBy = h.CreatedBy,
+                CustomerName = h.CustomerName,
+                Subject = h.Subject,
+                Category = h.Category,
+                AssignedTo = h.Action is "Assigned" or "Unassigned" ? h.NewValue : null,
+                AssignedBy = h.Action is "Assigned" or "Unassigned" ? h.CreatedBy : null
+            }).ToList();
+
+            return dto;
         }
+
 
         private string MapCategoryToDisplay(string category)
         {
@@ -1271,7 +1412,7 @@ namespace AwningsAPI.Services.Tasks
         /// </summary>
         public async Task<object> ExecuteTaskActionAsync(int taskId, string action, object data)
         {
-            var task = await _context.EmailTasks
+            var task = await _context.Tasks
                 .Include(t => t.TaskAttachments)
                 .FirstOrDefaultAsync(t => t.TaskId == taskId);
 
@@ -1293,7 +1434,7 @@ namespace AwningsAPI.Services.Tasks
             };
         }
 
-        private async Task<object> ExecuteAddCompanyAction(EmailTask task, object data)
+        private async Task<object> ExecuteAddCompanyAction(AppTask task, object data)
         {
             // Extract company data from the email
             var extractedData = string.IsNullOrEmpty(task.ExtractedData)
@@ -1326,7 +1467,7 @@ namespace AwningsAPI.Services.Tasks
         }
 
         #region Action Execution
-        private async Task<object> ExecuteGenerateQuoteAction(EmailTask task, object data)
+        private async Task<object> ExecuteGenerateQuoteAction(AppTask task, object data)
         {
             // Extract quote-related data from the email
             var extractedData = string.IsNullOrEmpty(task.ExtractedData)
@@ -1364,7 +1505,7 @@ namespace AwningsAPI.Services.Tasks
             };
         }
 
-        private async Task<object> ExecuteGenerateInvoiceAction(EmailTask task, object data)
+        private async Task<object> ExecuteGenerateInvoiceAction(AppTask task, object data)
         {
             // Extract invoice-related data from the email
             var extractedData = string.IsNullOrEmpty(task.ExtractedData)
@@ -1403,7 +1544,7 @@ namespace AwningsAPI.Services.Tasks
             };
         }
 
-        private async Task<object> ExecuteAddSiteVisitAction(EmailTask task, object data)
+        private async Task<object> ExecuteAddSiteVisitAction(AppTask task, object data)
         {
             // Extract site visit data from the email
             var extractedData = string.IsNullOrEmpty(task.ExtractedData)
@@ -1438,7 +1579,7 @@ namespace AwningsAPI.Services.Tasks
             };
         }
 
-        private async Task<object> ExecuteMoveToJunkAction(EmailTask task, object data)
+        private async Task<object> ExecuteMoveToJunkAction(AppTask task, object data)
         {
             task.Status = "Junk";
             task.DateUpdated = DateTime.UtcNow;
@@ -1470,7 +1611,7 @@ namespace AwningsAPI.Services.Tasks
         /// </summary>
         public async Task<ExtractedCustomerDataDto> GetExtractedCustomerDataAsync(int taskId)
         {
-            var task = await _context.EmailTasks
+            var task = await _context.Tasks
                 .FirstOrDefaultAsync(t => t.TaskId == taskId);
 
             if (task == null)
@@ -1551,9 +1692,9 @@ namespace AwningsAPI.Services.Tasks
         /// POST /api/EmailTask/{taskId}/link-customer
         /// Links an existing customer to a task and records the change in history.
         /// </summary>
-        public async Task<EmailTaskDto> LinkCustomerToTaskAsync(int taskId, int customerId, string currentUser)
+        public async Task<AppTaskDto> LinkCustomerToTaskAsync(int taskId, int customerId, string currentUser)
         {
-            var task = await _context.EmailTasks
+            var task = await _context.Tasks
                 .Include(t => t.TaskAttachments)
                 .FirstOrDefaultAsync(t => t.TaskId == taskId);
 
@@ -1598,10 +1739,10 @@ namespace AwningsAPI.Services.Tasks
         /// from the email-task screen.  Updates EmailTask.WorkflowId and writes
         /// a "WorkflowLinked" entry into task history.
         /// </summary>
-        public async Task<EmailTaskDto> LinkWorkflowToTaskAsync(
+        public async Task<AppTaskDto> LinkWorkflowToTaskAsync(
             int taskId, int workflowId, string currentUser)
         {
-            var task = await _context.EmailTasks.FindAsync(taskId);
+            var task = await _context.Tasks.FindAsync(taskId);
             if (task == null) return null;
 
             // Guard: don't overwrite if the same workflow is already set

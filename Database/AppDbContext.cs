@@ -1,4 +1,5 @@
 ﻿using AwiningsIreland_WebAPI.Models;
+using AwningsAPI.Migrations;
 using AwningsAPI.Model.Audit;
 using AwningsAPI.Model.Auth;
 using AwningsAPI.Model.Customers;
@@ -58,7 +59,9 @@ namespace AwningsAPI.Database
         public DbSet<LightingCassette> LightingCassettes { get; set; }
         public DbSet<IncomingEmail> IncomingEmails { get; set; }
         public DbSet<EmailAttachment> EmailAttachments { get; set; }
-        public DbSet<EmailTask> EmailTasks { get; set; }
+      //  public DbSet<EmailTask> EmailTasks { get; set; }
+
+        public DbSet<AppTask> Tasks { get; set; }
         public DbSet<TaskComment> TaskComments { get; set; }
         public DbSet<TaskAttachment> TaskAttachments { get; set; }
         public DbSet<TaskHistory> TaskHistories { get; set; }
@@ -360,55 +363,78 @@ namespace AwningsAPI.Database
 
 
             // EmailTask Configuration
-            modelBuilder.Entity<EmailTask>(entity =>
+            modelBuilder.Entity<AppTask>(entity =>
             {
-                entity.ToTable("EmailTasks");
+                // TABLE renamed: EmailTasks → Tasks
+                entity.ToTable("Tasks");
                 entity.HasKey(e => e.TaskId);
 
-                // The properties FromName, FromEmail, Subject, and Category already have
-                // [Required] and [StringLength] attributes in the model, so we don't need
-                // to configure them again here. EF Core will read those attributes.
+                // ── New columns added in this migration ───────────────────────────
+                // SourceType: required discriminator, backfills to 'Email' for all
+                // existing rows via the migration SQL DEFAULT constraint.
+                entity.Property(e => e.SourceType)
+                    .IsRequired()
+                    .HasMaxLength(50)
+                    .HasDefaultValue("Email");
 
-                // Configure relationships
+                // Title: optional display label; email tasks derive it from Subject.
+                entity.Property(e => e.Title)
+                    .HasMaxLength(500)
+                    .IsRequired(false);
+
+                // SiteVisitId: optional FK — only populated for SourceType=SiteVisit.
+                entity.Property(e => e.SiteVisitId)
+                    .IsRequired(false);
+
+                // ── IncomingEmailId is now optional (null for non-email tasks) ────
+                entity.Property(e => e.IncomingEmailId)
+                    .IsRequired(false);
+
+                // ── Relationships (navigation property renamed .Task, not .EmailTask) ─
                 entity.HasMany(t => t.TaskComments)
-                    .WithOne(c => c.EmailTask)
+                    .WithOne(c => c.Task)
                     .HasForeignKey(c => c.TaskId)
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasMany(t => t.TaskAttachments)
-                    .WithOne(a => a.EmailTask)
+                    .WithOne(a => a.Task)
                     .HasForeignKey(a => a.TaskId)
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasMany(t => t.TaskHistories)
-                    .WithOne(h => h.EmailTask)
+                    .WithOne(h => h.Task)
                     .HasForeignKey(h => h.TaskId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                // Indexes for better query performance
+                // ── Indexes (all renamed from IX_EmailTasks_* → IX_Tasks_*) ──────
                 entity.HasIndex(e => e.IncomingEmailId)
-                    .HasDatabaseName("IX_EmailTasks_IncomingEmailId");
+                    .HasDatabaseName("IX_Tasks_IncomingEmailId");
 
                 entity.HasIndex(e => e.Status)
-                    .HasDatabaseName("IX_EmailTasks_Status");
+                    .HasDatabaseName("IX_Tasks_Status");
 
                 entity.HasIndex(e => e.Category)
-                    .HasDatabaseName("IX_EmailTasks_Category");
+                    .HasDatabaseName("IX_Tasks_Category");
 
                 entity.HasIndex(e => e.AssignedToUserId)
-                    .HasDatabaseName("IX_EmailTasks_AssignedToUserId");
+                    .HasDatabaseName("IX_Tasks_AssignedToUserId");
 
                 entity.HasIndex(e => e.DateAdded)
-                    .HasDatabaseName("IX_EmailTasks_DateAdded");
+                    .HasDatabaseName("IX_Tasks_DateAdded");
 
                 entity.HasIndex(e => e.CustomerId)
-                    .HasDatabaseName("IX_EmailTasks_CustomerId");
+                    .HasDatabaseName("IX_Tasks_CustomerId");
 
                 entity.HasIndex(e => new { e.Status, e.DateAdded })
-                    .HasDatabaseName("IX_EmailTasks_Status_DateAdded");
+                    .HasDatabaseName("IX_Tasks_Status_DateAdded");
 
+                // ── New index on SourceType for tab-filter performance ────────────
+                entity.HasIndex(e => e.SourceType)
+                    .HasDatabaseName("IX_Tasks_SourceType");
 
-
+                // ── Composite index covering the most common tab query ────────────
+                entity.HasIndex(e => new { e.SourceType, e.Status, e.DateAdded })
+                    .HasDatabaseName("IX_Tasks_SourceType_Status_DateAdded");
             });
 
             // TaskComment Configuration

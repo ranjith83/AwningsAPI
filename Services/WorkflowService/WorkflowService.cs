@@ -111,7 +111,7 @@ namespace AwningsAPI.Services.WorkflowService
         {
             try
             {
-                var task = await _context.EmailTasks.AsNoTracking()
+                var task = await _context.Tasks.AsNoTracking()
                     .FirstOrDefaultAsync(t => t.TaskId == taskId);
                 if (task == null) return;
 

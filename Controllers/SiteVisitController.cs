@@ -1,5 +1,8 @@
 ﻿using AwningsAPI.Dto.SiteVisit;
+using AwningsAPI.Dto.Tasks;
 using AwningsAPI.Interfaces;
+using AwningsAPI.Model.Tasks;
+using AwningsAPI.Services.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +13,12 @@ namespace AwningsAPI.Controllers
     public class SiteVisitController : ControllerBase
     {
         private readonly ISiteVisitService _siteVisitService;
+        private readonly ITaskService _taskService;
 
-        public SiteVisitController(ISiteVisitService siteVisitService)
+        public SiteVisitController(ISiteVisitService siteVisitService, ITaskService taskService)
         {
             _siteVisitService = siteVisitService;
+            _taskService = taskService;
         }
 
         /// <summary>
@@ -182,9 +187,9 @@ namespace AwningsAPI.Controllers
         /// </summary>
         /// <param name="dto">Site visit creation data</param>
         /// <returns>Created site visit</returns>
-        [Authorize]
+      /**  [Authorize]
         [HttpPost]
-        public async Task<ActionResult<SiteVisitDto>> CreateSiteVisit([FromBody] CreateSiteVisitDto dto)
+        public async Task<ActionResult<SiteVisitDto>> CreateSiteVisit_old([FromBody] CreateSiteVisitDto dto)
         {
             try
             {
@@ -208,7 +213,7 @@ namespace AwningsAPI.Controllers
             {
                 return StatusCode(500, new { message = "Error creating site visit", error = ex.Message });
             }
-        }
+        }**/
 
         /// <summary>
         /// Update an existing site visit
@@ -312,5 +317,81 @@ namespace AwningsAPI.Controllers
                 return StatusCode(500, new { message = "Error retrieving category values", error = ex.Message });
             }
         }
+
+        // <summary>
+        /// POST api/SiteVisit
+        ///
+        /// 1. Persists the site visit record.
+        /// 2. Creates a linked AppTask (SourceType = "SiteVisit", Status = "New")
+        ///    so the task can be assigned to a user from the Task Management screen.
+        /// 3. Stamps the SiteVisitId directly on the task row (no JSON parsing needed).
+        /// 4. Returns a CreateSiteVisitResponseDto that includes the new TaskId so
+        ///    Angular can scroll to / highlight the new task row immediately.
+        /// </summary>
+        [Authorize]
+        [HttpPost]
+        public async Task<ActionResult<CreateSiteVisitResponseDto>> CreateSiteVisit(
+            [FromBody] CreateSiteVisitDto dto)
+        {
+            try
+            {
+                var currentUser = User?.Identity?.Name ?? "System";
+
+                // ── Step 1: Persist the site visit ───────────────────────────────
+                var siteVisit = await _siteVisitService.CreateSiteVisitAsync(dto, currentUser);
+
+                // ── Step 2: Create the matching task ─────────────────────────────
+                var taskDto = new CreateTaskDto
+                {
+                    SourceType = TaskSourceType.SiteVisit,   // ← discriminator
+                    Title = $"Site Visit – {dto.Model ?? dto.ProductModelType ?? "New"}",
+                    Category = "Site Visit",
+                   // EmailBody = BuildSiteVisitSummary(dto),
+                    Priority = "Normal",
+                    WorkflowId = dto.WorkflowId,
+                   // CompanyNumber = dto.CompanyNumber,
+                   // CustomerId = dto.CustomerId,
+                    // IncomingEmailId intentionally left null — no email for manual site visits
+                };
+
+                var task = await _taskService.CreateTaskAsync(taskDto, currentUser);
+
+                // ── Step 3: Stamp SiteVisitId directly on the task row ───────────
+                await _taskService.StoreSiteVisitLinkAsync(
+                    task.TaskId, siteVisit.SiteVisitId, currentUser);
+
+                // ── Step 4: Return combined response ─────────────────────────────
+                var response = new CreateSiteVisitResponseDto
+                {
+                    SiteVisitId = siteVisit.SiteVisitId,
+                    WorkflowId = siteVisit.WorkflowId,
+                    ProductModelType = siteVisit.ProductModelType,
+                    Model = siteVisit.Model,
+                    DateCreated = siteVisit.DateCreated,
+                    CreatedBy = siteVisit.CreatedBy,
+                    TaskId = task.TaskId   // Angular uses this to navigate to the new task
+                };
+
+                return CreatedAtAction(
+                    nameof(GetSiteVisitById),
+                    new { id = siteVisit.SiteVisitId },
+                    response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error creating site visit", error = ex.Message });
+            }
+        }
+    }
+
+    public class CreateSiteVisitResponseDto
+    {
+        public int SiteVisitId { get; set; }
+        public int WorkflowId { get; set; }
+        public string ProductModelType { get; set; }
+        public string Model { get; set; }
+        public DateTime DateCreated { get; set; }
+        public string CreatedBy { get; set; }
+        public object TaskId { get; set; }
     }
 }
