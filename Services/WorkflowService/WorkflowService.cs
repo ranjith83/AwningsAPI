@@ -306,27 +306,38 @@ namespace AwningsAPI.Services.WorkflowService
                 .Select(p => (int?)p.ArmTypeId)
                 .FirstOrDefaultAsync();
 
-        /// <summary>
-        /// Returns brackets for the product.  When <paramref name="armTypeId"/> is
-        /// supplied, only brackets whose ArmTypeId matches OR whose ArmTypeId is null
-        /// (universal brackets) are returned.  When null, all brackets are returned
-        /// (e.g. before the user has selected a width).
-        /// </summary>
         public async Task<List<Brackets>> GeBracketsForProductAsync(int productId, int? armTypeId = null)
         {
             var query = _context.Brackets.Where(b => b.ProductId == productId);
-
-            if (armTypeId.HasValue)
-                query = query.Where(b => b.ArmTypeId == null || b.ArmTypeId == armTypeId.Value);
-
+            query = armTypeId.HasValue
+                ? query.Where(b => b.ArmTypeId == null || b.ArmTypeId == armTypeId.Value)
+                : query.Where(b => b.ArmTypeId == null);
             return await query.ToListAsync();
         }
 
         public async Task<List<Arms>> GeArmsForProductAsync(int productId) =>
             await _context.Arms.Where(f => f.ProductId == productId).ToListAsync();
 
-        public async Task<List<Motors>> GeMotorsForProductAsync(int productId) =>
-            await _context.Motors.Where(f => f.ProductId == productId).ToListAsync();
+        public async Task<List<Motors>> GeMotorsForProductAsync(int productId, int? armTypeId = null)
+        {
+            var query = _context.Motors.Where(f => f.ProductId == productId);
+            query = armTypeId.HasValue
+                ? query.Where(m => m.ArmTypeId == null || m.ArmTypeId == armTypeId.Value)
+                : query.Where(m => m.ArmTypeId == null);
+            return await query.ToListAsync();
+        }
+
+        public async Task<List<Control>> GetControlsForProductAsync(int productId) =>
+            await _context.Controls.Where(c => c.ProductId == productId).ToListAsync();
+
+        public async Task<bool> HasControlsAsync(int productId) =>
+            await _context.Controls.AnyAsync(c => c.ProductId == productId);
+
+        public async Task<List<LightingCassette>> GetLightingForProductAsync(int productId) =>
+            await _context.LightingCassettes.Where(l => l.ProductId == productId).ToListAsync();
+
+        public async Task<bool> HasLightingAsync(int productId) =>
+            await _context.LightingCassettes.AnyAsync(l => l.ProductId == productId);
 
         public async Task<decimal> GeValanceStylePriceForProductAsync(int productId, int widthcm) =>
             await _context.valanceStyles.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price).FirstOrDefaultAsync();

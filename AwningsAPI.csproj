@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <Compile Remove="Dto\EmailTask\EmailTaskDto.cs" />
+    <Compile Remove="Migrations\20260418120000_FixProductsData.cs" />
     <Compile Remove="Model\EmailTask\EmailTask.cs" />
   </ItemGroup>
 

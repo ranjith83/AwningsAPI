@@ -162,11 +162,33 @@ namespace AwningsAPI.Controllers
             Task.FromResult<ActionResult<IEnumerable<ArmDto>>>(Ok(new List<ArmDto>()));
 
         [HttpGet("GeMotorsForProduct")]
-        public async Task<ActionResult<IEnumerable<MotorDto>>> GeMotorsForProduct(int ProductId)
+        public async Task<ActionResult<IEnumerable<MotorDto>>> GeMotorsForProduct(int ProductId, int? armTypeId = null)
         {
-            var motors = await _workflowService.GeMotorsForProductAsync(ProductId);
+            var motors = await _workflowService.GeMotorsForProductAsync(ProductId, armTypeId);
             return Ok(motors.Select(c => new MotorDto { MotorId = c.MotorId, Description = c.Description, Price = c.Price }).ToList());
         }
+
+        [HttpGet("GeControlsForProduct")]
+        public async Task<ActionResult<IEnumerable<ControlDto>>> GetControlsForProduct(int ProductId)
+        {
+            var controls = await _workflowService.GetControlsForProductAsync(ProductId);
+            return Ok(controls.Select(c => new ControlDto { ControlId = c.ControlId, Description = c.Description, Price = c.Price }).ToList());
+        }
+
+        [HttpGet("HasControls")]
+        public async Task<bool> HasControls(int ProductId) =>
+            await _workflowService.HasControlsAsync(ProductId);
+
+        [HttpGet("GeLightingCassettesForProduct")]
+        public async Task<ActionResult<IEnumerable<LightingCassetteDto>>> GetLightingForProduct(int ProductId)
+        {
+            var lighting = await _workflowService.GetLightingForProductAsync(ProductId);
+            return Ok(lighting.Select(l => new LightingCassetteDto { LightingId = l.LightingId, Description = l.Description, Price = l.Price }).ToList());
+        }
+
+        [HttpGet("HasLighting")]
+        public async Task<bool> HasLighting(int ProductId) =>
+            await _workflowService.HasLightingAsync(ProductId);
 
         [HttpGet("GeValanceStylePriceForProduct")]
         public async Task<decimal> GeValanceStylePriceForProduct(int ProductId, int widthcm) =>

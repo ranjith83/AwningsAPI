@@ -505,6 +505,7 @@ namespace AwningsAPI.Services.Tasks
             // Sorting
             query = filterDto.SortBy?.ToLower() switch
             {
+                "sourcetype" => filterDto.SortDirection == "ASC" ? query.OrderBy(t => t.SourceType) : query.OrderByDescending(t => t.SourceType),
                 "subject" => filterDto.SortDirection == "ASC" ? query.OrderBy(t => t.Subject) : query.OrderByDescending(t => t.Subject),
                 "status" => filterDto.SortDirection == "ASC" ? query.OrderBy(t => t.Status) : query.OrderByDescending(t => t.Status),
                 "priority" => filterDto.SortDirection == "ASC" ? query.OrderBy(t => t.Priority) : query.OrderByDescending(t => t.Priority),

@@ -2626,8 +2626,6 @@ namespace AwningsAPI.Database
 
             //LightingCassette Data
             modelBuilder.Entity<LightingCassette>().HasData(
-                //new LightingCassette { LightingId = 1, Description = "Surcharge for LED Line RGB-WW Radio-controlled io - dimmable (without remote control)", Price = 1555.00m, DateCreated = new DateTime(2026, 4, 6), CreatedBy = "System", ProductId = 5 },
-                //new LightingCassette { LightingId = 2, Description = "Surcharge for LED Line RGB-WW Zigbee radio control - dimmable (without transmitter)", Price = 1386.00m, DateCreated = new DateTime(2026, 4, 6), CreatedBy = "System", ProductId = 5 },
                 new LightingCassette { LightingId = 1, Description = "Surcharge for LED Line RGB-WW Radio-controlled io - dimmable (without remote control)", Price = 1555.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 4 },
                 new LightingCassette { LightingId = 2, Description = "Surcharge for LED Line RGB-WW Zigbee radio control - dimmable (without transmitter)", Price = 1386.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 4 },
                 new { LightingId = 3,Description = "Surcharge for LED Line RGB-WW Radio-controlled io - dimmable (without remote control)",  Price = 1555m,  DateCreated = new DateTime(2026, 4, 16), CreatedBy = "System", ProductId = 7 },
