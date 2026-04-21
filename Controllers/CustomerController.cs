@@ -1,4 +1,5 @@
 ﻿using AwningsAPI.Dto.Customers;
+using AwningsAPI.Dto.Eircode;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Customers;
 using Microsoft.AspNetCore.Authorization;
@@ -114,6 +115,17 @@ namespace AwningsAPI.Controllers
                 return NotFound();
             }
             return Ok(customer);
+        }
+
+        [Authorize]
+        [HttpGet("eircode-lookup/{eircode}")]
+        public async Task<ActionResult<EircodeResultDto>> EircodeLookup(string eircode)
+        {
+            var result = await _customerService.LookupEircodeAsync(eircode);
+            if (result == null)
+                return NotFound("No address found for the given Eircode.");
+
+            return Ok(result);
         }
     }
 }

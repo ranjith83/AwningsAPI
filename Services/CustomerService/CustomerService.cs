@@ -1,5 +1,7 @@
-﻿using AwningsAPI.Database;
+﻿using System.Text.Json.Nodes;
+using AwningsAPI.Database;
 using AwningsAPI.Dto.Customers;
+using AwningsAPI.Dto.Eircode;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Customers;
 using Microsoft.EntityFrameworkCore;
@@ -9,10 +11,14 @@ namespace AwningsAPI.Services.CustomerService
     public class CustomerService : ICustomerService
     {
         private readonly AppDbContext _context;
+        private readonly HttpClient _httpClient;
+        private readonly string _tomTomApiKey;
 
-        public CustomerService(AppDbContext context)
+        public CustomerService(AppDbContext context, IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
             _context = context;
+            _httpClient = httpClientFactory.CreateClient();
+            _tomTomApiKey = configuration["TomTom:ApiKey"] ?? string.Empty;
         }
 
         public async Task<IEnumerable<Customer>> GetAllCustomersAsync()
@@ -171,6 +177,37 @@ namespace AwningsAPI.Services.CustomerService
             await _context.SaveChangesAsync();
 
             return true;
+        }
+
+        public async Task<EircodeResultDto?> LookupEircodeAsync(string eircode)
+        {
+            var url = $"https://api.tomtom.com/search/2/search/{Uri.EscapeDataString(eircode)}.json?key={_tomTomApiKey}&countrySet=IRL&limit=1";
+
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var json = await response.Content.ReadAsStringAsync();
+            var root = JsonNode.Parse(json);
+            if (root == null)
+                return null;
+
+            var address = root["results"]?[0]?["address"];
+            if (address == null)
+                return null;
+
+            var streetNumber = address["streetNumber"]?.GetValue<string>();
+            var streetName = address["streetName"]?.GetValue<string>();
+            var address1 = string.Join(" ", new[] { streetNumber, streetName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+            return new EircodeResultDto
+            {
+                Address1 = string.IsNullOrWhiteSpace(address1) ? null : address1,
+                Address2 = address["municipalitySubdivision"]?.GetValue<string>(),
+                Address3 = address["municipality"]?.GetValue<string>(),
+                County = address["countrySecondarySubdivision"]?.GetValue<string>(),
+                Eircode = address["postalCode"]?.GetValue<string>()
+            };
         }
     }
 }

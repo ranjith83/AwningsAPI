@@ -78,7 +78,7 @@ SET IDENTITY_INSERT LightingCassettes OFF;");
                    INSERT INTO Controls (ControlId, Description, PartNumber, Price, DateCreated, CreatedBy, ProductId)
         VALUES 
         (1, 'markilux io-5 designcontrol transmitter - 5 channel', '8272099', 154.00, '2026-04-07', 'System', 2),
-        (2, 'Somfy TaHoma Switch', '8272377', 362.00, '2026-04-07', 'System', 2)
+        (2, 'Somfy TaHoma Switch', '8272377', 362.00, '2026-04-07', 'System', 2);
             SET IDENTITY_INSERT Controls OFF;");
 
             // ── New Controls for Product 5 (6000 Single) ─────────────────────────
