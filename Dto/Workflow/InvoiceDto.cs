@@ -42,6 +42,7 @@ namespace AwningsAPI.Dto.Workflow
         public decimal TotalPrice { get; set; }
         public string Unit { get; set; }
         public int SortOrder { get; set; }
+        public int? ProductItemId { get; set; }
     }
 
     public class InvoicePaymentDto
@@ -95,6 +96,7 @@ namespace AwningsAPI.Dto.Workflow
         public decimal TaxRate { get; set; } = 0;
         public decimal DiscountPercentage { get; set; } = 0;
         public string Unit { get; set; } = "pcs";
+        public int? ProductItemId { get; set; }
     }
 
     public class UpdateInvoiceDto
@@ -116,6 +118,7 @@ namespace AwningsAPI.Dto.Workflow
         public decimal TaxRate { get; set; }
         public decimal DiscountPercentage { get; set; }
         public string Unit { get; set; }
+        public int? ProductItemId { get; set; }
     }
 
     public class CreatePaymentDto

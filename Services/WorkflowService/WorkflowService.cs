@@ -41,6 +41,7 @@ namespace AwningsAPI.Services.WorkflowService
             // Bulk-load which workflow IDs have real activity for each stage
             var enquiryIds = await _context.InitialEnquiries.Where(e => workflowIds.Contains(e.WorkflowId)).Select(e => e.WorkflowId).Distinct().ToListAsync();
             var quoteIds = await _context.Quotes.Where(q => workflowIds.Contains(q.WorkflowId)).Select(q => q.WorkflowId).Distinct().ToListAsync();
+            var finalQuoteIds = await _context.Quotes.Where(q => workflowIds.Contains(q.WorkflowId) && q.IsFinal).Select(q => q.WorkflowId).Distinct().ToListAsync();
             var showroomIds = await _context.ShowroomInvites.Where(s => workflowIds.Contains(s.WorkflowId)).Select(s => s.WorkflowId).Distinct().ToListAsync();
             var siteVisitIds = await _context.SiteVisits.Where(v => workflowIds.Contains(v.WorkflowId)).Select(v => v.WorkflowId).Distinct().ToListAsync();
             var invoiceIds = await _context.Invoices.Where(i => workflowIds.Contains(i.WorkflowId)).Select(i => i.WorkflowId).Distinct().ToListAsync();
@@ -56,12 +57,14 @@ namespace AwningsAPI.Services.WorkflowService
                 InviteShowRoomVisit = w.InviteShowRoom,
                 SetupSiteVisit = w.SetupSiteVisit,
                 InvoiceSent = w.InvoiceSent,
+                FinalQuote = w.FinalQuote,
                 // Stage-completed flags
                 InitialEnquiryCompleted = enquiryIds.Contains(w.WorkflowId),
                 CreateQuotationCompleted = quoteIds.Contains(w.WorkflowId),
                 InviteShowRoomCompleted = showroomIds.Contains(w.WorkflowId),
                 SetupSiteVisitCompleted = siteVisitIds.Contains(w.WorkflowId),
                 InvoiceSentCompleted = invoiceIds.Contains(w.WorkflowId),
+                FinalQuoteCompleted = finalQuoteIds.Contains(w.WorkflowId),
                 // Deletion guard flag (any completed stage = has dependencies)
                 HasDependencies =
                     enquiryIds.Contains(w.WorkflowId) ||
@@ -90,6 +93,7 @@ namespace AwningsAPI.Services.WorkflowService
                 InviteShowRoom = dto.InviteShowRoomVisit,
                 SetupSiteVisit = dto.SetupSiteVisit,
                 InvoiceSent = dto.InvoiceSent,
+                FinalQuote = dto.FinalQuote,
                 SupplierId = dto.SupplierId,
                 CustomerId = dto.CustomerId,
                 ProductId = dto.ProductId,
@@ -161,6 +165,7 @@ namespace AwningsAPI.Services.WorkflowService
             existing.InviteShowRoom = dto.InviteShowRoomVisit;
             existing.SetupSiteVisit = dto.SetupSiteVisit;
             existing.InvoiceSent = dto.InvoiceSent;
+            existing.FinalQuote = dto.FinalQuote;
             existing.SupplierId = dto.SupplierId;
             existing.CustomerId = dto.CustomerId;
             existing.ProductId = dto.ProductId;

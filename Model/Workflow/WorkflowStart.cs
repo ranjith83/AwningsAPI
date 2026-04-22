@@ -14,6 +14,7 @@ namespace AwningsAPI.Model.Workflow
         public bool InviteShowRoom { get; set; }
         public bool SetupSiteVisit { get; set; }
         public bool InvoiceSent { get; set; }
+        public bool FinalQuote { get; set; }
         public DateTime DateCreated { get; set; }
         public string CreatedBy { get; set; }
         public DateTime? DateUpdated { get; set; }

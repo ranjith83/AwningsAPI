@@ -93,6 +93,7 @@ namespace AwningsAPI.Services.WorkflowService
                     TaxRate = itemDto.TaxRate,
                     DiscountPercentage = itemDto.DiscountPercentage,
                     Unit = itemDto.Unit,
+                    ProductItemId = itemDto.ProductItemId,
                     SortOrder = sortOrder++
                 };
 
@@ -159,6 +160,7 @@ namespace AwningsAPI.Services.WorkflowService
                         TaxRate = itemDto.TaxRate,
                         DiscountPercentage = itemDto.DiscountPercentage,
                         Unit = itemDto.Unit,
+                        ProductItemId = itemDto.ProductItemId,
                         SortOrder = sortOrder++
                     };
 
@@ -352,7 +354,8 @@ namespace AwningsAPI.Services.WorkflowService
                     DiscountPercentage = i.DiscountPercentage,
                     TotalPrice = i.TotalPrice,
                     Unit = i.Unit,
-                    SortOrder = i.SortOrder
+                    SortOrder = i.SortOrder,
+                    ProductItemId = i.ProductItemId
                 }).ToList() ?? new List<InvoiceItemDto>(),
                 InvoicePayments = invoice.InvoicePayments?.Select(p => new InvoicePaymentDto
                 {

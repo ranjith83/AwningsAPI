@@ -4,6 +4,7 @@ using AwningsAPI.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AwningsAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260422143917_AddProductItemFinalQuote")]
+    partial class AddProductItemFinalQuote
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -18369,16 +18372,10 @@ namespace AwningsAPI.Migrations
                     b.Property<decimal>("DiscountValue")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("DraftQuoteId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("FinalizedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<DateTime>("FollowUpDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsFinal")
+                    b.Property<bool>("IsVoided")
                         .HasColumnType("bit");
 
                     b.Property<string>("Notes")
@@ -18414,12 +18411,13 @@ namespace AwningsAPI.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<DateTime?>("VoidedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("WorkflowId")
                         .HasColumnType("int");
 
                     b.HasKey("QuoteId");
-
-                    b.HasIndex("DraftQuoteId");
 
                     b.HasIndex("QuoteNumber")
                         .IsUnique();
@@ -18850,16 +18848,6 @@ namespace AwningsAPI.Migrations
                         .IsRequired();
 
                     b.Navigation("Invoice");
-                });
-
-            modelBuilder.Entity("AwningsAPI.Model.Workflow.Quote", b =>
-                {
-                    b.HasOne("AwningsAPI.Model.Workflow.Quote", "DraftQuote")
-                        .WithMany()
-                        .HasForeignKey("DraftQuoteId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("DraftQuote");
                 });
 
             modelBuilder.Entity("AwningsAPI.Model.Workflow.QuoteItem", b =>

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using AwningsAPI.Model.Workflow;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AwiningsIreland_WebAPI.Models
@@ -94,9 +95,14 @@ namespace AwiningsIreland_WebAPI.Models
 
         public int SortOrder { get; set; }
 
-        // Navigation Property
+        public int? ProductItemId { get; set; }
+
+        // Navigation Properties
         [ForeignKey("InvoiceId")]
         public virtual Invoice Invoice { get; set; }
+
+        [ForeignKey("ProductItemId")]
+        public virtual ProductItem ProductItem { get; set; }
     }
 
     public class InvoicePayment

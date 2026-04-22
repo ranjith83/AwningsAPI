@@ -64,6 +64,16 @@ namespace AwningsAPI.Model.Workflow
 
         [Required]
         public int CustomerId { get; set; }
+
+        public bool IsFinal { get; set; } = false;
+
+        public DateTime? FinalizedAt { get; set; }
+
+        // Links a final quote back to its originating draft quote
+        public int? DraftQuoteId { get; set; }
+
+        [ForeignKey("DraftQuoteId")]
+        public virtual Quote DraftQuote { get; set; }
     }
 
     public class QuoteItem
@@ -96,8 +106,13 @@ namespace AwningsAPI.Model.Workflow
 
         public int SortOrder { get; set; }
 
-        // Navigation Property
+        public int? ProductItemId { get; set; }
+
+        // Navigation Properties
         [ForeignKey("QuoteId")]
         public virtual Quote Quote { get; set; }
+
+        [ForeignKey("ProductItemId")]
+        public virtual ProductItem ProductItem { get; set; }
     }
 }

@@ -20,6 +20,9 @@ namespace AwningsAPI.Dto.Workflow
         public DateTime? UpdatedAt { get; set; }
         public string CreatedBy { get; set; }
         public string UpdatedBy { get; set; }
+        public bool IsFinal { get; set; }
+        public DateTime? FinalizedAt { get; set; }
+        public int? DraftQuoteId { get; set; }
         public virtual ICollection<QuoteItemDto> QuoteItems { get; set; } = new List<QuoteItemDto>();
         public int CustomerId { get; set; }
     }
@@ -35,6 +38,7 @@ namespace AwningsAPI.Dto.Workflow
         public decimal DiscountPercentage { get; set; }
         public decimal TotalPrice { get; set; }
         public int SortOrder { get; set; }
+        public int? ProductItemId { get; set; }
 
         [ForeignKey("QuoteId")]
         public virtual QuoteDto Quote { get; set; }
@@ -87,6 +91,7 @@ namespace AwningsAPI.Dto.Workflow
 
         public decimal TaxRate { get; set; } = 0;
         public decimal DiscountPercentage { get; set; } = 0;
+        public int? ProductItemId { get; set; }
     }
 
     public class UpdateQuoteDto
@@ -101,6 +106,26 @@ namespace AwningsAPI.Dto.Workflow
         public List<UpdateQuoteItemDto> QuoteItems { get; set; }
     }
 
+    public class CreateFinalQuoteDto
+    {
+        [Required]
+        public int DraftQuoteId { get; set; }
+
+        [Required]
+        public DateTime QuoteDate { get; set; }
+
+        [Required]
+        public DateTime FollowUpDate { get; set; }
+
+        public string Notes { get; set; }
+        public string Terms { get; set; }
+        public string? DiscountType { get; set; }
+        public decimal DiscountValue { get; set; } = 0;
+
+        [Required]
+        public List<CreateQuoteItemDto> QuoteItems { get; set; } = new List<CreateQuoteItemDto>();
+    }
+
     public class UpdateQuoteItemDto
     {
         public string Description { get; set; }
@@ -108,5 +133,6 @@ namespace AwningsAPI.Dto.Workflow
         public decimal UnitPrice { get; set; }
         public decimal TaxRate { get; set; }
         public decimal DiscountPercentage { get; set; }
+        public int? ProductItemId { get; set; }
     }
 }

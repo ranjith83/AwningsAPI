@@ -8,6 +8,7 @@ namespace AwningsAPI.Interfaces
         Task<IEnumerable<QuoteDto>> GetQuotesByWorkflowIdAsync(int workflowId);
         Task<QuoteDto> GetQuoteByIdAsync(int quoteId);
         Task<QuoteDto> CreateQuoteAsync(CreateQuoteDto createDto, string currentUser);
+        Task<QuoteDto> CreateFinalQuoteAsync(CreateFinalQuoteDto createDto, string currentUser);
         Task<QuoteDto> UpdateQuoteAsync(int quoteId, UpdateQuoteDto updateDto, string currentUser);
         Task<bool> DeleteQuoteAsync(int quoteId);
     }

@@ -44,6 +44,7 @@ namespace AwningsAPI.Database
         public DbSet<Heaters> Heaters { get; set; }
         public DbSet<Quote> Quotes { get; set; }
         public DbSet<QuoteItem> QuoteItems { get; set; }
+        public DbSet<ProductItem> ProductItems { get; set; }
         public DbSet<SiteVisit> SiteVisits { get; set; }
         public DbSet<SiteVisitValues> SiteVisitValues { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
@@ -208,6 +209,12 @@ namespace AwningsAPI.Database
                 entity.Property(e => e.Quantity).IsRequired();
                 entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalPrice).HasColumnType("decimal(18,2)");
+
+                entity.HasOne(e => e.ProductItem)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductItemId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
             });
 
             // InvoicePayment Configuration
@@ -231,6 +238,12 @@ namespace AwningsAPI.Database
                     .WithOne(i => i.Quote)
                     .HasForeignKey(i => i.QuoteId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.DraftQuote)
+                    .WithMany()
+                    .HasForeignKey(e => e.DraftQuoteId)
+                    .OnDelete(DeleteBehavior.NoAction)
+                    .IsRequired(false);
             });
 
             // QuoteItem Configuration
@@ -242,6 +255,21 @@ namespace AwningsAPI.Database
                 entity.Property(e => e.Quantity).IsRequired();
                 entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalPrice).HasColumnType("decimal(18,2)");
+
+                entity.HasOne(e => e.ProductItem)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductItemId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .IsRequired(false);
+            });
+
+            // ProductItem Configuration
+            modelBuilder.Entity<ProductItem>(entity =>
+            {
+                entity.ToTable("ProductItems");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Description).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.CreatedBy).HasMaxLength(100);
             });
 
             // In OnModelCreating method, add:

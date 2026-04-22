@@ -45,6 +45,7 @@
         public bool InviteShowRoomVisit { get; set; }
         public bool SetupSiteVisit { get; set; }
         public bool InvoiceSent { get; set; }
+        public bool FinalQuote { get; set; }
 
         // ── Stage completed flags (computed server-side from real activity) ────
         /// <summary>True when at least one InitialEnquiry record exists for this workflow.</summary>
@@ -61,6 +62,9 @@
 
         /// <summary>True when at least one Invoice record exists for this workflow.</summary>
         public bool InvoiceSentCompleted { get; set; }
+
+        /// <summary>True when at least one non-voided Quote marked as final exists for this workflow.</summary>
+        public bool FinalQuoteCompleted { get; set; }
 
         // ── Audit ─────────────────────────────────────────────────────────────
         public DateTime DateAdded { get; set; }
