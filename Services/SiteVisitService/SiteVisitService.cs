@@ -18,6 +18,7 @@ namespace AwningsAPI.Services.SiteVisitService
         public async Task<IEnumerable<Model.SiteVisit.SiteVisit>> GetSiteVisitsByWorkflowIdAsync(int workflowId)
         {
             return await _context.SiteVisits
+                .Include(sv => sv.Images)
                 .Where(sv => sv.WorkflowId == workflowId)
                 .OrderByDescending(sv => sv.DateCreated)
                 .ToListAsync();
@@ -27,6 +28,7 @@ namespace AwningsAPI.Services.SiteVisitService
         {
             return await _context.SiteVisits
                 .Include(sv => sv.Workflow)
+                .Include(sv => sv.Images)
                 .FirstOrDefaultAsync(sv => sv.SiteVisitId == id);
         }
 
@@ -224,6 +226,47 @@ namespace AwningsAPI.Services.SiteVisitService
                     g => g.Key,
                     g => g.Select(v => v.Value).ToList()
                 );
+        }
+
+        public async Task SaveImageUrlsAsync(int siteVisitId, List<string> imageUrls, string currentUser)
+        {
+            var images = imageUrls.Select(url => new Model.SiteVisit.SiteVisitImage
+            {
+                SiteVisitId = siteVisitId,
+                ImageUrl = url,
+                FileName = Path.GetFileName(url),
+                DateCreated = DateTime.UtcNow,
+                CreatedBy = currentUser
+            }).ToList();
+
+            _context.SiteVisitImages.AddRange(images);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> DeleteImagesAsync(int siteVisitId, List<string> imageUrls)
+        {
+            var records = await _context.SiteVisitImages
+                .Where(i => i.SiteVisitId == siteVisitId && imageUrls.Contains(i.ImageUrl))
+                .ToListAsync();
+
+            if (records.Count == 0)
+                return false;
+
+            _context.SiteVisitImages.RemoveRange(records);
+            await _context.SaveChangesAsync();
+
+            foreach (var record in records)
+            {
+                var filePath = Path.Combine(
+                    Directory.GetCurrentDirectory(),
+                    "wwwroot",
+                    record.ImageUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
+            }
+
+            return true;
         }
     }
 }

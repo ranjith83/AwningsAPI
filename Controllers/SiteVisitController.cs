@@ -88,7 +88,8 @@ namespace AwningsAPI.Controllers
                     DateCreated = sv.DateCreated,
                     CreatedBy = sv.CreatedBy,
                     DateUpdated = sv.DateUpdated,
-                    UpdatedBy = sv.UpdatedBy
+                    UpdatedBy = sv.UpdatedBy,
+                    ImageUrls = sv.Images.Select(i => i.ImageUrl).ToList()
                 }).ToList();
 
                 return Ok(siteVisitDtos);
@@ -171,7 +172,8 @@ namespace AwningsAPI.Controllers
                     DateCreated = siteVisit.DateCreated,
                     CreatedBy = siteVisit.CreatedBy,
                     DateUpdated = siteVisit.DateUpdated,
-                    UpdatedBy = siteVisit.UpdatedBy
+                    UpdatedBy = siteVisit.UpdatedBy,
+                    ImageUrls = siteVisit.Images.Select(i => i.ImageUrl).ToList()
                 };
 
                 return Ok(siteVisitDto);
@@ -334,7 +336,7 @@ namespace AwningsAPI.Controllers
             [FromBody] CreateSiteVisitDto dto)
         {
             try
-            {
+            { 
                 var currentUser = User?.Identity?.Name ?? "System";
 
                 // ── Step 1: Persist the site visit ───────────────────────────────
@@ -381,6 +383,68 @@ namespace AwningsAPI.Controllers
             {
                 return StatusCode(500, new { message = "Error creating site visit", error = ex.Message });
             }
+        }
+
+        [Authorize]
+        [HttpPost("{siteVisitId}/images")]
+        public async Task<IActionResult> UploadImages(int siteVisitId, [FromForm] IFormFileCollection files)
+        {
+            if (files == null || files.Count == 0)
+                return BadRequest(new { message = "No files provided" });
+
+            var imageUrls = new List<string>();
+
+            var uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "site-visits", siteVisitId.ToString());
+            Directory.CreateDirectory(uploadDir);
+
+            var allowedExts = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+
+            foreach (var file in files)
+            {
+                if (file.Length == 0) continue;
+
+                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (!allowedExts.Contains(ext)) continue;
+
+                var baseName = Path.GetFileNameWithoutExtension(file.FileName);
+                // Strip characters that are invalid in file paths
+                var safeName = string.Concat(baseName.Split(Path.GetInvalidFileNameChars()));
+                if (string.IsNullOrWhiteSpace(safeName)) safeName = "image";
+
+                var fileName = $"{safeName}{ext}";
+                var filePath = Path.Combine(uploadDir, fileName);
+
+                // Avoid overwriting an existing file with the same name
+                if (System.IO.File.Exists(filePath))
+                {
+                    fileName = $"{safeName}_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
+                    filePath = Path.Combine(uploadDir, fileName);
+                }
+
+                using var stream = new FileStream(filePath, FileMode.Create);
+                await file.CopyToAsync(stream);
+
+                imageUrls.Add($"/images/site-visits/{siteVisitId}/{fileName}");
+            }
+
+            if (imageUrls.Count == 0)
+                return BadRequest(new { message = "No valid image files were uploaded" });
+
+            var currentUser = User?.Identity?.Name ?? "System";
+            await _siteVisitService.SaveImageUrlsAsync(siteVisitId, imageUrls, currentUser);
+
+            return Ok(new { imageUrls });
+        }
+
+        [Authorize]
+        [HttpDelete("{siteVisitId}/images")]
+        public async Task<IActionResult> DeleteImages(int siteVisitId, [FromBody] DeleteImagesDto dto)
+        {
+            if (dto.ImageUrls == null || dto.ImageUrls.Count == 0)
+                return BadRequest(new { message = "No image URLs provided" });
+
+            await _siteVisitService.DeleteImagesAsync(siteVisitId, dto.ImageUrls);
+            return Ok(new { message = "Images deleted successfully" });
         }
     }
 

@@ -13,5 +13,7 @@ namespace AwningsAPI.Interfaces
         Task<IEnumerable<SiteVisitValues>> GetAllValuesAsync();
         Task<IEnumerable<SiteVisitValues>> GetValuesByCategoryAsync(string category);
         Task<Dictionary<string, List<string>>> GetAllValuesDictionaryAsync();
+        Task SaveImageUrlsAsync(int siteVisitId, List<string> imageUrls, string currentUser);
+        Task<bool> DeleteImagesAsync(int siteVisitId, List<string> imageUrls);
     }
 }

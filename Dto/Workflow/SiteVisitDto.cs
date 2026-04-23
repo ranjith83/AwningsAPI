@@ -67,6 +67,13 @@
         public string CreatedBy { get; set; } = string.Empty;
         public DateTime? DateUpdated { get; set; }
         public string? UpdatedBy { get; set; }
+
+        public List<string> ImageUrls { get; set; } = new();
+    }
+
+    public class DeleteImagesDto
+    {
+        public List<string> ImageUrls { get; set; } = new();
     }
 
     public class CreateSiteVisitDto

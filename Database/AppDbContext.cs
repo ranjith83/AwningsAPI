@@ -47,6 +47,7 @@ namespace AwningsAPI.Database
         public DbSet<ProductItem> ProductItems { get; set; }
         public DbSet<SiteVisit> SiteVisits { get; set; }
         public DbSet<SiteVisitValues> SiteVisitValues { get; set; }
+        public DbSet<SiteVisitImage> SiteVisitImages { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
@@ -324,6 +325,19 @@ namespace AwningsAPI.Database
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => new { e.Category, e.Value }).IsUnique();
                 entity.HasIndex(e => e.Category);
+            });
+
+            modelBuilder.Entity<SiteVisitImage>(entity =>
+            {
+                entity.ToTable("SiteVisitImages");
+                entity.HasKey(e => e.SiteVisitImageId);
+                entity.Property(e => e.ImageUrl).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(100);
+                entity.HasOne(e => e.SiteVisit)
+                    .WithMany(sv => sv.Images)
+                    .HasForeignKey(e => e.SiteVisitId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(e => e.SiteVisitId);
             });
 
 

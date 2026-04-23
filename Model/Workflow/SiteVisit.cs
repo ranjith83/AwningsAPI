@@ -175,6 +175,35 @@ namespace AwningsAPI.Model.SiteVisit
 
         [MaxLength(100)]
         public string? UpdatedBy { get; set; }
+
+        public virtual ICollection<SiteVisitImage> Images { get; set; } = new List<SiteVisitImage>();
+    }
+
+    [Table("SiteVisitImages")]
+    public class SiteVisitImage
+    {
+        [Key]
+        public int SiteVisitImageId { get; set; }
+
+        [Required]
+        public int SiteVisitId { get; set; }
+
+        [ForeignKey("SiteVisitId")]
+        public virtual SiteVisit? SiteVisit { get; set; }
+
+        [Required]
+        [MaxLength(500)]
+        public string ImageUrl { get; set; } = string.Empty;
+
+        [MaxLength(200)]
+        public string? FileName { get; set; }
+
+        [Required]
+        public DateTime DateCreated { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string CreatedBy { get; set; } = string.Empty;
     }
 
     [Table("SiteVisitValues")]
