@@ -106,7 +106,7 @@ namespace AwningsAPI.Controllers
                 var quote = await _quoteService.CreateFinalQuoteAsync(createDto, currentUser);
 
                 return CreatedAtAction(nameof(GetQuoteById), new { quoteId = quote.QuoteId }, quote);
-            }
+            }   
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });

@@ -189,9 +189,13 @@ namespace AwningsAPI.Services.SiteVisitService
             var siteVisit = await _context.SiteVisits.FindAsync(id);
 
             if (siteVisit == null)
-            {
                 return false;
-            }
+
+            var linkedTask = await _context.Tasks
+                .FirstOrDefaultAsync(t => t.SiteVisitId == id);
+
+            if (linkedTask != null)
+                _context.Tasks.Remove(linkedTask);
 
             _context.SiteVisits.Remove(siteVisit);
             await _context.SaveChangesAsync();

@@ -159,7 +159,7 @@ namespace AwningsAPI.Services.OutlookService
                     {
                         requestConfiguration.QueryParameters.StartDateTime = startDate.ToString("yyyy-MM-ddTHH:mm:ss");
                         requestConfiguration.QueryParameters.EndDateTime = endOfDay.ToString("yyyy-MM-ddTHH:mm:ss");
-                        requestConfiguration.QueryParameters.Top = 100;
+                        requestConfiguration.QueryParameters.Top = 500;
                         requestConfiguration.QueryParameters.Orderby = new[] { "start/dateTime" };
                         // NOTE: Do NOT add Prefer/outlook.timezone via requestConfiguration.Headers
                         // on a CalendarView request — the Kiota SDK sends it as a request-level
