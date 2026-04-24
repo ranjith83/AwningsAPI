@@ -2013,15 +2013,15 @@ namespace AwningsAPI.Database
                 new { MotorId = 83, Description = "Surcharge for radio-contr. motor io w/o transmitter", Price = 603m, ProductId = 12, ArmTypeId = 6, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new { MotorId = 84, Description = "Surcharge for radio-contr. motor io w/o transmitter", Price = 691m, ProductId = 12, ArmTypeId = 9, DateCreated = staticCreatedDate, CreatedBy = "System" },
 
-                new { MotorId = 85, Description = "Surcharge for hard-wired motor", Price = 361m, ProductId = 13, ArmTypeId = 11, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new { MotorId = 86, Description = "Surcharge for hard-wired motor", Price = 361m, ProductId = 13, ArmTypeId = 13, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new { MotorId = 87, Description = "Surcharge for hard-wired motor", Price = 361m, ProductId = 13, ArmTypeId = 16, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new { MotorId = 88, Description = "Surcharge for hard-wired motor", Price = 536m, ProductId = 13, ArmTypeId = 19, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new { MotorId = 85, Description = "Surcharge for hard-wired motor", Price = 574m, ProductId = 13, ArmTypeId = 11, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new { MotorId = 86, Description = "Surcharge for hard-wired motor", Price = 574m, ProductId = 13, ArmTypeId = 13, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new { MotorId = 87, Description = "Surcharge for hard-wired motor", Price = 574m, ProductId = 13, ArmTypeId = 16, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new { MotorId = 88, Description = "Surcharge for hard-wired motor", Price = 682m, ProductId = 13, ArmTypeId = 19, DateCreated = staticCreatedDate, CreatedBy = "System" },
 
-                new { MotorId = 89, Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter", Price = 574m, ProductId = 13, ArmTypeId = 11, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new { MotorId = 90, Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter", Price = 574m, ProductId = 13, ArmTypeId = 13, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new { MotorId = 91, Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter", Price = 574m, ProductId = 13, ArmTypeId = 16, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new { MotorId = 92, Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter", Price = 682m, ProductId = 13, ArmTypeId = 19, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new { MotorId = 89, Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter", Price = 809m, ProductId = 13, ArmTypeId = 11, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new { MotorId = 90, Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter", Price = 809m, ProductId = 13, ArmTypeId = 13, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new { MotorId = 91, Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter", Price = 809m, ProductId = 13, ArmTypeId = 16, DateCreated = staticCreatedDate, CreatedBy = "System" },
+                new { MotorId = 92, Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter", Price = 916m, ProductId = 13, ArmTypeId = 19, DateCreated = staticCreatedDate, CreatedBy = "System" },
 
                 new { MotorId = 93, Description = "Surcharge for radio-contr. motor io w/o transmitter", Price = 691m, ProductId = 13, ArmTypeId = 11, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new { MotorId = 94, Description = "Surcharge for radio-contr. motor io w/o transmitter", Price = 691m, ProductId = 13, ArmTypeId = 13, DateCreated = staticCreatedDate, CreatedBy = "System" },
@@ -2043,14 +2043,6 @@ namespace AwningsAPI.Database
                 new { MotorId = 106, Description = "Surcharge for radio-contr. motor io w/o transmitter", Price = 603m, ProductId = 14, ArmTypeId = 2, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new { MotorId = 107, Description = "Surcharge for radio-contr. motor io w/o transmitter", Price = 603m, ProductId = 14, ArmTypeId = 5, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new { MotorId = 108, Description = "Surcharge for radio-contr. motor io w/o transmitter", Price = 691m, ProductId = 14, ArmTypeId = 8, DateCreated = staticCreatedDate, CreatedBy = "System" },
-
-                new { MotorId = 109, Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter", Price = 721m, ProductId = 14, ArmTypeId = 2, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new { MotorId = 110, Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter", Price = 721m, ProductId = 14, ArmTypeId = 5, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new { MotorId = 111, Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter", Price = 809m, ProductId = 14, ArmTypeId = 8, DateCreated = staticCreatedDate, CreatedBy = "System" },
-
-                new { MotorId = 112, Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter", Price = 603m, ProductId = 14, ArmTypeId = 2, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new { MotorId = 113, Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter", Price = 603m, ProductId = 14, ArmTypeId = 5, DateCreated = staticCreatedDate, CreatedBy = "System" },
-                new { MotorId = 114, Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter", Price = 691m, ProductId = 14, ArmTypeId = 8, DateCreated = staticCreatedDate, CreatedBy = "System" },
 
                 new { MotorId = 115, Description = "Surcharge for hard-wired motor", Price = 484m, ProductId = 15, ArmTypeId = 2, DateCreated = staticCreatedDate, CreatedBy = "System" },
                 new { MotorId = 116, Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter", Price = 721m, ProductId = 15, ArmTypeId = 2, DateCreated = staticCreatedDate, CreatedBy = "System" },

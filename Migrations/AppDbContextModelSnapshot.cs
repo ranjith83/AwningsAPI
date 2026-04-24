@@ -5761,7 +5761,7 @@ namespace AwningsAPI.Migrations
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for hard-wired motor",
-                            Price = 361m,
+                            Price = 574m,
                             ProductId = 13
                         },
                         new
@@ -5771,7 +5771,7 @@ namespace AwningsAPI.Migrations
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for hard-wired motor",
-                            Price = 361m,
+                            Price = 574m,
                             ProductId = 13
                         },
                         new
@@ -5781,7 +5781,7 @@ namespace AwningsAPI.Migrations
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for hard-wired motor",
-                            Price = 361m,
+                            Price = 574m,
                             ProductId = 13
                         },
                         new
@@ -5791,7 +5791,7 @@ namespace AwningsAPI.Migrations
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for hard-wired motor",
-                            Price = 536m,
+                            Price = 682m,
                             ProductId = 13
                         },
                         new
@@ -5801,7 +5801,7 @@ namespace AwningsAPI.Migrations
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter",
-                            Price = 574m,
+                            Price = 809m,
                             ProductId = 13
                         },
                         new
@@ -5811,7 +5811,7 @@ namespace AwningsAPI.Migrations
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter",
-                            Price = 574m,
+                            Price = 809m,
                             ProductId = 13
                         },
                         new
@@ -5821,7 +5821,7 @@ namespace AwningsAPI.Migrations
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter",
-                            Price = 574m,
+                            Price = 809m,
                             ProductId = 13
                         },
                         new
@@ -5831,7 +5831,7 @@ namespace AwningsAPI.Migrations
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for radio-contr. motor io + 1 ch. transmitter",
-                            Price = 682m,
+                            Price = 916m,
                             ProductId = 13
                         },
                         new
@@ -5991,66 +5991,6 @@ namespace AwningsAPI.Migrations
                             CreatedBy = "System",
                             DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Surcharge for radio-contr. motor io w/o transmitter",
-                            Price = 691m,
-                            ProductId = 14
-                        },
-                        new
-                        {
-                            MotorId = 109,
-                            ArmTypeId = 2,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter",
-                            Price = 721m,
-                            ProductId = 14
-                        },
-                        new
-                        {
-                            MotorId = 110,
-                            ArmTypeId = 5,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter",
-                            Price = 721m,
-                            ProductId = 14
-                        },
-                        new
-                        {
-                            MotorId = 111,
-                            ArmTypeId = 8,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Surcharge for radio-contr. motor io with manual override + 1 ch. transmitter",
-                            Price = 809m,
-                            ProductId = 14
-                        },
-                        new
-                        {
-                            MotorId = 112,
-                            ArmTypeId = 2,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter",
-                            Price = 603m,
-                            ProductId = 14
-                        },
-                        new
-                        {
-                            MotorId = 113,
-                            ArmTypeId = 5,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter",
-                            Price = 603m,
-                            ProductId = 14
-                        },
-                        new
-                        {
-                            MotorId = 114,
-                            ArmTypeId = 8,
-                            CreatedBy = "System",
-                            DateCreated = new DateTime(2023, 1, 1, 12, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Surcharge for radio-contr. motor io with manual override w/o transmitter",
                             Price = 691m,
                             ProductId = 14
                         },
