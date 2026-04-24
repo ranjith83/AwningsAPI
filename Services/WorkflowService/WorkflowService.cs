@@ -315,8 +315,8 @@ namespace AwningsAPI.Services.WorkflowService
         {
             var query = _context.Brackets.Where(b => b.ProductId == productId);
             query = armTypeId.HasValue
-                ? query.Where(b => b.ArmTypeId == null || b.ArmTypeId == armTypeId.Value)
-                : query.Where(b => b.ArmTypeId == null);
+                ? query.Where(b => b.ArmTypeId == null || b.ArmTypeId == 1 || b.ArmTypeId == armTypeId.Value)
+                : query.Where(b => b.ArmTypeId == null || b.ArmTypeId == 1);
             return await query.ToListAsync();
         }
 
@@ -348,7 +348,7 @@ namespace AwningsAPI.Services.WorkflowService
             await _context.valanceStyles.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price).FirstOrDefaultAsync();
 
         public async Task<decimal> GeNonStandardRALColourPriceForProductAsync(int productId, int widthcm) =>
-            await _context.nonStandardRALColours.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price).FirstOrDefaultAsync();
+            await _context.nonStandardRALColours.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price * p.MultiplyBy).FirstOrDefaultAsync();
 
         /// <summary>
         /// Returns all ShadePlus rows for the given product and width, together with a
