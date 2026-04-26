@@ -9,5 +9,8 @@
         public string MobilePhone { get; set; } = string.Empty;
         public string SiteAddress { get; set; } = string.Empty;
         public string AssignedSalesperson { get; set; } = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
     }
 }

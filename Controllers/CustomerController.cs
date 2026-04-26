@@ -32,6 +32,8 @@ namespace AwningsAPI.Controllers
                              c.CustomerContacts?.FirstOrDefault()?.LastName ?? string.Empty,
                 ContactEmail = c.CustomerContacts?.FirstOrDefault()?.Email ?? string.Empty,
                 MobilePhone = c.Mobile ?? string.Empty,
+                Email = c.Email ?? string.Empty,
+                Phone = c.Phone ?? string.Empty,
                 SiteAddress = string.Join(", ", new[] { c.Address1, c.Address2, c.Address3 }
                               .Where(a => !string.IsNullOrWhiteSpace(a))),
                 AssignedSalesperson = c.AssignedSalespersonName ?? string.Empty
