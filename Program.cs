@@ -1,6 +1,7 @@
 ﻿using AwningsAPI.Database;
 using AwningsAPI.Interceptors;
 using AwningsAPI.Interfaces;
+using AwningsAPI.Middleware;
 using AwningsAPI.Services.AuditLogService;
 using AwningsAPI.Services.Auth;
 using AwningsAPI.Services.ConfigurationService;
@@ -17,8 +18,17 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services));
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -99,6 +109,9 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 builder.Services.AddControllers();
 
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
@@ -126,6 +139,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 app.UseCors("AllowAngularDev");
+app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

@@ -14,11 +14,13 @@ namespace AwningsAPI.Controllers
     {
         private readonly ISiteVisitService _siteVisitService;
         private readonly ITaskService _taskService;
+        private readonly ILogger<SiteVisitController> _logger;
 
-        public SiteVisitController(ISiteVisitService siteVisitService, ITaskService taskService)
+        public SiteVisitController(ISiteVisitService siteVisitService, ITaskService taskService, ILogger<SiteVisitController> logger)
         {
             _siteVisitService = siteVisitService;
             _taskService = taskService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -30,8 +32,6 @@ namespace AwningsAPI.Controllers
         [HttpGet("workflow/{workflowId}")]
         public async Task<ActionResult<IEnumerable<SiteVisitDto>>> GetSiteVisitsByWorkflowId(int workflowId)
         {
-            try
-            {
                 var siteVisits = await _siteVisitService.GetSiteVisitsByWorkflowIdAsync(workflowId);
 
                 var siteVisitDtos = siteVisits.Select(sv => new SiteVisitDto
@@ -93,11 +93,6 @@ namespace AwningsAPI.Controllers
                 }).ToList();
 
                 return Ok(siteVisitDtos);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error retrieving site visits", error = ex.Message });
-            }
         }
 
         /// <summary>
@@ -109,8 +104,6 @@ namespace AwningsAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<SiteVisitDto>> GetSiteVisitById(int id)
         {
-            try
-            {
                 var siteVisit = await _siteVisitService.GetSiteVisitByIdAsync(id);
 
                 if (siteVisit == null)
@@ -177,11 +170,6 @@ namespace AwningsAPI.Controllers
                 };
 
                 return Ok(siteVisitDto);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error retrieving site visit", error = ex.Message });
-            }
         }
 
         /// <summary>
@@ -227,30 +215,17 @@ namespace AwningsAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<SiteVisitDto>> UpdateSiteVisit(int id, [FromBody] SiteVisitDto dto)
         {
-            try
+            var currentUser = User?.Identity?.Name ?? "System";
+            var siteVisit = await _siteVisitService.UpdateSiteVisitAsync(id, dto, currentUser);
+            _logger.LogInformation("Site visit {SiteVisitId} updated by {User}", id, currentUser);
+            return Ok(new SiteVisitDto
             {
-                var currentUser = User?.Identity?.Name ?? "System";
-                var siteVisit = await _siteVisitService.UpdateSiteVisitAsync(id, dto, currentUser);
-
-                var siteVisitDto = new SiteVisitDto
-                {
-                    SiteVisitId = siteVisit.SiteVisitId,
-                    WorkflowId = siteVisit.WorkflowId,
-                    ProductModelType = siteVisit.ProductModelType,
-                    DateUpdated = siteVisit.DateUpdated,
-                    UpdatedBy = siteVisit.UpdatedBy
-                };
-
-                return Ok(siteVisitDto);
-            }
-            catch (Exception ex)
-            {
-                if (ex.Message.Contains("not found"))
-                {
-                    return NotFound(new { message = ex.Message });
-                }
-                return StatusCode(500, new { message = "Error updating site visit", error = ex.Message });
-            }
+                SiteVisitId = siteVisit.SiteVisitId,
+                WorkflowId = siteVisit.WorkflowId,
+                ProductModelType = siteVisit.ProductModelType,
+                DateUpdated = siteVisit.DateUpdated,
+                UpdatedBy = siteVisit.UpdatedBy
+            });
         }
 
         /// <summary>
@@ -262,21 +237,14 @@ namespace AwningsAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteSiteVisit(int id)
         {
-            try
+            var result = await _siteVisitService.DeleteSiteVisitAsync(id);
+            if (!result)
             {
-                var result = await _siteVisitService.DeleteSiteVisitAsync(id);
-
-                if (!result)
-                {
-                    return NotFound(new { message = $"Site visit with ID {id} not found" });
-                }
-
-                return Ok(new { message = "Site visit deleted successfully" });
+                _logger.LogWarning("Site visit {SiteVisitId} not found for deletion", id);
+                return NotFound(new { message = $"Site visit with ID {id} not found" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error deleting site visit", error = ex.Message });
-            }
+            _logger.LogInformation("Site visit {SiteVisitId} deleted by {User}", id, User?.Identity?.Name);
+            return Ok(new { message = "Site visit deleted successfully" });
         }
 
 
@@ -288,36 +256,15 @@ namespace AwningsAPI.Controllers
         [HttpGet("all")]
         public async Task<ActionResult<Dictionary<string, List<string>>>> GetAllValues()
         {
-            try
-            {
-                var values = await _siteVisitService.GetAllValuesDictionaryAsync();
-                return Ok(values);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error retrieving dropdown values", error = ex.Message });
-            }
+            return Ok(await _siteVisitService.GetAllValuesDictionaryAsync());
         }
 
-        /// <summary>
-        /// Get dropdown values for a specific category
-        /// </summary>
-        /// <param name="category">Category name</param>
-        /// <returns>List of values for the category</returns>
         [Authorize]
         [HttpGet("category/{category}")]
         public async Task<ActionResult<List<string>>> GetValuesByCategory(string category)
         {
-            try
-            {
-                var values = await _siteVisitService.GetValuesByCategoryAsync(category);
-                var valueList = values.Select(v => v.Value).ToList();
-                return Ok(valueList);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error retrieving category values", error = ex.Message });
-            }
+            var values = await _siteVisitService.GetValuesByCategoryAsync(category);
+            return Ok(values.Select(v => v.Value).ToList());
         }
 
         // <summary>
@@ -335,12 +282,10 @@ namespace AwningsAPI.Controllers
         public async Task<ActionResult<CreateSiteVisitResponseDto>> CreateSiteVisit(
             [FromBody] CreateSiteVisitDto dto)
         {
-            try
-            { 
-                var currentUser = User?.Identity?.Name ?? "System";
+            var currentUser = User?.Identity?.Name ?? "System";
 
-                // ── Step 1: Persist the site visit ───────────────────────────────
-                var siteVisit = await _siteVisitService.CreateSiteVisitAsync(dto, currentUser);
+            // ── Step 1: Persist the site visit ───────────────────────────────
+            var siteVisit = await _siteVisitService.CreateSiteVisitAsync(dto, currentUser);
 
                 // ── Step 2: Create the matching task ─────────────────────────────
                 var taskDto = new CreateTaskDto
@@ -374,15 +319,8 @@ namespace AwningsAPI.Controllers
                     TaskId = task.TaskId   // Angular uses this to navigate to the new task
                 };
 
-                return CreatedAtAction(
-                    nameof(GetSiteVisitById),
-                    new { id = siteVisit.SiteVisitId },
-                    response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error creating site visit", error = ex.Message });
-            }
+            _logger.LogInformation("Site visit {SiteVisitId} created for workflow {WorkflowId} by {User}, linked to task {TaskId}", siteVisit.SiteVisitId, siteVisit.WorkflowId, currentUser, task.TaskId);
+            return CreatedAtAction(nameof(GetSiteVisitById), new { id = siteVisit.SiteVisitId }, response);
         }
 
         [Authorize]

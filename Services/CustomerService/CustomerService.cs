@@ -13,12 +13,14 @@ namespace AwningsAPI.Services.CustomerService
         private readonly AppDbContext _context;
         private readonly HttpClient _httpClient;
         private readonly string _tomTomApiKey;
+        private readonly ILogger<CustomerService> _logger;
 
-        public CustomerService(AppDbContext context, IHttpClientFactory httpClientFactory, IConfiguration configuration)
+        public CustomerService(AppDbContext context, IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<CustomerService> logger)
         {
             _context = context;
             _httpClient = httpClientFactory.CreateClient();
             _tomTomApiKey = configuration["TomTom:ApiKey"] ?? string.Empty;
+            _logger = logger;
         }
 
         public async Task<IEnumerable<Customer>> GetAllCustomersAsync()
@@ -78,9 +80,8 @@ namespace AwningsAPI.Services.CustomerService
             };
 
             _context.Customers.Add(customer);
-
             await _context.SaveChangesAsync();
-
+            _logger.LogInformation("Customer {CustomerId} '{Name}' created by {User}", customer.CustomerId, customer.Name, currentUser);
             return customer;
         }
 
@@ -100,9 +101,8 @@ namespace AwningsAPI.Services.CustomerService
             };
 
             _context.CustomerContacts.Add(customerContact);
-
             await _context.SaveChangesAsync();
-
+            _logger.LogInformation("Contact added to customer {CustomerId} by {User}", dto.CompanyId, currentUser);
             return customerContact;
         }
 
@@ -137,7 +137,7 @@ namespace AwningsAPI.Services.CustomerService
             company.UpdatedBy = currentUser;
 
             await _context.SaveChangesAsync();
-
+            _logger.LogInformation("Customer {CustomerId} updated by {User}", CompanyId, currentUser);
             return company;
         }
 
@@ -159,7 +159,7 @@ namespace AwningsAPI.Services.CustomerService
             contact.UpdatedBy = currentUser;
 
             await _context.SaveChangesAsync();
-
+            _logger.LogInformation("Contact {ContactId} updated by {User}", contactId, currentUser);
             return contact;
         }
 
@@ -173,9 +173,8 @@ namespace AwningsAPI.Services.CustomerService
             }
 
             _context.Customers.Remove(customer);
-
             await _context.SaveChangesAsync();
-
+            _logger.LogInformation("Customer {CustomerId} deleted by {User}", customerId, currentUser);
             return true;
         }
 

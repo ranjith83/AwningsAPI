@@ -10,9 +10,12 @@ namespace AwningsAPI.Controllers
     public class QuoteController : Controller
     {
         private readonly IQuoteService _quoteService;
-        public QuoteController(IQuoteService quoteService)
+        private readonly ILogger<QuoteController> _logger;
+
+        public QuoteController(IQuoteService quoteService, ILogger<QuoteController> logger)
         {
             _quoteService = quoteService;
+            _logger = logger;
         }
 
         /// <summary>Get all quotes</summary>
@@ -20,15 +23,8 @@ namespace AwningsAPI.Controllers
         [ProducesResponseType(typeof(IEnumerable<QuoteDto>), 200)]
         public async Task<ActionResult<IEnumerable<QuoteDto>>> GetAllQuotes()
         {
-            try
-            {
-                var quotes = await _quoteService.GetAllQuotesAsync();
-                return Ok(quotes);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error retrieving quotes", error = ex.Message });
-            }
+            var quotes = await _quoteService.GetAllQuotesAsync();
+            return Ok(quotes);
         }
 
         /// <summary>Get quotes by workflow ID</summary>
@@ -37,15 +33,8 @@ namespace AwningsAPI.Controllers
         [ProducesResponseType(404)]
         public async Task<ActionResult<IEnumerable<QuoteDto>>> GetQuotesByWorkflowId(int workflowId)
         {
-            try
-            {
-                var quotes = await _quoteService.GetQuotesByWorkflowIdAsync(workflowId);
-                return Ok(quotes);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error retrieving quotes", error = ex.Message });
-            }
+            var quotes = await _quoteService.GetQuotesByWorkflowIdAsync(workflowId);
+            return Ok(quotes);
         }
 
         /// <summary>Get quote by ID</summary>
@@ -54,18 +43,13 @@ namespace AwningsAPI.Controllers
         [ProducesResponseType(404)]
         public async Task<ActionResult<QuoteDto>> GetQuoteById(int quoteId)
         {
-            try
+            var quote = await _quoteService.GetQuoteByIdAsync(quoteId);
+            if (quote == null)
             {
-                var quote = await _quoteService.GetQuoteByIdAsync(quoteId);
-                if (quote == null)
-                    return NotFound(new { message = $"Quote with ID {quoteId} not found" });
-
-                return Ok(quote);
+                _logger.LogWarning("Quote {QuoteId} not found", quoteId);
+                return NotFound(new { message = $"Quote with ID {quoteId} not found" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error retrieving quote", error = ex.Message });
-            }
+            return Ok(quote);
         }
 
         /// <summary>Create a new draft quote</summary>
@@ -74,20 +58,11 @@ namespace AwningsAPI.Controllers
         [ProducesResponseType(400)]
         public async Task<ActionResult<QuoteDto>> CreateQuote([FromBody] CreateQuoteDto createDto)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
-
-                var currentUser = User?.Identity?.Name ?? "System";
-                var quote = await _quoteService.CreateQuoteAsync(createDto, currentUser);
-
-                return CreatedAtAction(nameof(GetQuoteById), new { quoteId = quote.QuoteId }, quote);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error creating quote", error = ex.Message });
-            }
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var currentUser = User?.Identity?.Name ?? "System";
+            var quote = await _quoteService.CreateQuoteAsync(createDto, currentUser);
+            _logger.LogInformation("Draft quote {QuoteId} created by {User} for workflow {WorkflowId}", quote.QuoteId, currentUser, createDto.WorkflowId);
+            return CreatedAtAction(nameof(GetQuoteById), new { quoteId = quote.QuoteId }, quote);
         }
 
         /// <summary>Create a final quote from a draft quote</summary>
@@ -97,24 +72,11 @@ namespace AwningsAPI.Controllers
         [ProducesResponseType(404)]
         public async Task<ActionResult<QuoteDto>> CreateFinalQuote([FromBody] CreateFinalQuoteDto createDto)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
-
-                var currentUser = User?.Identity?.Name ?? "System";
-                var quote = await _quoteService.CreateFinalQuoteAsync(createDto, currentUser);
-
-                return CreatedAtAction(nameof(GetQuoteById), new { quoteId = quote.QuoteId }, quote);
-            }   
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error creating final quote", error = ex.Message });
-            }
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var currentUser = User?.Identity?.Name ?? "System";
+            var quote = await _quoteService.CreateFinalQuoteAsync(createDto, currentUser);
+            _logger.LogInformation("Final quote {QuoteId} created by {User}", quote.QuoteId, currentUser);
+            return CreatedAtAction(nameof(GetQuoteById), new { quoteId = quote.QuoteId }, quote);
         }
 
         /// <summary>Update an existing quote. Draft quotes with a final quote cannot be edited.</summary>
@@ -124,27 +86,16 @@ namespace AwningsAPI.Controllers
         [ProducesResponseType(400)]
         public async Task<ActionResult<QuoteDto>> UpdateQuote(int quoteId, [FromBody] UpdateQuoteDto updateDto)
         {
-            try
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var currentUser = User?.Identity?.Name ?? "System";
+            var quote = await _quoteService.UpdateQuoteAsync(quoteId, updateDto, currentUser);
+            if (quote == null)
             {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
-
-                var currentUser = User?.Identity?.Name ?? "System";
-                var quote = await _quoteService.UpdateQuoteAsync(quoteId, updateDto, currentUser);
-
-                if (quote == null)
-                    return NotFound(new { message = $"Quote with ID {quoteId} not found" });
-
-                return Ok(quote);
+                _logger.LogWarning("Quote {QuoteId} not found for update", quoteId);
+                return NotFound(new { message = $"Quote with ID {quoteId} not found" });
             }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error updating quote", error = ex.Message });
-            }
+            _logger.LogInformation("Quote {QuoteId} updated by {User}", quoteId, currentUser);
+            return Ok(quote);
         }
 
         /// <summary>
@@ -157,23 +108,14 @@ namespace AwningsAPI.Controllers
         [ProducesResponseType(400)]
         public async Task<ActionResult> DeleteQuote(int quoteId)
         {
-            try
+            var result = await _quoteService.DeleteQuoteAsync(quoteId);
+            if (!result)
             {
-                var result = await _quoteService.DeleteQuoteAsync(quoteId);
-
-                if (!result)
-                    return NotFound(new { message = $"Quote with ID {quoteId} not found" });
-
-                return NoContent();
+                _logger.LogWarning("Quote {QuoteId} not found for deletion", quoteId);
+                return NotFound(new { message = $"Quote with ID {quoteId} not found" });
             }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error deleting quote", error = ex.Message });
-            }
+            _logger.LogInformation("Quote {QuoteId} deleted by {User}", quoteId, User?.Identity?.Name);
+            return NoContent();
         }
     }
 }

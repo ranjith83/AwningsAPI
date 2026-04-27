@@ -13,10 +13,12 @@ namespace AwningsAPI.Controllers
     public class ProductItemsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<ProductItemsController> _logger;
 
-        public ProductItemsController(AppDbContext context)
+        public ProductItemsController(AppDbContext context, ILogger<ProductItemsController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         /// <summary>

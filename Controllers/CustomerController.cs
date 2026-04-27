@@ -12,10 +12,12 @@ namespace AwningsAPI.Controllers
     public class CustomerController : ControllerBase
     {
         private readonly ICustomerService _customerService;
+        private readonly ILogger<CustomerController> _logger;
 
-        public CustomerController(ICustomerService customerService)
+        public CustomerController(ICustomerService customerService, ILogger<CustomerController> logger)
         {
             _customerService = customerService;
+            _logger = logger;
         }
 
         [Authorize]
@@ -60,12 +62,8 @@ namespace AwningsAPI.Controllers
         {
             var currentUser = User?.Identity?.Name ?? "System";
             var customer = await _customerService.SaveCompanyWithContact(dto, currentUser);
-
-            if (customer == null)
-            {
-                return NotFound();
-            }
-
+            if (customer == null) return NotFound();
+            _logger.LogInformation("Customer {CustomerId} created by {User}", customer.CustomerId, currentUser);
             return CreatedAtAction(nameof(AddCompanyWithContact), new { Id = customer.CustomerId }, customer);
         }
 
@@ -74,12 +72,8 @@ namespace AwningsAPI.Controllers
         {
             var currentUser = User?.Identity?.Name ?? "System";
             var customer = await _customerService.SaveContactToCompany(dto, currentUser);
-
-            if (customer == null)
-            {
-                return NotFound();
-            }
-
+            if (customer == null) return NotFound();
+            _logger.LogInformation("Contact added to customer {CustomerId} by {User}", dto.CompanyId, currentUser);
             return CreatedAtAction(nameof(AddContactToCompany), new { Id = customer.CustomerId }, customer);
         }
 
@@ -88,10 +82,8 @@ namespace AwningsAPI.Controllers
         {
             var currentUser = User?.Identity?.Name ?? "System";
             var company = await _customerService.UpdateCompany(companyId, dto, currentUser);
-            if (company == null)
-            {
-                return NotFound();
-            }
+            if (company == null) return NotFound();
+            _logger.LogInformation("Customer {CustomerId} updated by {User}", companyId, currentUser);
             return Ok(company);
         }
 
@@ -100,10 +92,8 @@ namespace AwningsAPI.Controllers
         {
             var currentUser = User?.Identity?.Name ?? "System";
             var customer = await _customerService.UpdateContactInCompany(contactId, dto, currentUser);
-            if (customer == null)
-            {
-                return NotFound();
-            }
+            if (customer == null) return NotFound();
+            _logger.LogInformation("Contact {ContactId} updated by {User}", contactId, currentUser);
             return Ok(customer);
         }
 
@@ -112,10 +102,8 @@ namespace AwningsAPI.Controllers
         {
             var currentUser = User?.Identity?.Name ?? "System";
             var customer = await _customerService.DeleteCompanyWithContact(customerId, currentUser);
-            if (customer == null)
-            {
-                return NotFound();
-            }
+            if (customer == null) return NotFound();
+            _logger.LogInformation("Customer {CustomerId} deleted by {User}", customerId, currentUser);
             return Ok(customer);
         }
 

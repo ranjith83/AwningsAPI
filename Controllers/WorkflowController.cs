@@ -13,10 +13,12 @@ namespace AwningsAPI.Controllers
     public class WorkflowController : Controller
     {
         private readonly IWorkflowService _workflowService;
+        private readonly ILogger<WorkflowController> _logger;
 
-        public WorkflowController(IWorkflowService workflowService)
+        public WorkflowController(IWorkflowService workflowService, ILogger<WorkflowController> logger)
         {
             _workflowService = workflowService;
+            _logger = logger;
         }
 
         private string CurrentUser => User?.Identity?.Name ?? "System";
@@ -38,6 +40,7 @@ namespace AwningsAPI.Controllers
         public async Task<ActionResult<WorkflowStart>> CreateWorkflow([FromBody] WorkflowDto dto)
         {
             var workflow = await _workflowService.CreateWorkflow(dto, CurrentUser);
+            _logger.LogInformation("Workflow {WorkflowId} created for customer {CustomerId} by {User}", workflow.WorkflowId, workflow.CustomerId, CurrentUser);
             return CreatedAtAction(nameof(CreateWorkflow), new { Id = workflow.WorkflowId }, new
             {
                 workflow.WorkflowId,
@@ -52,6 +55,7 @@ namespace AwningsAPI.Controllers
         public async Task<ActionResult<WorkflowStart>> UpdateWorkflow([FromBody] WorkflowDto dto)
         {
             var workflow = await _workflowService.UpdateWorkflow(dto, CurrentUser);
+            _logger.LogInformation("Workflow {WorkflowId} updated by {User}", dto.WorkflowId, CurrentUser);
             return Ok(workflow);
         }
 
@@ -71,6 +75,10 @@ namespace AwningsAPI.Controllers
         public async Task<ActionResult<WorkflowDeleteResult>> DeleteWorkflow(int workflowId)
         {
             var result = await _workflowService.DeleteWorkflowAsync(workflowId);
+            if (result.Deleted)
+                _logger.LogInformation("Workflow {WorkflowId} deleted by {User}", workflowId, CurrentUser);
+            else
+                _logger.LogWarning("Workflow {WorkflowId} deletion blocked: {Dependencies}", workflowId, result.BlockingDependencies);
             return Ok(result);
         }
 

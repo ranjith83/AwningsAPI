@@ -11,157 +11,86 @@ namespace AwningsAPI.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, ILogger<AuthController> logger)
         {
             _authService = authService;
+            _logger = logger;
         }
 
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto loginDto)
         {
-            try
-            {
-                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
-                var response = await _authService.LoginAsync(loginDto, ipAddress);
-                return Ok(response);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred during login", error = ex.Message });
-            }
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+            var response = await _authService.LoginAsync(loginDto, ipAddress);
+            _logger.LogInformation("User {Username} logged in from {IP}", loginDto.Username, ipAddress);
+            return Ok(response);
         }
 
         [HttpPost("register")]
         public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterDto registerDto)
         {
-            try
-            {
-                var response = await _authService.RegisterAsync(registerDto);
-                return Ok(response);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred during registration", error = ex.Message });
-            }
+            var response = await _authService.RegisterAsync(registerDto);
+            _logger.LogInformation("New user registered: {Username}", registerDto.Username);
+            return Ok(response);
         }
 
         [HttpPost("refresh-token")]
         public async Task<ActionResult<AuthResponseDto>> RefreshToken([FromBody] RefreshTokenDto refreshTokenDto)
         {
-            try
-            {
-                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
-                var response = await _authService.RefreshTokenAsync(refreshTokenDto.RefreshToken, ipAddress);
-                return Ok(response);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while refreshing token", error = ex.Message });
-            }
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+            var response = await _authService.RefreshTokenAsync(refreshTokenDto.RefreshToken, ipAddress);
+            return Ok(response);
         }
 
         [Authorize]
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] RefreshTokenDto refreshTokenDto)
         {
-            try
-            {
-                await _authService.RevokeTokenAsync(refreshTokenDto.RefreshToken);
-                return Ok(new { message = "Logged out successfully" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred during logout", error = ex.Message });
-            }
+            await _authService.RevokeTokenAsync(refreshTokenDto.RefreshToken);
+            _logger.LogInformation("User {User} logged out", User?.Identity?.Name);
+            return Ok(new { message = "Logged out successfully" });
         }
 
         [Authorize]
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto changePasswordDto)
         {
-            try
-            {
-                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                var result = await _authService.ChangePasswordAsync(userId, changePasswordDto);
-
-                if (result)
-                {
-                    return Ok(new { message = "Password changed successfully" });
-                }
-
-                return BadRequest(new { message = "Failed to change password" });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while changing password", error = ex.Message });
-            }
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await _authService.ChangePasswordAsync(userId, changePasswordDto);
+            if (result)
+                return Ok(new { message = "Password changed successfully" });
+            return BadRequest(new { message = "Failed to change password" });
         }
 
         [Authorize]
         [HttpGet("me")]
         public async Task<ActionResult<UserDto>> GetCurrentUser()
         {
-            try
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var user = await _authService.GetUserByIdAsync(userId);
+            if (user == null) return NotFound(new { message = "User not found" });
+
+            return Ok(new UserDto
             {
-                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                var user = await _authService.GetUserByIdAsync(userId);
-
-                if (user == null)
-                {
-                    return NotFound(new { message = "User not found" });
-                }
-
-                var userDto = new UserDto
-                {
-                    UserId = user.UserId,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Email = user.Email,
-                    Username = user.Username,
-                    Role = user.Role ?? "User",
-                    Department = user.Department,
-                    IsActive = user.IsActive,
-                   // LastLogin = user.LastLogin
-                };
-
-                return Ok(userDto);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred", error = ex.Message });
-            }
+                UserId = user.UserId,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Username = user.Username,
+                Role = user.Role ?? "User",
+                Department = user.Department,
+                IsActive = user.IsActive
+            });
         }
 
         [Authorize]
         [HttpGet("users")]
         public async Task<ActionResult<IEnumerable<UserDto>>> GetAllUsers()
         {
-            try
-            {
-                var users = await _authService.GetAllUsersAsync();
-                return Ok(users);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred", error = ex.Message });
-            }
+            var users = await _authService.GetAllUsersAsync();
+            return Ok(users);
         }
 
 
@@ -173,21 +102,9 @@ namespace AwningsAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<UserDto>> GetUserById(int id)
         {
-            try
-            {
-                var user = await _authService.GetUserByIdAsync(id);
-
-                if (user == null)
-                {
-                    return NotFound(new { message = $"User with ID {id} not found" });
-                }
-
-                return Ok(user);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error retrieving user", error = ex.Message });
-            }
+            var user = await _authService.GetUserByIdAsync(id);
+            if (user == null) return NotFound(new { message = $"User with ID {id} not found" });
+            return Ok(user);
         }
 
         /// <summary>
@@ -197,19 +114,8 @@ namespace AwningsAPI.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<UserDto>> UpdateUser(int id, [FromBody] UpdateUserDto dto)
         {
-            try
-            {
-                var user = await _authService.UpdateUserAsync(id, dto);
-                return Ok(user);
-            }
-            catch (Exception ex)
-            {
-                if (ex.Message.Contains("not found"))
-                {
-                    return NotFound(new { message = ex.Message });
-                }
-                return StatusCode(500, new { message = "Error updating user", error = ex.Message });
-            }
+            var user = await _authService.UpdateUserAsync(id, dto);
+            return Ok(user);
         }
 
         /// <summary>
@@ -219,21 +125,9 @@ namespace AwningsAPI.Controllers
         [HttpPatch("{id}/deactivate")]
         public async Task<ActionResult> DeactivateUser(int id)
         {
-            try
-            {
-                var result = await _authService.DeactivateUserAsync(id);
-
-                if (!result)
-                {
-                    return NotFound(new { message = $"User with ID {id} not found" });
-                }
-
-                return Ok(new { message = "User deactivated successfully" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error deactivating user", error = ex.Message });
-            }
+            var result = await _authService.DeactivateUserAsync(id);
+            if (!result) return NotFound(new { message = $"User with ID {id} not found" });
+            return Ok(new { message = "User deactivated successfully" });
         }
 
         /// <summary>
@@ -243,21 +137,9 @@ namespace AwningsAPI.Controllers
         [HttpPatch("{id}/activate")]
         public async Task<ActionResult> ActivateUser(int id)
         {
-            try
-            {
-                var result = await _authService.ActivateUserAsync(id);
-
-                if (!result)
-                {
-                    return NotFound(new { message = $"User with ID {id} not found" });
-                }
-
-                return Ok(new { message = "User activated successfully" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error activating user", error = ex.Message });
-            }
+            var result = await _authService.ActivateUserAsync(id);
+            if (!result) return NotFound(new { message = $"User with ID {id} not found" });
+            return Ok(new { message = "User activated successfully" });
         }
 
         /// <summary>
@@ -267,21 +149,9 @@ namespace AwningsAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteUser(int id)
         {
-            try
-            {
-                var result = await _authService.DeleteUserAsync(id);
-
-                if (!result)
-                {
-                    return NotFound(new { message = $"User with ID {id} not found" });
-                }
-
-                return Ok(new { message = "User deleted successfully" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error deleting user", error = ex.Message });
-            }
+            var result = await _authService.DeleteUserAsync(id);
+            if (!result) return NotFound(new { message = $"User with ID {id} not found" });
+            return Ok(new { message = "User deleted successfully" });
         }
 
         /// <summary>
@@ -291,15 +161,8 @@ namespace AwningsAPI.Controllers
         [HttpGet("salespeople")]
         public async Task<ActionResult<IEnumerable<SalespersonDto>>> GetSalespeople()
         {
-            try
-            {
-                var salespeople = await _authService.GetSalespeopleAsync();
-                return Ok(salespeople);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while fetching salespeople", error = ex.Message });
-            }
+            var salespeople = await _authService.GetSalespeopleAsync();
+            return Ok(salespeople);
         }
     }
 }

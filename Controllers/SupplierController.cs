@@ -1,11 +1,7 @@
-﻿using AwningsAPI.Dto.Customers;
 using AwningsAPI.Dto.Product;
 using AwningsAPI.Dto.Supplier;
 using AwningsAPI.Interfaces;
-using AwningsAPI.Model.Customers;
 using AwningsAPI.Model.Suppliers;
-using AwningsAPI.Services.CustomerService;
-using AwningsAPI.Services.Suppliers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AwningsAPI.Controllers
@@ -15,52 +11,57 @@ namespace AwningsAPI.Controllers
     public class SupplierController : ControllerBase
     {
         private readonly ISupplierService _supplierService;
+        private readonly ILogger<SupplierController> _logger;
 
-        public SupplierController(ISupplierService supplierService)
+        public SupplierController(ISupplierService supplierService, ILogger<SupplierController> logger)
         {
             _supplierService = supplierService;
+            _logger = logger;
         }
 
         [HttpGet("GetAllSuppliers")]
         public async Task<ActionResult<IEnumerable<Supplier>>> GetAllSuppliers()
         {
-            var suppliers = await _supplierService.GetAllSuppliersAsync();
-
-            var suppliersDto = suppliers.Select(c => new SupplierDto
+            try
             {
-                 SupplierId = c.SupplierId,
-                 SupplierName = c.SupplierName,
-            }).ToList();
-
-            return Ok(suppliersDto);
+                var suppliers = await _supplierService.GetAllSuppliersAsync();
+                return Ok(suppliers.Select(c => new SupplierDto { SupplierId = c.SupplierId, SupplierName = c.SupplierName }).ToList());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving suppliers");
+                return StatusCode(500, new { message = "Error retrieving suppliers", error = ex.Message });
+            }
         }
 
         [HttpGet("GetAllProductTypesForSupplier")]
         public async Task<ActionResult<IEnumerable<ProductType>>> GetAllProductTypesForSupplier(int SupplierId)
         {
-            var productTypes = await _supplierService.GetAllProductTypesForSupplierAsync(SupplierId);
-
-            var productTypeDto = productTypes.Select(c => new ProductTypeDto
+            try
             {
-                 ProductTypeId = c.ProductTypeId,
-                 Description = c.Description,
-            }).ToList();
-
-            return Ok(productTypeDto);
+                var productTypes = await _supplierService.GetAllProductTypesForSupplierAsync(SupplierId);
+                return Ok(productTypes.Select(c => new ProductTypeDto { ProductTypeId = c.ProductTypeId, Description = c.Description }).ToList());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving product types for supplier {SupplierId}", SupplierId);
+                return StatusCode(500, new { message = "Error retrieving product types", error = ex.Message });
+            }
         }
-       
+
         [HttpGet("GetAllProductsBySupplier")]
         public async Task<ActionResult<IEnumerable<Product>>> GetAllProductsBySupplier(int SupplierId, int ProductTypeId)
         {
-            var products = await _supplierService.GetAllProductsBySupplierAsync(SupplierId, ProductTypeId);
-
-            var productDto = products.Select(c => new ProductDto
+            try
             {
-                ProductId = c.ProductId,
-                ProductName = c.Description,
-            }).ToList();
-
-            return Ok(productDto);
+                var products = await _supplierService.GetAllProductsBySupplierAsync(SupplierId, ProductTypeId);
+                return Ok(products.Select(c => new ProductDto { ProductId = c.ProductId, ProductName = c.Description }).ToList());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving products for supplier {SupplierId}", SupplierId);
+                return StatusCode(500, new { message = "Error retrieving products", error = ex.Message });
+            }
         }
     }
 }
