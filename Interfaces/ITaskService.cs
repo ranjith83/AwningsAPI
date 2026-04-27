@@ -32,7 +32,7 @@ namespace AwningsAPI.Interfaces
         // Filtering & Search
         Task<(IEnumerable<AppTaskDto> Tasks, int TotalCount)> GetTasksWithFiltersAsync(TaskFilterDto filterDto);
         Task<IEnumerable<AppTaskDto>> GetTasksByUserAsync(int userId);
-        Task<IEnumerable<AppTaskDto>> GetTasksByCustomerAsync(int customerId);
+        Task<IEnumerable<AppTaskDto>> GetTasksByCustomerAsync(int customerId, TaskSourceType? sourceType = null);
         Task<IEnumerable<AppTaskDto>> GetTasksByTypeAsync(string taskType);
         Task<IEnumerable<AppTaskDto>> GetOverdueTasksAsync();
         Task<IEnumerable<AppTaskDto>> GetTasksDueTodayAsync();

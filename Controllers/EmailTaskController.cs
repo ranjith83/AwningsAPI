@@ -188,14 +188,18 @@ namespace AwningsAPI.Controllers
         }
 
         /// <summary>
-        /// Get tasks for a specific customer
+        /// Get tasks for a specific customer, optionally filtered by source type.
         /// </summary>
+        /// <param name="customerId">Customer ID</param>
+        /// <param name="sourceType">Optional filter: Email | SiteVisit | Manual</param>
         [HttpGet("customer/{customerId}")]
-        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetTasksByCustomer(int customerId)
+        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetTasksByCustomer(
+            int customerId,
+            [FromQuery] TaskSourceType? sourceType = null)
         {
             try
             {
-                var tasks = await _taskService.GetTasksByCustomerAsync(customerId);
+                var tasks = await _taskService.GetTasksByCustomerAsync(customerId, sourceType);
                 return Ok(tasks);
             }
             catch (Exception ex)

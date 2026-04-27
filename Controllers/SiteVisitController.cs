@@ -290,7 +290,7 @@ namespace AwningsAPI.Controllers
                 // ── Step 2: Create the matching task ─────────────────────────────
                 var taskDto = new CreateTaskDto
                 {
-                    SourceType = TaskSourceType.SiteVisit,   // ← discriminator
+                    SourceType = TaskSourceType.SiteVisit.ToString(),
                     Title = $"Site Visit – {dto.Model ?? dto.ProductModelType ?? "New"}",
                     Category = "Site Visit",
                    // EmailBody = BuildSiteVisitSummary(dto),

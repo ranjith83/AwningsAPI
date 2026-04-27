@@ -96,7 +96,7 @@ namespace AwningsAPI.Services.Tasks
                 action: "Created",
                 oldValue: null,
                 newValue: null,
-                details: createDto.SourceType == TaskSourceType.Email
+                details: createDto.SourceType == TaskSourceType.Email.ToString()
                                  ? "Task created from email"
                                  : $"Task created manually (source: {createDto.SourceType})",
                 createdBy: currentUser,
@@ -547,12 +547,15 @@ namespace AwningsAPI.Services.Tasks
             return taskDtos;
         }
 
-        public async Task<IEnumerable<AppTaskDto>> GetTasksByCustomerAsync(int customerId)
+        public async Task<IEnumerable<AppTaskDto>> GetTasksByCustomerAsync(int customerId, TaskSourceType? sourceType = null)
         {
+            var sourceFilter = sourceType?.ToString();
+
             var tasks = await _context.Tasks
                 .Include(t => t.TaskComments)
                 .Include(t => t.TaskAttachments)
-                .Where(t => t.CustomerId == customerId)
+                .Where(t => t.CustomerId == customerId
+                         && (sourceFilter == null || t.SourceType == sourceFilter))
                 .OrderByDescending(t => t.DateAdded)
                 .ToListAsync();
 

@@ -35,7 +35,7 @@ namespace AwningsAPI.Model.Tasks
         /// </summary>
         [Required]
         [StringLength(50)]
-        public string SourceType { get; set; } = TaskSourceType.Email;
+        public string SourceType { get; set; } = TaskSourceType.Email.ToString();
 
         // ── Display title ─────────────────────────────────────────────────────
         /// <summary>
@@ -175,11 +175,11 @@ namespace AwningsAPI.Model.Tasks
     // ─────────────────────────────────────────────────────────────────────────
     // Constants — use these everywhere instead of raw strings
     // ─────────────────────────────────────────────────────────────────────────
-    public static class TaskSourceType
+    public enum TaskSourceType
     {
-        public const string Email = "Email";
-        public const string SiteVisit = "SiteVisit";
-        public const string Manual = "Manual";
+        Email,
+        SiteVisit,
+        Manual
     }
 
     public static class TaskStatusValue
