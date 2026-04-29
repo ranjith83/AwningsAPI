@@ -2,5 +2,5 @@ namespace AwningsEmailFunction.Interfaces;
 
 public interface IEmailProcessorService
 {
-    Task ProcessEmailAsync(int incomingEmailId);
+    Task ProcessIncomingEmailAsync(string messageId, string mailboxEmail);
 }

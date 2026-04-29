@@ -82,9 +82,16 @@ public class GraphWebhookFunction
         // Use a new scope so the DbContext isn't disposed when the function invocation ends
         _ = Task.Run(async () =>
         {
-            await using var scope = _scopeFactory.CreateAsyncScope();
-            var watchService = scope.ServiceProvider.GetRequiredService<IEmailWatchService>();
-            await HandleNotificationAsync(body, watchService);
+            try
+            {
+                await using var scope = _scopeFactory.CreateAsyncScope();
+                var watchService = scope.ServiceProvider.GetRequiredService<IEmailWatchService>();
+                await HandleNotificationAsync(body, watchService);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Unhandled exception in background email processing task");
+            }
         });
 
         return req.CreateResponse(HttpStatusCode.Accepted);
@@ -145,6 +152,8 @@ public class GraphWebhookFunction
 
     private async Task HandleNotificationAsync(string body, IEmailWatchService emailWatchService)
     {
+        _logger.LogInformation("🔄 HandleNotificationAsync started — processing background task");
+
         JObject? payload;
         try { payload = JObject.Parse(body); }
         catch (JsonException ex)

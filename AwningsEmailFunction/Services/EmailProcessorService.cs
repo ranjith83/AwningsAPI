@@ -10,81 +10,141 @@ namespace AwningsEmailFunction.Services;
 public class EmailProcessorService : IEmailProcessorService
 {
     private readonly EmailFunctionDbContext _context;
+    private readonly IEmailReaderService _emailReaderService;
     private readonly IEmailAnalysisService _analysisService;
     private readonly ILogger<EmailProcessorService> _logger;
 
     public EmailProcessorService(
         EmailFunctionDbContext context,
+        IEmailReaderService emailReaderService,
         IEmailAnalysisService analysisService,
         ILogger<EmailProcessorService> logger)
     {
         _context = context;
+        _emailReaderService = emailReaderService;
         _analysisService = analysisService;
         _logger = logger;
     }
 
-    public async Task ProcessEmailAsync(int incomingEmailId)
+    public async Task ProcessIncomingEmailAsync(string messageId, string mailboxEmail)
     {
-        var email = await _context.IncomingEmails
-            .Include(e => e.Attachments)
-            .FirstOrDefaultAsync(e => e.Id == incomingEmailId);
+        _logger.LogInformation("Processing incoming email {MessageId} from mailbox {Mailbox}", messageId, mailboxEmail);
 
-        if (email == null)
-        {
-            _logger.LogWarning("ProcessEmailAsync: email {Id} not found", incomingEmailId);
-            return;
-        }
-
+        IncomingEmail? email = null;
         try
         {
-            _logger.LogInformation("Processing email {Id}: {Subject} from {From}", email.Id, email.Subject, email.FromEmail);
+            email = await FetchAndSaveEmailAsync(messageId, mailboxEmail);
+            if (email == null) return;
 
-            email.ProcessingStatus = "Processing";
-            await _context.SaveChangesAsync();
+            await AnalyzeEmailAsync(email);
 
-            // AI analysis
-            var analysis = await _analysisService.AnalyzeEmailAsync(email);
-
-            email.Category = analysis.Category;
-            email.CategoryConfidence = analysis.Confidence;
-            email.ExtractedData = JsonConvert.SerializeObject(analysis.ExtractedData);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("AI result: {Category} ({Confidence:P0})", analysis.Category, analysis.Confidence);
-
-            if (!analysis.IsSpam && analysis.Category != "junk")
+            if (!IsJunk(email))
             {
-                var task = await CreateTaskAsync(email, analysis);
-                await TryAutoLinkCustomerAndWorkflowAsync(task.TaskId, email.FromEmail);
-
-                if (string.Equals(email.Category, "initial_enquiry", StringComparison.OrdinalIgnoreCase))
-                    await TryCreateInitialEnquiryAsync(task.TaskId, email);
+                var task = await CreateTaskAsync(email);
+                await AutoLinkCustomerAndWorkflowAsync(task, email.FromEmail);
+                if (IsInitialEnquiry(email))
+                    await CreateInitialEnquiryAsync(task, email);
             }
             else
             {
-                _logger.LogInformation("Junk email — no task created");
+                _logger.LogInformation("Junk email {Id} — no task created", email.Id);
             }
 
-            email.ProcessingStatus = "Completed";
-            email.DateProcessed = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("Email {Id} processed successfully", email.Id);
+            await MarkCompletedAsync(email);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing email {Id}", incomingEmailId);
-            email.ProcessingStatus = "Failed";
-            email.ErrorMessage = ex.Message;
-            email.DateProcessed = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            _logger.LogError(ex, "Failed to process email {MessageId}", messageId);
+
+            if (email != null)
+            {
+                email.ProcessingStatus = "Failed";
+                email.ErrorMessage = ex.Message;
+                email.DateProcessed = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
         }
     }
 
-    private async Task<AppTask> CreateTaskAsync(IncomingEmail email, EmailAnalysisResult analysis)
+    #region Step 1 — Fetch and Save
+
+    private async Task<IncomingEmail?> FetchAndSaveEmailAsync(string messageId, string mailboxEmail)
     {
-        var priority = DeterminePriority(email.Importance, analysis.Category);
-        var category = MapCategoryToDisplay(analysis.Category);
+        var alreadyExists = await _context.IncomingEmails.AnyAsync(e => e.EmailId == messageId);
+        if (alreadyExists)
+        {
+            _logger.LogInformation("Email {MessageId} already in DB — skipping", messageId);
+            return null;
+        }
+
+        var fetched = await _emailReaderService.GetCompleteEmailAsync(mailboxEmail, messageId);
+
+        var email = new IncomingEmail
+        {
+            EmailId = fetched.EmailId,
+            Subject = fetched.Subject,
+            FromEmail = fetched.FromEmail,
+            FromName = fetched.FromName,
+            BodyPreview = fetched.BodyPreview,
+            BodyContent = fetched.BodyContent,
+            IsHtml = fetched.IsHtml,
+            ReceivedDateTime = fetched.ReceivedDateTime,
+            HasAttachments = fetched.HasAttachments,
+            Importance = fetched.Importance,
+            ProcessingStatus = "Pending",
+            DateCreated = DateTime.UtcNow
+        };
+
+        foreach (var att in fetched.Attachments)
+        {
+            email.Attachments.Add(new EmailAttachment
+            {
+                AttachmentId = att.AttachmentId,
+                FileName = att.FileName,
+                ContentType = att.ContentType,
+                Size = att.Size,
+                IsInline = att.IsInline,
+                Base64Content = att.Base64Content,
+                ExtractedText = att.ExtractedText,
+                DateDownloaded = DateTime.UtcNow
+            });
+        }
+
+        _context.IncomingEmails.Add(email);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Saved email {MessageId} — Subject: {Subject}, Id: {Id}", messageId, email.Subject, email.Id);
+        return email;
+    }
+
+    #endregion
+
+    #region Step 2 — AI Analysis
+
+    private async Task AnalyzeEmailAsync(IncomingEmail email)
+    {
+        email.ProcessingStatus = "Processing";
+        await _context.SaveChangesAsync();
+
+        var analysis = await _analysisService.AnalyzeEmailAsync(email);
+
+        email.Category = analysis.Category;
+        email.CategoryConfidence = analysis.Confidence;
+        email.ExtractedData = JsonConvert.SerializeObject(analysis.ExtractedData);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("AI analysis complete — Category: {Category}, Confidence: {Confidence:P0}",
+            analysis.Category, analysis.Confidence);
+    }
+
+    #endregion
+
+    #region Step 3 — Task Creation
+
+    private async Task<AppTask> CreateTaskAsync(IncomingEmail email)
+    {
+        var priority = DeterminePriority(email.Importance, email.Category);
+        var displayCategory = MapCategoryToDisplay(email.Category);
 
         var task = new AppTask
         {
@@ -94,14 +154,14 @@ public class EmailProcessorService : IEmailProcessorService
             FromName = email.FromName,
             FromEmail = email.FromEmail,
             Subject = email.Subject,
-            Category = category,
-            TaskType = analysis.TaskType,
+            Category = displayCategory,
+            TaskType = email.Category,
             EmailBody = email.BodyContent,
             Priority = priority,
             Status = "New",
             HasAttachments = email.HasAttachments,
             ExtractedData = email.ExtractedData,
-            AIConfidence = analysis.Confidence,
+            AIConfidence = email.CategoryConfidence,
             DueDate = CalculateDueDate(priority),
             DateAdded = DateTime.UtcNow,
             DateCreated = DateTime.UtcNow,
@@ -112,36 +172,43 @@ public class EmailProcessorService : IEmailProcessorService
         await _context.SaveChangesAsync();
 
         await AddHistoryAsync(task.TaskId, "Created", null, null,
-            "Task created from email", "System", null, email.Subject, category);
+            "Task created from email", "System",
+            subject: email.Subject, category: displayCategory);
 
-        // Copy attachments from email to task
         if (email.HasAttachments && email.Attachments.Any())
-        {
-            foreach (var att in email.Attachments)
-            {
-                _context.TaskAttachments.Add(new TaskAttachment
-                {
-                    TaskId = task.TaskId,
-                    EmailAttachmentId = att.Id,
-                    FileName = att.FileName,
-                    FileType = att.ContentType,
-                    FileSize = att.Size,
-                    BlobUrl = att.BlobStorageUrl,
-                    ExtractedText = att.ExtractedText,
-                    DateUploaded = DateTime.UtcNow,
-                    UploadedBy = "System"
-                });
-            }
-            await _context.SaveChangesAsync();
-        }
+            await CopyAttachmentsToTaskAsync(task.TaskId, email.Attachments);
 
-        _logger.LogInformation("Task {TaskId} created — Category={Category}, Priority={Priority}",
-            task.TaskId, category, priority);
+        _logger.LogInformation("Task {TaskId} created — Category: {Category}, Priority: {Priority}",
+            task.TaskId, displayCategory, priority);
 
         return task;
     }
 
-    private async Task TryAutoLinkCustomerAndWorkflowAsync(int taskId, string? fromEmail)
+    private async Task CopyAttachmentsToTaskAsync(int taskId, IEnumerable<EmailAttachment> attachments)
+    {
+        foreach (var att in attachments)
+        {
+            _context.TaskAttachments.Add(new TaskAttachment
+            {
+                TaskId = taskId,
+                EmailAttachmentId = att.Id,
+                FileName = att.FileName,
+                FileType = att.ContentType,
+                FileSize = att.Size,
+                BlobUrl = att.BlobStorageUrl,
+                ExtractedText = att.ExtractedText,
+                DateUploaded = DateTime.UtcNow,
+                UploadedBy = "System"
+            });
+        }
+        await _context.SaveChangesAsync();
+    }
+
+    #endregion
+
+    #region Step 4 — Auto-link Customer and Workflow
+
+    private async Task AutoLinkCustomerAndWorkflowAsync(AppTask task, string? fromEmail)
     {
         if (string.IsNullOrWhiteSpace(fromEmail)) return;
 
@@ -155,12 +222,9 @@ public class EmailProcessorService : IEmailProcessorService
 
             if (customer == null)
             {
-                _logger.LogInformation("No customer found for {FromEmail}", fromEmail);
+                _logger.LogInformation("No existing customer found for {FromEmail}", fromEmail);
                 return;
             }
-
-            var task = await _context.Tasks.FindAsync(taskId);
-            if (task == null) return;
 
             task.CustomerId = customer.CustomerId;
             task.CustomerName = customer.Name;
@@ -172,12 +236,10 @@ public class EmailProcessorService : IEmailProcessorService
                 .Where(w => w.CustomerId == customer.CustomerId)
                 .ToListAsync();
 
-            var singleWorkflow = workflows.Count == 1;
-            if (singleWorkflow)
-                task.WorkflowId = workflows[0].WorkflowId;
-
-            if (singleWorkflow)
+            var hasSingleWorkflow = workflows.Count == 1;
+            if (hasSingleWorkflow)
             {
+                task.WorkflowId = workflows[0].WorkflowId;
                 task.Status = "Completed";
                 task.CompletedDate = DateTime.UtcNow;
                 task.CompletedBy = "System";
@@ -187,63 +249,83 @@ public class EmailProcessorService : IEmailProcessorService
 
             await _context.SaveChangesAsync();
 
-            await AddHistoryAsync(taskId, "CustomerLinked", null, customer.CustomerId.ToString(),
-                singleWorkflow
+            await AddHistoryAsync(task.TaskId, "CustomerLinked", null, customer.CustomerId.ToString(),
+                hasSingleWorkflow
                     ? $"Auto-linked customer '{customer.Name}' and workflow {task.WorkflowId}"
                     : $"Auto-linked customer '{customer.Name}'",
                 "System", customer.Name, task.Subject, task.Category);
 
-            if (singleWorkflow)
+            if (hasSingleWorkflow)
             {
-                await AddHistoryAsync(taskId, "WorkflowLinked", null, task.WorkflowId.ToString(),
+                await AddHistoryAsync(task.TaskId, "WorkflowLinked", null, task.WorkflowId.ToString(),
                     $"Workflow {task.WorkflowId} auto-linked", "System", customer.Name, task.Subject, task.Category);
 
-                await AddHistoryAsync(taskId, "Completed", "New", "Completed",
+                await AddHistoryAsync(task.TaskId, "Completed", "New", "Completed",
                     task.CompletionNotes, "System", customer.Name, task.Subject, task.Category);
             }
 
-            _logger.LogInformation("Auto-linked customer {CustomerId} to task {TaskId}", customer.CustomerId, taskId);
+            _logger.LogInformation("Auto-linked customer {CustomerId} ({Name}) to task {TaskId}",
+                customer.CustomerId, customer.Name, task.TaskId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "TryAutoLinkCustomerAndWorkflow failed for task {TaskId}", taskId);
+            _logger.LogError(ex, "AutoLinkCustomerAndWorkflow failed for task {TaskId}", task.TaskId);
         }
     }
 
-    private async Task TryCreateInitialEnquiryAsync(int taskId, IncomingEmail email)
+    #endregion
+
+    #region Step 5 — Initial Enquiry
+
+    private async Task CreateInitialEnquiryAsync(AppTask task, IncomingEmail email)
     {
         try
         {
-            var task = await _context.Tasks.AsNoTracking().FirstOrDefaultAsync(t => t.TaskId == taskId);
-            if (task?.WorkflowId == null) return;
+            if (task.WorkflowId == null) return;
 
-            var exists = await _context.InitialEnquiries.AnyAsync(e => e.TaskId == taskId);
+            var exists = await _context.InitialEnquiries.AnyAsync(e => e.TaskId == task.TaskId);
             if (exists) return;
 
-            var preview = email.BodyPreview ?? string.Empty;
             var comments = $"Email subject: {email.Subject}";
-            if (!string.IsNullOrWhiteSpace(preview))
-                comments += preview[..Math.Min(preview.Length, 500)];
+            if (!string.IsNullOrWhiteSpace(email.BodyPreview))
+                comments += email.BodyPreview[..Math.Min(email.BodyPreview.Length, 500)];
 
             _context.InitialEnquiries.Add(new InitialEnquiry
             {
                 WorkflowId = task.WorkflowId.Value,
                 Comments = comments,
                 Email = email.FromEmail ?? string.Empty,
-                TaskId = taskId,
+                TaskId = task.TaskId,
                 IncomingEmailId = email.Id,
                 DateCreated = email.ReceivedDateTime != default ? email.ReceivedDateTime : DateTime.UtcNow,
                 CreatedBy = "System (email processor)"
             });
 
             await _context.SaveChangesAsync();
-            _logger.LogInformation("InitialEnquiry created for task {TaskId} on workflow {WorkflowId}", taskId, task.WorkflowId);
+            _logger.LogInformation("InitialEnquiry created for task {TaskId} on workflow {WorkflowId}",
+                task.TaskId, task.WorkflowId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "TryCreateInitialEnquiry failed for task {TaskId}", taskId);
+            _logger.LogError(ex, "CreateInitialEnquiry failed for task {TaskId}", task.TaskId);
         }
     }
+
+    #endregion
+
+    #region Step 6 — Mark Completed
+
+    private async Task MarkCompletedAsync(IncomingEmail email)
+    {
+        email.ProcessingStatus = "Completed";
+        email.DateProcessed = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        _logger.LogInformation("Email {Id} processing complete", email.Id);
+    }
+
+    #endregion
+
+    #region Helpers
 
     private async Task AddHistoryAsync(int taskId, string action, string? oldValue, string? newValue,
         string? details, string createdBy,
@@ -265,18 +347,24 @@ public class EmailProcessorService : IEmailProcessorService
         await _context.SaveChangesAsync();
     }
 
-    private string MapCategoryToDisplay(string category) => category switch
+    private static bool IsJunk(IncomingEmail email) =>
+        string.Equals(email.Category, "junk", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsInitialEnquiry(IncomingEmail email) =>
+        string.Equals(email.Category, "initial_enquiry", StringComparison.OrdinalIgnoreCase);
+
+    private static string MapCategoryToDisplay(string? category) => category switch
     {
+        "initial_enquiry" => "initial_enquiry",
+        "site_visit_meeting" => "Site Visit",
         "invoice_due" => "Invoice Due",
         "quote_creation" => "New Quote",
         "showroom_booking" => "Showroom Booking",
         "complaint" => "Complaint",
-        "site_visit_meeting" => "Site Visit",
-        "initial_enquiry" => "initial_enquiry",
         _ => category ?? "Inquiry"
     };
 
-    private string DeterminePriority(string? importance, string? category)
+    private static string DeterminePriority(string? importance, string? category)
     {
         if (category == "complaint") return "Urgent";
         if (importance == "High") return "High";
@@ -284,11 +372,13 @@ public class EmailProcessorService : IEmailProcessorService
         return "Normal";
     }
 
-    private DateTime CalculateDueDate(string priority) => priority switch
+    private static DateTime CalculateDueDate(string priority) => priority switch
     {
         "Urgent" => DateTime.UtcNow.AddDays(1),
         "High" => DateTime.UtcNow.AddDays(3),
         "Normal" => DateTime.UtcNow.AddDays(7),
         _ => DateTime.UtcNow.AddDays(14)
     };
+
+    #endregion
 }

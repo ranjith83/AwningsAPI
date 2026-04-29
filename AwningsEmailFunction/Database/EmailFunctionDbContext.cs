@@ -16,6 +16,7 @@ public class EmailFunctionDbContext : DbContext
     public DbSet<CustomerContact> CustomerContacts { get; set; }
     public DbSet<WorkflowStart> WorkflowStarts { get; set; }
     public DbSet<InitialEnquiry> InitialEnquiries { get; set; }
+    public DbSet<GraphSubscription> GraphSubscriptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

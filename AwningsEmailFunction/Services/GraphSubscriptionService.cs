@@ -1,4 +1,7 @@
+using AwningsEmailFunction.Database;
 using AwningsEmailFunction.Interfaces;
+using AwningsEmailFunction.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
@@ -11,19 +14,20 @@ public class GraphSubscriptionService : IGraphSubscriptionService
     private readonly GraphServiceClient _graphClient;
     private readonly IConfiguration _configuration;
     private readonly ILogger<GraphSubscriptionService> _logger;
+    private readonly EmailFunctionDbContext _context;
 
-    private static string? _subscriptionId;
-    private static DateTimeOffset _subscriptionExpiry = DateTimeOffset.MinValue;
     private static readonly TimeSpan RenewalBuffer = TimeSpan.FromMinutes(30);
 
     public GraphSubscriptionService(
         GraphServiceClient graphClient,
         IConfiguration configuration,
-        ILogger<GraphSubscriptionService> logger)
+        ILogger<GraphSubscriptionService> logger,
+        EmailFunctionDbContext context)
     {
         _graphClient = graphClient;
         _configuration = configuration;
         _logger = logger;
+        _context = context;
     }
 
     public async Task EnsureSubscriptionAsync()
@@ -35,45 +39,44 @@ public class GraphSubscriptionService : IGraphSubscriptionService
                 ?? throw new InvalidOperationException("Monitored mailbox not configured.");
 
             var notificationUrl = _configuration["GraphSubscription:NotificationUrl"]
-                ?? throw new InvalidOperationException(
-                    "GraphSubscription:NotificationUrl not configured.");
+                ?? throw new InvalidOperationException("GraphSubscription:NotificationUrl not configured.");
 
             var clientState = _configuration["GraphSubscription:ClientState"] ?? "AwningsEmailWatcher";
 
-            // ── Recover from restart: static fields are null but subscription may still exist in Graph ──
-            if (string.IsNullOrEmpty(_subscriptionId))
-            {
-                await TryRestoreFromGraphAsync(notificationUrl);
-            }
+            var persisted = await _context.GraphSubscriptions.FirstOrDefaultAsync();
 
             // Still valid — nothing to do
-            if (!string.IsNullOrEmpty(_subscriptionId) &&
-                DateTimeOffset.UtcNow < _subscriptionExpiry - RenewalBuffer)
+            if (persisted != null && DateTimeOffset.UtcNow < persisted.ExpiryDateTime - RenewalBuffer)
             {
                 _logger.LogInformation(
                     "Graph subscription {Id} is still valid (expires {Expiry}). No action needed.",
-                    _subscriptionId, _subscriptionExpiry);
+                    persisted.SubscriptionId, persisted.ExpiryDateTime);
                 return;
             }
 
-            // Renew existing
-            if (!string.IsNullOrEmpty(_subscriptionId))
+            // Try to renew existing
+            if (persisted != null)
             {
                 try
                 {
-                    _logger.LogInformation("Renewing Graph subscription {Id}...", _subscriptionId);
+                    _logger.LogInformation("Renewing Graph subscription {Id}...", persisted.SubscriptionId);
                     var newExpiry = DateTimeOffset.UtcNow.AddMinutes(4230);
-                    await _graphClient.Subscriptions[_subscriptionId]
+                    await _graphClient.Subscriptions[persisted.SubscriptionId]
                         .PatchAsync(new Subscription { ExpirationDateTime = newExpiry });
-                    _subscriptionExpiry = newExpiry;
-                    _logger.LogInformation("Graph subscription renewed until {Expiry}.", _subscriptionExpiry);
+
+                    persisted.ExpiryDateTime = newExpiry;
+                    persisted.UpdatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation("Graph subscription renewed until {Expiry}.", newExpiry);
                     return;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Could not renew subscription {Id} — will recreate.", _subscriptionId);
-                    _subscriptionId = null;
-                    _subscriptionExpiry = DateTimeOffset.MinValue;
+                    _logger.LogWarning(ex, "Could not renew subscription {Id} — will recreate.", persisted.SubscriptionId);
+                    _context.GraphSubscriptions.Remove(persisted);
+                    await _context.SaveChangesAsync();
+                    persisted = null;
                 }
             }
 
@@ -95,11 +98,19 @@ public class GraphSubscriptionService : IGraphSubscriptionService
 
             var created = await _graphClient.Subscriptions.PostAsync(subscription);
 
-            _subscriptionId = created?.Id ?? throw new Exception("Graph returned a null subscription ID.");
-            _subscriptionExpiry = created.ExpirationDateTime ?? DateTimeOffset.UtcNow.AddMinutes(4230);
+            if (created?.Id == null)
+                throw new Exception("Graph returned a null subscription ID.");
 
-            _logger.LogInformation("Graph subscription created. ID={Id}, Expires={Expiry}",
-                _subscriptionId, _subscriptionExpiry);
+            _context.GraphSubscriptions.Add(new GraphSubscription
+            {
+                SubscriptionId = created.Id,
+                ExpiryDateTime = created.ExpirationDateTime ?? DateTimeOffset.UtcNow.AddMinutes(4230),
+                UpdatedAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Graph subscription created and saved to DB. ID={Id}, Expires={Expiry}",
+                created.Id, created.ExpirationDateTime);
         }
         catch (Exception ex)
         {
@@ -108,66 +119,33 @@ public class GraphSubscriptionService : IGraphSubscriptionService
         }
     }
 
-    public string? GetActiveSubscriptionId() => _subscriptionId;
+    public string? GetActiveSubscriptionId()
+    {
+        return _context.GraphSubscriptions
+            .AsNoTracking()
+            .OrderByDescending(s => s.UpdatedAt)
+            .Select(s => s.SubscriptionId)
+            .FirstOrDefault();
+    }
 
     public async Task DeleteSubscriptionAsync()
     {
-        if (string.IsNullOrEmpty(_subscriptionId)) return;
+        var persisted = await _context.GraphSubscriptions.FirstOrDefaultAsync();
+        if (persisted == null) return;
+
         try
         {
-            await _graphClient.Subscriptions[_subscriptionId].DeleteAsync();
-            _logger.LogInformation("Graph subscription {Id} deleted.", _subscriptionId);
+            await _graphClient.Subscriptions[persisted.SubscriptionId].DeleteAsync();
+            _logger.LogInformation("Graph subscription {Id} deleted.", persisted.SubscriptionId);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Could not delete Graph subscription {Id}.", _subscriptionId);
+            _logger.LogWarning(ex, "Could not delete Graph subscription {Id}.", persisted.SubscriptionId);
         }
         finally
         {
-            _subscriptionId = null;
-            _subscriptionExpiry = DateTimeOffset.MinValue;
-        }
-    }
-
-    /// <summary>
-    /// Called when _subscriptionId is null (e.g. after a restart).
-    /// Queries Graph to find an existing valid subscription matching our notification URL
-    /// and restores the in-memory state — avoiding unnecessary deletion and recreation.
-    /// </summary>
-    private async Task TryRestoreFromGraphAsync(string notificationUrl)
-    {
-        try
-        {
-            _logger.LogInformation("Static subscription state is empty — querying Graph to restore...");
-
-            var existing = await _graphClient.Subscriptions.GetAsync();
-            if (existing?.Value == null || !existing.Value.Any())
-            {
-                _logger.LogInformation("No existing Graph subscriptions found.");
-                return;
-            }
-
-            var valid = existing.Value.FirstOrDefault(s =>
-                s.NotificationUrl == notificationUrl &&
-                s.ExpirationDateTime > DateTimeOffset.UtcNow + RenewalBuffer);
-
-            if (valid != null)
-            {
-                _subscriptionId = valid.Id;
-                _subscriptionExpiry = valid.ExpirationDateTime ?? DateTimeOffset.MinValue;
-                _logger.LogInformation(
-                    "Restored subscription {Id} from Graph (expires {Expiry}).",
-                    _subscriptionId, _subscriptionExpiry);
-            }
-            else
-            {
-                _logger.LogInformation(
-                    "No valid matching subscription found on Graph — will create a new one.");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Could not query Graph subscriptions during restore — will proceed to create.");
+            _context.GraphSubscriptions.Remove(persisted);
+            await _context.SaveChangesAsync();
         }
     }
 
@@ -179,8 +157,6 @@ public class GraphSubscriptionService : IGraphSubscriptionService
             if (existing?.Value == null || !existing.Value.Any())
             {
                 _logger.LogInformation("No stale Graph subscriptions found.");
-                _subscriptionId = null;
-                _subscriptionExpiry = DateTimeOffset.MinValue;
                 return;
             }
 
@@ -199,14 +175,17 @@ public class GraphSubscriptionService : IGraphSubscriptionService
                 }
             }
 
-            _subscriptionId = null;
-            _subscriptionExpiry = DateTimeOffset.MinValue;
+            // Clear DB record too
+            var dbRecords = await _context.GraphSubscriptions.ToListAsync();
+            if (dbRecords.Any())
+            {
+                _context.GraphSubscriptions.RemoveRange(dbRecords);
+                await _context.SaveChangesAsync();
+            }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error fetching stale subscriptions — proceeding anyway.");
-            _subscriptionId = null;
-            _subscriptionExpiry = DateTimeOffset.MinValue;
         }
     }
 }
