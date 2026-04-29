@@ -42,3 +42,4 @@ artifacts/
 *.log
 node_modules/
 .ionide/
+/AwningsEmailFunction/Properties
