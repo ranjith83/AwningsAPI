@@ -2,6 +2,7 @@ using AwningsEmailFunction.Interfaces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -14,18 +15,18 @@ public class GraphWebhookFunction
     private readonly IConfiguration _configuration;
     private readonly ILogger<GraphWebhookFunction> _logger;
     private readonly IGraphSubscriptionService _subscriptionService;
-    private readonly IEmailWatchService _emailWatchService;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public GraphWebhookFunction(
         IConfiguration configuration,
         ILogger<GraphWebhookFunction> logger,
         IGraphSubscriptionService subscriptionService,
-        IEmailWatchService emailWatchService)
+        IServiceScopeFactory scopeFactory)
     {
         _configuration = configuration;
         _logger = logger;
         _subscriptionService = subscriptionService;
-        _emailWatchService = emailWatchService;
+        _scopeFactory = scopeFactory;
     }
 
     // GET /api/EmailWatch/notify — Graph sends this first to verify the endpoint is real
@@ -78,7 +79,13 @@ public class GraphWebhookFunction
         }
 
         // Return 202 immediately — Graph retries if we don't respond within a few seconds
-        _ = Task.Run(() => HandleNotificationAsync(body));
+        // Use a new scope so the DbContext isn't disposed when the function invocation ends
+        _ = Task.Run(async () =>
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var watchService = scope.ServiceProvider.GetRequiredService<IEmailWatchService>();
+            await HandleNotificationAsync(body, watchService);
+        });
 
         return req.CreateResponse(HttpStatusCode.Accepted);
     }
@@ -136,7 +143,7 @@ public class GraphWebhookFunction
         return response;
     }
 
-    private async Task HandleNotificationAsync(string body)
+    private async Task HandleNotificationAsync(string body, IEmailWatchService emailWatchService)
     {
         JObject? payload;
         try { payload = JObject.Parse(body); }
@@ -199,7 +206,7 @@ public class GraphWebhookFunction
 
                 _logger.LogInformation("⚡ Triggering processing for messageId: {MessageId}", messageId);
 
-                await _emailWatchService.SaveEmailAsync(messageId);
+                await emailWatchService.SaveEmailAsync(messageId);
             }
             catch (Exception ex)
             {

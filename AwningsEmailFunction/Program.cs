@@ -29,6 +29,8 @@ var host = new HostBuilder()
 
         services.AddScoped<IGraphSubscriptionService, GraphSubscriptionService>();
         services.AddScoped<IEmailReaderService, EmailReaderService>();
+        services.AddScoped<IEmailAnalysisService, EmailAnalysisService>();
+        services.AddScoped<IEmailProcessorService, EmailProcessorService>();
         services.AddScoped<IEmailWatchService, EmailWatchService>();
 
         services.AddHttpClient();
@@ -36,5 +38,11 @@ var host = new HostBuilder()
         services.ConfigureFunctionsApplicationInsights();
     })
     .Build();
+
+using (var scope = host.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<EmailFunctionDbContext>();
+    db.Database.EnsureCreated();
+}
 
 await host.RunAsync();

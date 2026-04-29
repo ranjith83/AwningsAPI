@@ -10,17 +10,20 @@ namespace AwningsEmailFunction.Services;
 public class EmailWatchService : IEmailWatchService
 {
     private readonly IEmailReaderService _emailReaderService;
+    private readonly IEmailProcessorService _emailProcessorService;
     private readonly EmailFunctionDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<EmailWatchService> _logger;
 
     public EmailWatchService(
         IEmailReaderService emailReaderService,
+        IEmailProcessorService emailProcessorService,
         EmailFunctionDbContext context,
         IConfiguration configuration,
         ILogger<EmailWatchService> logger)
     {
         _emailReaderService = emailReaderService;
+        _emailProcessorService = emailProcessorService;
         _context = context;
         _configuration = configuration;
         _logger = logger;
@@ -80,5 +83,7 @@ public class EmailWatchService : IEmailWatchService
 
         _logger.LogInformation("Saved email {MessageId} (Subject: {Subject}) to DB with Id={Id}",
             messageId, entity.Subject, entity.Id);
+
+        await _emailProcessorService.ProcessEmailAsync(entity.Id);
     }
 }

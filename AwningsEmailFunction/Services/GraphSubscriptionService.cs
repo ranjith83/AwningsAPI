@@ -36,11 +36,17 @@ public class GraphSubscriptionService : IGraphSubscriptionService
 
             var notificationUrl = _configuration["GraphSubscription:NotificationUrl"]
                 ?? throw new InvalidOperationException(
-                    "GraphSubscription:NotificationUrl not configured. " +
-                    "Set it to your public HTTPS endpoint, e.g. https://yourapp.azurewebsites.net/api/EmailWatch/notify");
+                    "GraphSubscription:NotificationUrl not configured.");
 
             var clientState = _configuration["GraphSubscription:ClientState"] ?? "AwningsEmailWatcher";
 
+            // ── Recover from restart: static fields are null but subscription may still exist in Graph ──
+            if (string.IsNullOrEmpty(_subscriptionId))
+            {
+                await TryRestoreFromGraphAsync(notificationUrl);
+            }
+
+            // Still valid — nothing to do
             if (!string.IsNullOrEmpty(_subscriptionId) &&
                 DateTimeOffset.UtcNow < _subscriptionExpiry - RenewalBuffer)
             {
@@ -50,17 +56,28 @@ public class GraphSubscriptionService : IGraphSubscriptionService
                 return;
             }
 
+            // Renew existing
             if (!string.IsNullOrEmpty(_subscriptionId))
             {
-                _logger.LogInformation("Renewing Graph subscription {Id}...", _subscriptionId);
-                var newExpiry = DateTimeOffset.UtcNow.AddMinutes(4230);
-                await _graphClient.Subscriptions[_subscriptionId]
-                    .PatchAsync(new Subscription { ExpirationDateTime = newExpiry });
-                _subscriptionExpiry = newExpiry;
-                _logger.LogInformation("Graph subscription renewed until {Expiry}.", _subscriptionExpiry);
-                return;
+                try
+                {
+                    _logger.LogInformation("Renewing Graph subscription {Id}...", _subscriptionId);
+                    var newExpiry = DateTimeOffset.UtcNow.AddMinutes(4230);
+                    await _graphClient.Subscriptions[_subscriptionId]
+                        .PatchAsync(new Subscription { ExpirationDateTime = newExpiry });
+                    _subscriptionExpiry = newExpiry;
+                    _logger.LogInformation("Graph subscription renewed until {Expiry}.", _subscriptionExpiry);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not renew subscription {Id} — will recreate.", _subscriptionId);
+                    _subscriptionId = null;
+                    _subscriptionExpiry = DateTimeOffset.MinValue;
+                }
             }
 
+            // Create new
             _logger.LogInformation("Cleaning up stale Graph subscriptions before creating new one...");
             await DeleteAllSubscriptionsAsync();
 
@@ -112,6 +129,48 @@ public class GraphSubscriptionService : IGraphSubscriptionService
         }
     }
 
+    /// <summary>
+    /// Called when _subscriptionId is null (e.g. after a restart).
+    /// Queries Graph to find an existing valid subscription matching our notification URL
+    /// and restores the in-memory state — avoiding unnecessary deletion and recreation.
+    /// </summary>
+    private async Task TryRestoreFromGraphAsync(string notificationUrl)
+    {
+        try
+        {
+            _logger.LogInformation("Static subscription state is empty — querying Graph to restore...");
+
+            var existing = await _graphClient.Subscriptions.GetAsync();
+            if (existing?.Value == null || !existing.Value.Any())
+            {
+                _logger.LogInformation("No existing Graph subscriptions found.");
+                return;
+            }
+
+            var valid = existing.Value.FirstOrDefault(s =>
+                s.NotificationUrl == notificationUrl &&
+                s.ExpirationDateTime > DateTimeOffset.UtcNow + RenewalBuffer);
+
+            if (valid != null)
+            {
+                _subscriptionId = valid.Id;
+                _subscriptionExpiry = valid.ExpirationDateTime ?? DateTimeOffset.MinValue;
+                _logger.LogInformation(
+                    "Restored subscription {Id} from Graph (expires {Expiry}).",
+                    _subscriptionId, _subscriptionExpiry);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "No valid matching subscription found on Graph — will create a new one.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not query Graph subscriptions during restore — will proceed to create.");
+        }
+    }
+
     private async Task DeleteAllSubscriptionsAsync()
     {
         try
@@ -132,7 +191,7 @@ public class GraphSubscriptionService : IGraphSubscriptionService
                 try
                 {
                     await _graphClient.Subscriptions[sub.Id].DeleteAsync();
-                    _logger.LogInformation("🗑️ Deleted stale subscription {Id}.", sub.Id);
+                    _logger.LogInformation("Deleted stale subscription {Id}.", sub.Id);
                 }
                 catch (Exception ex)
                 {
