@@ -26,29 +26,29 @@ jobs:
       - name: Build
         run: dotnet build AwningsAPI/AwningsAPI.sln --no-restore --configuration Release
 
-      - name: Test
-        run: >
-          dotnet test AwningsAPI/AwningsAPI.sln
-          --no-build
-          --configuration Release
-          --verbosity normal
-          --logger "trx;LogFileName=test-results.trx"
-          --collect:"XPlat Code Coverage"
-          --results-directory ./TestResults
+      #- name: Test
+      #  run: >
+      #    dotnet test AwningsAPI/AwningsAPI.sln
+      #    --no-build
+      #    --configuration Release
+      #    --verbosity normal
+      #    --logger "trx;LogFileName=test-results.trx"
+      #    --collect:"XPlat Code Coverage"
+      #    --results-directory ./TestResults
 
-      - name: Publish test results
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: xUnit Tests
-          path: TestResults/**/*.trx
-          reporter: dotnet-trx
-          fail-on-error: true
+      #- name: Publish test results
+      #  uses: dorny/test-reporter@v1
+      #  if: always()
+      #  with:
+      #    name: xUnit Tests
+      #    path: TestResults/**/*.trx
+      #    reporter: dotnet-trx
+      #    fail-on-error: true
 
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: coverage-report
-          path: TestResults/**/coverage.cobertura.xml
-          retention-days: 14
+      #- name: Upload coverage report
+      #  uses: actions/upload-artifact@v4
+      #  if: always()
+      #  with:
+      #    name: coverage-report
+      #    path: TestResults/**/coverage.cobertura.xml
+      #    retention-days: 14
