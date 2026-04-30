@@ -110,8 +110,18 @@ public class EmailProcessorService : IEmailProcessorService
             });
         }
 
-        _context.IncomingEmails.Add(email);
-        await _context.SaveChangesAsync();
+        try
+        {
+            _context.IncomingEmails.Add(email);
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("IX_IncomingEmails_EmailId_Unique") == true)
+        {
+            // Two concurrent executions both passed the AnyAsync check before either saved.
+            // The other instance won — this one can safely skip.
+            _logger.LogInformation("Email {MessageId} already saved by a concurrent execution — skipping", messageId);
+            return null;
+        }
 
         _logger.LogInformation("Saved email {MessageId} — Subject: {Subject}, Id: {Id}", messageId, email.Subject, email.Id);
         return email;
@@ -348,7 +358,8 @@ public class EmailProcessorService : IEmailProcessorService
     }
 
     private static bool IsJunk(IncomingEmail email) =>
-        string.Equals(email.Category, "junk", StringComparison.OrdinalIgnoreCase);
+        string.Equals(email.Category, "junk", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(email.Category, "general", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsInitialEnquiry(IncomingEmail email) =>
         string.Equals(email.Category, "initial_enquiry", StringComparison.OrdinalIgnoreCase);
