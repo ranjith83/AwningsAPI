@@ -36,5 +36,9 @@ namespace AwningsAPI.Model.Workflow
         /// Allows navigating from the enquiry back to the task inbox.
         /// </summary>
         public int? TaskId { get; set; }
+
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
+        public string? DeletedBy { get; set; }
     }
 }

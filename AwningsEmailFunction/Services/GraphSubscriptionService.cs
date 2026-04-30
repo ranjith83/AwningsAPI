@@ -45,13 +45,31 @@ public class GraphSubscriptionService : IGraphSubscriptionService
 
             var persisted = await _context.GraphSubscriptions.FirstOrDefaultAsync();
 
-            // Still valid — nothing to do
+            // DB record looks valid — but verify Graph still has it, because Graph can expire
+            // subscriptions early if the notification URL became unreachable.
             if (persisted != null && DateTimeOffset.UtcNow < persisted.ExpiryDateTime - RenewalBuffer)
             {
-                _logger.LogInformation(
-                    "Graph subscription {Id} is still valid (expires {Expiry}). No action needed.",
-                    persisted.SubscriptionId, persisted.ExpiryDateTime);
-                return;
+                try
+                {
+                    var live = await _graphClient.Subscriptions[persisted.SubscriptionId].GetAsync();
+                    if (live != null)
+                    {
+                        _logger.LogInformation(
+                            "Graph subscription {Id} is still valid (expires {Expiry}). No action needed.",
+                            persisted.SubscriptionId, persisted.ExpiryDateTime);
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Graph returned 404 or another error — subscription is gone on their side
+                    _logger.LogWarning(ex,
+                        "Subscription {Id} not found in Graph (expired early?) — will recreate.",
+                        persisted.SubscriptionId);
+                    _context.GraphSubscriptions.Remove(persisted);
+                    await _context.SaveChangesAsync();
+                    persisted = null;
+                }
             }
 
             // Try to renew existing

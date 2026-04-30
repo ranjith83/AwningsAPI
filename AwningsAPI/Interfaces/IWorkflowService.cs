@@ -33,6 +33,7 @@ namespace AwningsAPI.Interfaces
         Task<IEnumerable<InitialEnquiry>> GetInitialEnquiryForWorkflowAsync(int workflowId);
         Task<InitialEnquiry> AddInitialEnquiry(InitialEnquiryDto dto, string currentUser);
         Task<InitialEnquiry> UpdateInitialEnquiry(InitialEnquiryDto dto, string currentUser);
+        Task<bool> DeleteInitialEnquiryAsync(int enquiryId, string currentUser);
 
         // ── Product / Pricing ─────────────────────────────────────────────────
         Task<List<int>> GetStandardWidthsForProductAsync(int productId);

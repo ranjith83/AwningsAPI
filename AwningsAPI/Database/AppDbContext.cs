@@ -623,6 +623,14 @@ namespace AwningsAPI.Database
                  .IsUnique()
                  .HasDatabaseName("IX_IncomingEmails_EmailId_Unique");
 
+            // ── InitialEnquiry soft-delete filter ─────────────────────────────
+            modelBuilder.Entity<InitialEnquiry>(entity =>
+            {
+                entity.HasQueryFilter(e => !e.IsDeleted);
+                entity.HasIndex(e => e.IsDeleted);
+                entity.HasIndex(e => e.WorkflowId);
+            });
+
             // ── UserSignature ─────────────────────────────────────────────────
             modelBuilder.Entity<UserSignature>(entity =>
             {

@@ -286,6 +286,19 @@ namespace AwningsAPI.Services.WorkflowService
             return existing;
         }
 
+        public async Task<bool> DeleteInitialEnquiryAsync(int enquiryId, string currentUser)
+        {
+            var enquiry = await _context.InitialEnquiries.FindAsync(enquiryId);
+            if (enquiry == null) return false;
+
+            enquiry.IsDeleted = true;
+            enquiry.DeletedAt = DateTime.UtcNow;
+            enquiry.DeletedBy = currentUser;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         // ════════════════════════════════════════════════════════════════════
         // PRODUCT / PRICING
         // ════════════════════════════════════════════════════════════════════

@@ -86,6 +86,7 @@ namespace AwningsAPI.Controllers
         // INITIAL ENQUIRY
         // ════════════════════════════════════════════════════════════════════
 
+        [Authorize]
         [HttpGet("GeInitialEnquiryForWorkflow")]
         public async Task<ActionResult<IEnumerable<InitialEnquiryDto>>> GeInitialEnquiryForWorkflow(int WorkflowId)
         {
@@ -106,6 +107,7 @@ namespace AwningsAPI.Controllers
             return Ok(dtos);
         }
 
+        [Authorize]
         [HttpPost("AddInitialEnquiry")]
         public async Task<ActionResult<InitialEnquiry>> AddInitialEnquiry([FromBody] InitialEnquiryDto dto)
         {
@@ -113,11 +115,23 @@ namespace AwningsAPI.Controllers
             return CreatedAtAction(nameof(AddInitialEnquiry), new { Id = enquiry.EnquiryId }, enquiry);
         }
 
+        [Authorize]
         [HttpPut("UpdateInitialEnquiry")]
         public async Task<ActionResult<InitialEnquiry>> UpdateInitialEnquiry([FromBody] InitialEnquiryDto dto)
         {
             var enquiry = await _workflowService.UpdateInitialEnquiry(dto, CurrentUser);
             return Ok(enquiry);
+        }
+
+        [Authorize]
+        [HttpDelete("DeleteInitialEnquiry/{enquiryId:int}")]
+        public async Task<IActionResult> DeleteInitialEnquiry(int enquiryId)
+        {
+            var deleted = await _workflowService.DeleteInitialEnquiryAsync(enquiryId, CurrentUser);
+            if (!deleted)
+                return NotFound(new { message = $"Enquiry {enquiryId} not found." });
+            _logger.LogInformation("InitialEnquiry {EnquiryId} soft-deleted by {User}", enquiryId, CurrentUser);
+            return Ok(new { message = "Enquiry deleted." });
         }
 
         // ════════════════════════════════════════════════════════════════════
