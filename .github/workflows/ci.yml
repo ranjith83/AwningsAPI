@@ -55,28 +55,56 @@ jobs:
       #    retention-days: 14
 
   # ── Deploy to Azure Container Apps ─────────────────────────────────────────
-  # Runs only on a push to master (not on PRs or other branches).
-  # Uses azure/container-apps-deploy-action with appSourcePath — builds directly
-  # from the Dockerfile, no container registry setup or secrets required.
+  # Runs only on a push to master.
+  # Builds the Docker image and pushes to GitHub Container Registry (ghcr.io),
+  # which is free and uses the built-in GITHUB_TOKEN — no registry secrets needed.
+  # Then updates the Container App to use the new image.
   deploy:
     name: Deploy to Azure Container Apps
     runs-on: ubuntu-latest
     needs: build-and-test
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ github.workspace }}/AwningsAPI
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/awningsapi:latest
+            ghcr.io/${{ github.repository_owner }}/awningsapi:${{ github.sha }}
 
       - name: Log in to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v2
-        with:
-          appSourcePath: ${{ github.workspace }}/AwningsAPI
-          containerAppName: ${{ secrets.CONTAINER_APP_NAME }}
-          resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
-          dockerfilePath: Dockerfile
+      - name: Configure registry credentials on Container App
+        run: |
+          az containerapp registry set \
+            --name ${{ secrets.CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --server ghcr.io \
+            --username ${{ github.actor }} \
+            --password ${{ secrets.GHCR_PAT }}
+
+      - name: Update Container App image
+        run: |
+          az containerapp update \
+            --name ${{ secrets.CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ghcr.io/${{ github.repository_owner }}/awningsapi:${{ github.sha }}
