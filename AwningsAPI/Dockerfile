@@ -3,10 +3,10 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 COPY ["AwningsAPI.csproj", "."]
-RUN dotnet restore
+RUN dotnet restore AwningsAPI.csproj
 
 COPY . .
-RUN dotnet publish -c Release -o /app/publish --no-restore
+RUN dotnet publish AwningsAPI.csproj -c Release -o /app/publish --no-restore
 
 # Stage 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
