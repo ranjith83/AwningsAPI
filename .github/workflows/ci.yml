@@ -95,4 +95,8 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Update Container App image
-        run: az containerapp update --name ${{ secrets.CONTAINER_APP_NAME }} --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --image ghcr.io/${{ github.repository_owner }}/awningsapi:${{ github.sha }}
+        env:
+          APP_NAME: ${{ secrets.CONTAINER_APP_NAME }}
+          RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/awningsapi:${{ github.sha }}
+        run: az containerapp update --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --image "$IMAGE"
