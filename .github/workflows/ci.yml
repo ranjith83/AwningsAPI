@@ -94,15 +94,6 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Configure registry credentials on Container App
-        run: |
-          az containerapp registry set \
-            --name ${{ secrets.CONTAINER_APP_NAME }} \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --server ghcr.io \
-            --username ${{ github.actor }} \
-            --password ${{ secrets.GHCR_PAT }}
-
       - name: Update Container App image
         run: |
           az containerapp update \
