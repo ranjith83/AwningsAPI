@@ -76,7 +76,7 @@ jobs:
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
-          appSourcePath: ${{ github.workspace }}/AwningsAPI/AwningsAPI
+          appSourcePath: ${{ github.workspace }}/AwningsAPI
           containerAppName: ${{ secrets.CONTAINER_APP_NAME }}
           resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
           dockerfilePath: Dockerfile
