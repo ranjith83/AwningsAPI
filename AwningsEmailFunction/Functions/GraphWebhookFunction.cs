@@ -147,7 +147,7 @@ public class GraphWebhookFunction
         return response;
     }
 
-    private List<string> ExtractMessageIds(string body)
+    internal List<string> ExtractMessageIds(string body)
     {
         var ids = new List<string>();
 

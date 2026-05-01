@@ -362,24 +362,24 @@ public class EmailProcessorService : IEmailProcessorService
         string.Equals(email.Category, "general", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsInitialEnquiry(IncomingEmail email) =>
-        string.Equals(email.Category, "initial_enquiry", StringComparison.OrdinalIgnoreCase);
+        string.Equals(email.Category, "enquiry", StringComparison.OrdinalIgnoreCase);
 
     private static string MapCategoryToDisplay(string? category) => category switch
     {
-        "initial_enquiry" => "initial_enquiry",
-        "site_visit_meeting" => "Site Visit",
-        "invoice_due" => "Invoice Due",
-        "quote_creation" => "New Quote",
-        "showroom_booking" => "Showroom Booking",
+        "enquiry" => "Enquiry",
+        "site_visit" => "Site Visit",
+        "invoice" => "Invoice",
+        "quote" => "Quote",
+        "showroom" => "Showroom",
         "complaint" => "Complaint",
-        _ => category ?? "Inquiry"
+        _ => category ?? "General"
     };
 
     private static string DeterminePriority(string? importance, string? category)
     {
         if (category == "complaint") return "Urgent";
         if (importance == "High") return "High";
-        if (category is "invoice_due" or "quote_creation") return "High";
+        if (category is "invoice" or "quote") return "High";
         return "Normal";
     }
 

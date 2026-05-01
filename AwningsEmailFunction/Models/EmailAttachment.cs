@@ -24,6 +24,7 @@ public class EmailAttachment
     public string? Base64Content { get; set; }
 
     public bool IsInline { get; set; }
+    public string? ContentId { get; set; }
 
     [Column(TypeName = "nvarchar(MAX)")]
     public string? ExtractedText { get; set; }

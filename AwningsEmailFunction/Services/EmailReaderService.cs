@@ -155,7 +155,10 @@ public class EmailReaderService : IEmailReaderService
             };
 
             if (incomingEmail.HasAttachments)
+            {
                 incomingEmail.Attachments = await DownloadAttachmentsAsync(mailboxEmail, message.Id!);
+                incomingEmail.BodyContent = ReplaceCidReferences(incomingEmail.BodyContent, incomingEmail.Attachments);
+            }
 
             _logger.LogInformation("Retrieved complete email: {Subject}", incomingEmail.Subject);
             return incomingEmail;
@@ -187,11 +190,12 @@ public class EmailReaderService : IEmailReaderService
 
                 result.Add(new EmailAttachment
                 {
-                    AttachmentId = fileAttachment.Id ?? string.Empty,
-                    FileName = fileAttachment.Name ?? "unknown",
-                    ContentType = fileAttachment.ContentType ?? "application/octet-stream",
-                    Size = fileAttachment.Size ?? 0,
-                    IsInline = fileAttachment.IsInline ?? false,
+                    AttachmentId  = fileAttachment.Id ?? string.Empty,
+                    FileName      = fileAttachment.Name ?? "unknown",
+                    ContentType   = fileAttachment.ContentType ?? "application/octet-stream",
+                    Size          = fileAttachment.Size ?? 0,
+                    IsInline      = fileAttachment.IsInline ?? false,
+                    ContentId     = fileAttachment.ContentId,
                     Base64Content = Convert.ToBase64String(fileAttachment.ContentBytes ?? Array.Empty<byte>())
                 });
             }
@@ -204,6 +208,16 @@ public class EmailReaderService : IEmailReaderService
             _logger.LogError(ex, "Error downloading attachments for email {EmailId}.", emailId);
             throw;
         }
+    }
+
+    private static string ReplaceCidReferences(string htmlBody, ICollection<EmailAttachment> attachments)
+    {
+        foreach (var att in attachments.Where(a => a.IsInline && !string.IsNullOrEmpty(a.ContentId) && !string.IsNullOrEmpty(a.Base64Content)))
+        {
+            var dataUri = $"data:{att.ContentType};base64,{att.Base64Content}";
+            htmlBody = htmlBody.Replace($"cid:{att.ContentId}", dataUri, StringComparison.OrdinalIgnoreCase);
+        }
+        return htmlBody;
     }
 
     public async Task MarkEmailAsReadAsync(string mailboxEmail, string emailId)

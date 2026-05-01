@@ -100,13 +100,13 @@ public class EmailAnalysisService : IEmailAnalysisService
     private string BuildPrompt(string subject, string body, string fromEmail) => $@"You are an expert email categorization system for an awnings/pergola company.
 
 Analyze this email and categorize it into ONE of these categories:
-1. initial_enquiry - New customer enquiries about products, pricing, or general information
-2. site_visit_meeting - Requests for site visits, measurements, or meetings
-3. invoice_due - Payment reminders or invoice notifications
-4. quote_creation - Specific quote requests with specifications
-5. showroom_booking - Showroom visit requests
+1. enquiry - New customer enquiries about products, pricing, or general information
+2. site_visit - Requests for site visits, measurements, or meetings
+3. invoice - Payment reminders or invoice notifications
+4. quote - Specific quote requests with specifications
+5. showroom - Showroom visit requests
 6. complaint - Customer complaints or issues
-7. general_inquiry - Everything else
+7. general - Everything else
 
 Email:
 Subject: {subject}
@@ -115,7 +115,7 @@ Body: {body}
 
 Respond ONLY with valid JSON:
 {{
-  ""category"": ""initial_enquiry"",
+  ""category"": ""enquiry"",
   ""confidence"": 0.85,
   ""priority"": ""Normal"",
   ""sentiment"": ""Neutral"",
@@ -192,11 +192,11 @@ Rules:
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         var result = JsonSerializer.Deserialize<AIAnalysisResult>(clean, options)!;
 
-        var validCategories = new[] { "initial_enquiry", "site_visit_meeting", "invoice_due",
-            "quote_creation", "showroom_booking", "complaint", "general_inquiry" };
+        var validCategories = new[] { "enquiry", "site_visit", "invoice",
+            "quote", "showroom", "complaint", "general" };
 
         if (!validCategories.Contains(result.Category))
-            result.Category = "general_inquiry";
+            result.Category = "general";
 
         return result;
     }
@@ -206,16 +206,16 @@ Rules:
         var combined = $"{subject} {body}".ToLower();
 
         if (combined.Contains("site visit") || combined.Contains("site survey"))
-            return new AIAnalysisResult { Category = "site_visit_meeting", Confidence = 0.75, Priority = "High", Sentiment = "Neutral", Reasoning = "Contains site visit keywords (fallback)", ExtractedData = new() };
+            return new AIAnalysisResult { Category = "site_visit", Confidence = 0.75, Priority = "High", Sentiment = "Neutral", Reasoning = "Contains site visit keywords (fallback)", ExtractedData = new() };
 
         if (combined.Contains("invoice") || combined.Contains("payment due"))
-            return new AIAnalysisResult { Category = "invoice_due", Confidence = 0.75, Priority = "High", Sentiment = "Neutral", Reasoning = "Contains invoice/payment keywords (fallback)", ExtractedData = new() };
+            return new AIAnalysisResult { Category = "invoice", Confidence = 0.75, Priority = "High", Sentiment = "Neutral", Reasoning = "Contains invoice/payment keywords (fallback)", ExtractedData = new() };
 
         var enquiryKeywords = new[] { "enquiry", "looking for", "interested in", "awning", "pergola", "shade" };
         if (enquiryKeywords.Count(k => combined.Contains(k)) >= 2)
-            return new AIAnalysisResult { Category = "initial_enquiry", Confidence = 0.70, Priority = "Normal", Sentiment = "Neutral", Reasoning = "Contains enquiry keywords (fallback)", ExtractedData = new() };
+            return new AIAnalysisResult { Category = "enquiry", Confidence = 0.70, Priority = "Normal", Sentiment = "Neutral", Reasoning = "Contains enquiry keywords (fallback)", ExtractedData = new() };
 
-        return new AIAnalysisResult { Category = "general_inquiry", Confidence = 0.60, Priority = "Normal", Sentiment = "Neutral", Reasoning = "Default categorization (fallback)", ExtractedData = new() };
+        return new AIAnalysisResult { Category = "general", Confidence = 0.60, Priority = "Normal", Sentiment = "Neutral", Reasoning = "Default categorization (fallback)", ExtractedData = new() };
     }
 
     private bool IsJunkEmail(string fromEmail, string subject, string body)
@@ -246,7 +246,7 @@ Rules:
         var companyNumber = ExtractCompanyNumber(email.BodyContent);
         if (!string.IsNullOrEmpty(companyNumber)) data["companyNumber"] = companyNumber;
 
-        if (category == "initial_enquiry")
+        if (category == "enquiry")
         {
             var dimensions = ExtractDimensions(email.BodyContent);
             if (!string.IsNullOrEmpty(dimensions)) data["dimensions"] = dimensions;
@@ -287,20 +287,20 @@ Rules:
 
     private string MapCategoryToTaskType(string category) => category switch
     {
-        "initial_enquiry" => "initial_enquiry",
-        "site_visit_meeting" => "site_visit",
-        "invoice_due" => "payment_followup",
-        "quote_creation" => "quote_creation",
-        "showroom_booking" => "showroom_booking",
+        "enquiry" => "enquiry",
+        "site_visit" => "site_visit",
+        "invoice" => "invoice",
+        "quote" => "quote",
+        "showroom" => "showroom",
         "complaint" => "complaint",
-        _ => "general_inquiry"
+        _ => "general"
     };
 
     private List<string> DetermineRequiredActions(string category) => category switch
     {
-        "initial_enquiry" => new List<string> { "check_customer", "create_workflow", "create_task" },
-        "site_visit_meeting" => new List<string> { "create_task" },
-        "invoice_due" => new List<string> { "create_task" },
+        "enquiry" => new List<string> { "check_customer", "create_workflow", "create_task" },
+        "site_visit" => new List<string> { "create_task" },
+        "invoice" => new List<string> { "create_task" },
         "junk" => new List<string> { "mark_as_junk" },
         _ => new List<string> { "create_task" }
     };

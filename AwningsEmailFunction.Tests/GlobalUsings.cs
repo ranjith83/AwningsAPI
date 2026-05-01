@@ -1,0 +1,11 @@
+global using Xunit;
+global using FluentAssertions;
+global using Moq;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.Logging.Abstractions;
+global using AwningsEmailFunction.Database;
+global using AwningsEmailFunction.Models;
+global using AwningsEmailFunction.Services;
+global using AwningsEmailFunction.Interfaces;
+global using AwningsEmailFunction.Functions;
+global using AwningsEmailFunction.Tests.Helpers;
