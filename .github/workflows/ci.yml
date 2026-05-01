@@ -22,10 +22,10 @@ jobs:
           dotnet-version: "9.0.x"
 
       - name: Restore
-        run: dotnet restore AwningsAPI/AwningsAPI.sln
+        run: dotnet restore AwningsAPI/AwningsAPI.csproj
 
       - name: Build
-        run: dotnet build AwningsAPI/AwningsAPI.sln --no-restore --configuration Release
+        run: dotnet build AwningsAPI/AwningsAPI.csproj --no-restore --configuration Release
 
       #- name: Test
       #  run: >
@@ -55,7 +55,8 @@ jobs:
       #    retention-days: 14
 
   # ── Deploy to Azure Container Apps ─────────────────────────────────────────
-  # Runs only on a push to master.
+  # Scoped to AwningsAPI only. AwningsEmailFunction and AwningsAPI.Functions
+  # have their own separate deployment pipelines.
   # Builds the Docker image and pushes to GitHub Container Registry (ghcr.io),
   # which is free and uses the built-in GITHUB_TOKEN — no registry secrets needed.
   # Then updates the Container App to use the new image.
