@@ -79,7 +79,7 @@ builder.Services.AddScoped<IEmailReaderService, EmailReaderService>();
 builder.Services.AddScoped<IEmailAnalysisService, EmailAnalysisService>();
 builder.Services.AddScoped<IEmailProcessorService, EmailProcessorService>();
 builder.Services.AddScoped<IGraphSubscriptionService, GraphSubscriptionService>();
-builder.Services.AddHostedService<EmailWatcherBackgroundService>();
+//builder.Services.AddHostedService<EmailWatcherBackgroundService>();
 // Task Service
 builder.Services.AddScoped<ITaskService, TaskService>();
 
@@ -147,13 +147,13 @@ using (var scope = app.Services.CreateScope())
 
 app.UseCors("AllowAngularDev");
 app.UseExceptionHandler();
+app.UseSwagger();
+app.UseSwaggerUI();
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseHttpsRedirection();
 }
-
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseAuthentication();

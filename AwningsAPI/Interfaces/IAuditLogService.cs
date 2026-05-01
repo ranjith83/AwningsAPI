@@ -16,3 +16,4 @@ namespace AwningsAPI.Interfaces
         List<FieldChange> CompareObjects<T>(T oldObj, T newObj, Dictionary<string, string> fieldLabels) where T : class;
     }
 }
+
