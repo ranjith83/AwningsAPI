@@ -58,11 +58,22 @@ public class EmailProcessorService : IEmailProcessorService
 
             if (email != null)
             {
-                email.ProcessingStatus = "Failed";
-                email.ErrorMessage = ex.Message;
-                email.DateProcessed = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
+                try
+                {
+                    _context.ChangeTracker.Clear();
+                    _context.IncomingEmails.Attach(email);
+                    email.ProcessingStatus = "Failed";
+                    email.ErrorMessage = ex.Message[..Math.Min(ex.Message.Length, 500)];
+                    email.DateProcessed = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception saveEx)
+                {
+                    _logger.LogError(saveEx, "Failed to update error status for email {MessageId}", messageId);
+                }
             }
+
+            throw; // let the queue retry the message
         }
     }
 
@@ -70,11 +81,19 @@ public class EmailProcessorService : IEmailProcessorService
 
     private async Task<IncomingEmail?> FetchAndSaveEmailAsync(string messageId, string mailboxEmail)
     {
-        var alreadyExists = await _context.IncomingEmails.AnyAsync(e => e.EmailId == messageId);
-        if (alreadyExists)
+        var existing = await _context.IncomingEmails
+            .Include(e => e.Attachments)
+            .FirstOrDefaultAsync(e => e.EmailId == messageId);
+
+        if (existing != null)
         {
-            _logger.LogInformation("Email {MessageId} already in DB — skipping", messageId);
-            return null;
+            if (existing.ProcessingStatus == "Completed")
+            {
+                _logger.LogInformation("Email {MessageId} already completed — skipping", messageId);
+                return null;
+            }
+            _logger.LogInformation("Email {MessageId} found with status {Status} — retrying", messageId, existing.ProcessingStatus);
+            return existing;
         }
 
         var fetched = await _emailReaderService.GetCompleteEmailAsync(mailboxEmail, messageId);
@@ -153,6 +172,13 @@ public class EmailProcessorService : IEmailProcessorService
 
     private async Task<AppTask> CreateTaskAsync(IncomingEmail email)
     {
+        var existingTask = await _context.Tasks.FirstOrDefaultAsync(t => t.IncomingEmailId == email.Id);
+        if (existingTask != null)
+        {
+            _logger.LogInformation("Task already exists for email {Id} — reusing task {TaskId}", email.Id, existingTask.TaskId);
+            return existingTask;
+        }
+
         var priority = DeterminePriority(email.Importance, email.Category);
         var displayCategory = MapCategoryToDisplay(email.Category);
 

@@ -41,17 +41,24 @@ var host = new HostBuilder()
 
 using (var scope = host.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<EmailFunctionDbContext>();
-    db.Database.EnsureCreated();
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<EmailFunctionDbContext>();
+        db.Database.EnsureCreated();
 
-    db.Database.ExecuteSqlRaw(@"
-        IF NOT EXISTS (SELECT 1 FROM sysobjects WHERE name='GraphSubscriptions' AND xtype='U')
-        CREATE TABLE GraphSubscriptions (
-            Id          INT IDENTITY(1,1) PRIMARY KEY,
-            SubscriptionId NVARCHAR(255) NOT NULL,
-            ExpiryDateTime DATETIMEOFFSET NOT NULL,
-            UpdatedAt   DATETIME2 NOT NULL
-        )");
+        db.Database.ExecuteSqlRaw(@"
+            IF NOT EXISTS (SELECT 1 FROM sysobjects WHERE name='GraphSubscriptions' AND xtype='U')
+            CREATE TABLE GraphSubscriptions (
+                Id          INT IDENTITY(1,1) PRIMARY KEY,
+                SubscriptionId NVARCHAR(255) NOT NULL,
+                ExpiryDateTime DATETIMEOFFSET NOT NULL,
+                UpdatedAt   DATETIME2 NOT NULL
+            )");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[STARTUP ERROR] Database initialization failed: {ex.Message}");
+    }
 }
 
 await host.RunAsync();

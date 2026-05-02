@@ -132,6 +132,7 @@ Rules:
     private async Task<AIAnalysisResult> CallClaudeAsync(string prompt, string apiKey)
     {
         var client = _httpClientFactory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(30);
         client.DefaultRequestHeaders.Add("x-api-key", apiKey);
         client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
 
@@ -155,6 +156,7 @@ Rules:
     private async Task<AIAnalysisResult> CallOpenAIAsync(string prompt, string apiKey)
     {
         var client = _httpClientFactory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(30);
         client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
 
         var requestBody = new
