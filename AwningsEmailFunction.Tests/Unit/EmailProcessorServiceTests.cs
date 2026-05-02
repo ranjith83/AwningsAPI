@@ -7,11 +7,13 @@ public class EmailProcessorServiceTests
     private static EmailProcessorService Build(
         EmailFunctionDbContext ctx,
         IEmailReaderService? reader = null,
-        IEmailAnalysisService? analysis = null)
+        IEmailAnalysisService? analysis = null,
+        IBlobEmailStorageService? blob = null)
     {
         reader   ??= new Mock<IEmailReaderService>().Object;
         analysis ??= new Mock<IEmailAnalysisService>().Object;
-        return new EmailProcessorService(ctx, reader, analysis,
+        blob     ??= new Mock<IBlobEmailStorageService>().Object;
+        return new EmailProcessorService(ctx, reader, analysis, blob,
             NullLogger<EmailProcessorService>.Instance);
     }
 
