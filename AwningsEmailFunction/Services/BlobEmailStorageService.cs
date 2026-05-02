@@ -15,9 +15,9 @@ public class BlobEmailStorageService : IBlobEmailStorageService
 
     public BlobEmailStorageService(IConfiguration configuration, ILogger<BlobEmailStorageService> logger)
     {
-        _connectionString = configuration["AzureBlobStorage:ConnectionString"]
-            ?? throw new InvalidOperationException("AzureBlobStorage:ConnectionString is not configured.");
-        _containerName = configuration["AzureBlobStorage:ContainerName"] ?? "awnings-emails";
+        _connectionString = configuration["BlobStorageConnectionString"]
+            ?? throw new InvalidOperationException("BlobStorageConnectionString is not configured.");
+        _containerName = configuration["BlobStorageContainerName"] ?? "awnings-emails";
         _logger = logger;
     }
 
