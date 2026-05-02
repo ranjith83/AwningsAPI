@@ -78,6 +78,8 @@ namespace AwningsAPI.Model.Email
 
         public bool IsInline { get; set; }
 
+        public string? ContentId { get; set; }
+
         [Column(TypeName = "nvarchar(MAX)")]
         public string? ExtractedText { get; set; } // Text extracted from PDF/images
 
