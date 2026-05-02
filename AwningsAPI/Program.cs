@@ -145,7 +145,9 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    var pending = db.Database.GetPendingMigrations().ToList();
+    if (pending.Count != 0)
+        throw new Exception($"Database has {pending.Count} pending migration(s): {string.Join(", ", pending)}. Run migrations before deploying.");
 }
 
 app.UseCors("AllowAngularDev");
