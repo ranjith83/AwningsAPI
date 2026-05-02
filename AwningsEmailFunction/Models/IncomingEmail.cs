@@ -18,7 +18,9 @@ public class IncomingEmail
     public string BodyPreview { get; set; } = string.Empty;
 
     [Column(TypeName = "nvarchar(MAX)")]
-    public string BodyContent { get; set; } = string.Empty;
+    public string? BodyContent { get; set; }
+
+    public string? BodyBlobUrl { get; set; }
 
     public bool IsHtml { get; set; }
     public DateTime ReceivedDateTime { get; set; }

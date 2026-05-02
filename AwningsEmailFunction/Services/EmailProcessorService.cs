@@ -12,17 +12,20 @@ public class EmailProcessorService : IEmailProcessorService
     private readonly EmailFunctionDbContext _context;
     private readonly IEmailReaderService _emailReaderService;
     private readonly IEmailAnalysisService _analysisService;
+    private readonly IBlobEmailStorageService _blobService;
     private readonly ILogger<EmailProcessorService> _logger;
 
     public EmailProcessorService(
         EmailFunctionDbContext context,
         IEmailReaderService emailReaderService,
         IEmailAnalysisService analysisService,
+        IBlobEmailStorageService blobService,
         ILogger<EmailProcessorService> logger)
     {
         _context = context;
         _emailReaderService = emailReaderService;
         _analysisService = analysisService;
+        _blobService = blobService;
         _logger = logger;
     }
 
@@ -98,6 +101,8 @@ public class EmailProcessorService : IEmailProcessorService
 
         var fetched = await _emailReaderService.GetCompleteEmailAsync(mailboxEmail, messageId);
 
+        var bodyBlobUrl = await UploadBodyToBlobAsync(fetched.EmailId, fetched.BodyContent, fetched.IsHtml);
+
         var email = new IncomingEmail
         {
             EmailId = fetched.EmailId,
@@ -106,6 +111,7 @@ public class EmailProcessorService : IEmailProcessorService
             FromName = fetched.FromName,
             BodyPreview = fetched.BodyPreview,
             BodyContent = fetched.BodyContent,
+            BodyBlobUrl = bodyBlobUrl,
             IsHtml = fetched.IsHtml,
             ReceivedDateTime = fetched.ReceivedDateTime,
             HasAttachments = fetched.HasAttachments,
@@ -116,6 +122,8 @@ public class EmailProcessorService : IEmailProcessorService
 
         foreach (var att in fetched.Attachments)
         {
+            var attBlobUrl = await UploadAttachmentToBlobAsync(fetched.EmailId, att);
+
             email.Attachments.Add(new EmailAttachment
             {
                 AttachmentId = att.AttachmentId,
@@ -124,6 +132,7 @@ public class EmailProcessorService : IEmailProcessorService
                 Size = att.Size,
                 IsInline = att.IsInline,
                 Base64Content = att.Base64Content,
+                BlobStorageUrl = attBlobUrl ?? att.BlobStorageUrl,
                 ExtractedText = att.ExtractedText,
                 DateDownloaded = DateTime.UtcNow
             });
@@ -416,6 +425,35 @@ public class EmailProcessorService : IEmailProcessorService
         "Normal" => DateTime.UtcNow.AddDays(7),
         _ => DateTime.UtcNow.AddDays(14)
     };
+
+    private async Task<string?> UploadBodyToBlobAsync(string emailId, string? bodyContent, bool isHtml)
+    {
+        if (string.IsNullOrEmpty(bodyContent)) return null;
+        try
+        {
+            return await _blobService.UploadEmailBodyAsync(emailId, bodyContent, isHtml);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upload email body to blob for {EmailId} — body stored in DB only", emailId);
+            return null;
+        }
+    }
+
+    private async Task<string?> UploadAttachmentToBlobAsync(string emailId, EmailAttachment att)
+    {
+        if (string.IsNullOrEmpty(att.Base64Content)) return null;
+        try
+        {
+            var bytes = Convert.FromBase64String(att.Base64Content);
+            return await _blobService.UploadAttachmentAsync(emailId, att.AttachmentId, att.FileName, bytes, att.ContentType);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upload attachment {FileName} to blob for {EmailId} — base64 stored in DB only", att.FileName, emailId);
+            return null;
+        }
+    }
 
     #endregion
 }
