@@ -735,7 +735,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasIndex("IncomingEmailId");
 
-                    b.ToTable("EmailAttachments");
+                    b.ToTable("EmailAttachments", (string)null);
                 });
 
             modelBuilder.Entity("AwningsAPI.Model.Email.IncomingEmail", b =>
@@ -813,7 +813,7 @@ namespace AwningsAPI.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_IncomingEmails_EmailId_Unique");
 
-                    b.ToTable("IncomingEmails");
+                    b.ToTable("IncomingEmails", (string)null);
                 });
 
             modelBuilder.Entity("AwningsAPI.Model.Products.Arms", b =>
@@ -856,7 +856,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasKey("ArmId");
 
-                    b.ToTable("Arms");
+                    b.ToTable("Arms", (string)null);
                 });
 
             modelBuilder.Entity("AwningsAPI.Model.Products.ArmsType", b =>
@@ -886,7 +886,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasKey("ArmTypeId");
 
-                    b.ToTable("armsTypes");
+                    b.ToTable("armsTypes", (string)null);
 
                     b.HasData(
                         new
@@ -1055,7 +1055,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasKey("BFId");
 
-                    b.ToTable("BFs");
+                    b.ToTable("BFs", (string)null);
 
                     b.HasData(
                         new
@@ -1124,7 +1124,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasKey("BracketId");
 
-                    b.ToTable("Brackets");
+                    b.ToTable("Brackets", (string)null);
 
                     b.HasData(
                         new
@@ -4716,7 +4716,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("Controls");
+                    b.ToTable("Controls", (string)null);
 
                     b.HasData(
                         new
@@ -4798,7 +4798,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasKey("HeaterId");
 
-                    b.ToTable("Heaters");
+                    b.ToTable("Heaters", (string)null);
 
                     b.HasData(
                         new
@@ -4852,7 +4852,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("LightingCassettes");
+                    b.ToTable("LightingCassettes", (string)null);
 
                     b.HasData(
                         new
@@ -4930,7 +4930,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasKey("MotorId");
 
-                    b.ToTable("Motors");
+                    b.ToTable("Motors", (string)null);
 
                     b.HasData(
                         new
@@ -6066,7 +6066,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasKey("RALColourId");
 
-                    b.ToTable("nonStandardRALColours");
+                    b.ToTable("nonStandardRALColours", (string)null);
 
                     b.HasData(
                         new
@@ -7452,7 +7452,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("Projections");
+                    b.ToTable("Projections", (string)null);
 
                     b.HasData(
                         new
@@ -13774,7 +13774,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasKey("RadioMotorId");
 
-                    b.ToTable("radioControlledMotors");
+                    b.ToTable("radioControlledMotors", (string)null);
 
                     b.HasData(
                         new
@@ -13920,7 +13920,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("ShadePlus");
+                    b.ToTable("ShadePlus", (string)null);
 
                     b.HasData(
                         new
@@ -15097,7 +15097,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasKey("ValanceStyleId");
 
-                    b.ToTable("valanceStyles");
+                    b.ToTable("valanceStyles", (string)null);
 
                     b.HasData(
                         new
@@ -15729,7 +15729,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasKey("WallSealingProfileId");
 
-                    b.ToTable("wallSealingProfiles");
+                    b.ToTable("wallSealingProfiles", (string)null);
 
                     b.HasData(
                         new
@@ -16574,7 +16574,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasIndex("WorkflowId");
 
-                    b.ToTable("ShowroomInvites");
+                    b.ToTable("ShowroomInvites", (string)null);
                 });
 
             modelBuilder.Entity("AwningsAPI.Model.SiteVisit.SiteVisit", b =>
@@ -17522,7 +17522,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
 
                     b.HasData(
                         new
@@ -17692,7 +17692,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasKey("ProductTypeId");
 
-                    b.ToTable("ProductTypes");
+                    b.ToTable("ProductTypes", (string)null);
 
                     b.HasData(
                         new
@@ -17804,7 +17804,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasKey("SupplierId");
 
-                    b.ToTable("Suppliers");
+                    b.ToTable("Suppliers", (string)null);
 
                     b.HasData(
                         new
@@ -18231,7 +18231,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasIndex("WorkflowId");
 
-                    b.ToTable("InitialEnquiries");
+                    b.ToTable("InitialEnquiries", (string)null);
                 });
 
             modelBuilder.Entity("AwningsAPI.Model.Workflow.PaymentSchedule", b =>
@@ -18624,7 +18624,7 @@ namespace AwningsAPI.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("WorkflowStarts");
+                    b.ToTable("WorkflowStarts", (string)null);
 
                     b.HasData(
                         new

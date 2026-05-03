@@ -26,21 +26,6 @@ public class BlobBackfillFunction
         _logger = logger;
     }
 
-    // Runs every 5 minutes — processes one batch per run, stops when nothing left to migrate
-    [Function("BlobBackfillTimer")]
-    public async Task RunTimer([TimerTrigger("0 */5 * * * *")] TimerInfo timerInfo)
-    {
-        var remaining = await GetRemainingCountAsync();
-        if (remaining == 0)
-        {
-            _logger.LogInformation("Blob backfill complete — nothing left to migrate.");
-            return;
-        }
-
-        _logger.LogInformation("Blob backfill timer triggered — {Remaining} email(s) still need migration.", remaining);
-        await RunBackfillBatchAsync();
-    }
-
     // POST /api/backfill/run — manually trigger a batch
     [Function("BlobBackfillRun")]
     public async Task<HttpResponseData> RunManual(
