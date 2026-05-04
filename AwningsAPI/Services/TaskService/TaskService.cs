@@ -843,6 +843,16 @@ namespace AwningsAPI.Services.Tasks
             if (email == null)
                 return null;
 
+            // Guard: don't create a second task if one already exists for this email
+            var existingTask = await _context.Tasks
+                .FirstOrDefaultAsync(t => t.IncomingEmailId == incomingEmailId);
+            if (existingTask != null)
+            {
+                _logger.LogWarning("Task already exists (TaskId={TaskId}) for IncomingEmailId={EmailId} — skipping duplicate creation",
+                    existingTask.TaskId, incomingEmailId);
+                return await GetTaskByIdAsync(existingTask.TaskId);
+            }
+
             _logger.LogInformation($"Creating task from email ID: {incomingEmailId}");
 
             // Extract data from AI analysis

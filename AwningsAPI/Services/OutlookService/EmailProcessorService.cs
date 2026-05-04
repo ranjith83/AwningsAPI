@@ -203,9 +203,19 @@ namespace AwningsAPI.Services.Email
                 _logger.LogInformation($"🤖 AI Analysis: {email.Category} (confidence: {email.CategoryConfidence:P})");
 
                 // 🔄 EXECUTE AUTOMATED WORKFLOWS BASED ON CATEGORY
+                // Wrapped in its own try-catch so a workflow failure never blocks task creation.
                 if (!analysisResult.IsSpam && email.Category != "junk")
                 {
-                    await ExecuteAutomatedWorkflowAsync(email, analysisResult);
+                    try
+                    {
+                        await ExecuteAutomatedWorkflowAsync(email, analysisResult);
+                    }
+                    catch (Exception wfEx)
+                    {
+                        _logger.LogError(wfEx,
+                            "⚠️ Automated workflow failed for email {EmailId} — task will still be created",
+                            email.EmailId);
+                    }
                 }
                 else
                 {
@@ -343,7 +353,6 @@ namespace AwningsAPI.Services.Email
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error in initial enquiry workflow");
-                throw;
             }
         }
 
