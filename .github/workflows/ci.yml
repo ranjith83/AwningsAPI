@@ -68,7 +68,7 @@ jobs:
         run: dotnet build AwningsAPI/AwningsAPI.csproj --no-restore --configuration Release
 
       - name: Run Migrations
-        run: dotnet ef database update --project AwningsAPI/AwningsAPI.csproj --no-build
+        run: dotnet ef database update --project AwningsAPI/AwningsAPI.csproj --no-build --configuration Release
         env:
           ConnectionStrings__DefaultConnection: ${{ secrets.DB_CONNECTION_STRING }}
 
