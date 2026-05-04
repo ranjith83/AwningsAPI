@@ -61,6 +61,12 @@ jobs:
       - name: Install EF Core CLI
         run: dotnet tool install --global dotnet-ef
 
+      - name: Restore
+        run: dotnet restore AwningsAPI/AwningsAPI.csproj
+
+      - name: Build
+        run: dotnet build AwningsAPI/AwningsAPI.csproj --no-restore --configuration Release
+
       - name: Run Migrations
         run: dotnet ef database update --project AwningsAPI/AwningsAPI.csproj --no-build
         env:
