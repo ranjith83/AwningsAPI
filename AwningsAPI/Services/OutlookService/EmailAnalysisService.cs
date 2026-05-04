@@ -72,6 +72,20 @@ namespace AwningsAPI.Services.Email
                 // 2. USE AI PROVIDER FOR INTELLIGENT CATEGORIZATION ✨
                 var aiAnalysis = await AnalyzeEmailWithAIAsync(subject, body, fromEmail);
 
+                // Treat general_inquiry as junk — not actionable for this business
+                if (string.Equals(aiAnalysis.Category, "general_inquiry", StringComparison.OrdinalIgnoreCase))
+                {
+                    result.Category = "junk";
+                    result.TaskType = "junk";
+                    result.Priority = "Low";
+                    result.Confidence = aiAnalysis.Confidence;
+                    result.Reasoning = "General inquiry — automatically moved to junk";
+                    result.IsSpam = true;
+                    result.RequiredActions = new List<string> { "mark_as_junk" };
+                    _logger.LogInformation($"JUNK EMAIL (general_inquiry): {email.Subject} from {email.FromEmail}");
+                    return result;
+                }
+
                 // 3. Extract additional data based on AI category
                 var extractedData = ExtractDataFromEmail(email, aiAnalysis.Category);
 

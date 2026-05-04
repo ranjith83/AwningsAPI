@@ -29,13 +29,13 @@ namespace AwningsAPI.Interfaces
         Task<IEnumerable<TaskCommentDto>> GetTaskCommentsAsync(int taskId);
         Task<bool> DeleteCommentAsync(int commentId);
 
-        // Filtering & Search
-        Task<(IEnumerable<AppTaskDto> Tasks, int TotalCount)> GetTasksWithFiltersAsync(TaskFilterDto filterDto);
-        Task<IEnumerable<AppTaskDto>> GetTasksByUserAsync(int userId);
-        Task<IEnumerable<AppTaskDto>> GetTasksByCustomerAsync(int customerId, TaskSourceType? sourceType = null);
-        Task<IEnumerable<AppTaskDto>> GetTasksByTypeAsync(string taskType);
-        Task<IEnumerable<AppTaskDto>> GetOverdueTasksAsync();
-        Task<IEnumerable<AppTaskDto>> GetTasksDueTodayAsync();
+        // Filtering & Search — list endpoints return lean summary DTOs
+        Task<(IEnumerable<AppTaskSummaryDto> Tasks, int TotalCount)> GetTasksWithFiltersAsync(TaskFilterDto filterDto);
+        Task<IEnumerable<AppTaskSummaryDto>> GetTasksByUserAsync(int userId);
+        Task<IEnumerable<AppTaskSummaryDto>> GetTasksByCustomerAsync(int customerId, TaskSourceType? sourceType = null);
+        Task<IEnumerable<AppTaskSummaryDto>> GetTasksByTypeAsync(string taskType);
+        Task<IEnumerable<AppTaskSummaryDto>> GetOverdueTasksAsync();
+        Task<IEnumerable<AppTaskSummaryDto>> GetTasksDueTodayAsync();
 
         // Statistics
         Task<TaskStatistics> GetTaskStatisticsAsync();
@@ -62,7 +62,7 @@ namespace AwningsAPI.Interfaces
 
         Task<AppTaskDto> LinkWorkflowToTaskAsync(int taskId, int workflowId, string currentUser);
 
-        Task<(IEnumerable<AppTaskDto> Items, int TotalCount)> GetFilteredTasksAsync(TaskFilterDto filter);
+        Task<(IEnumerable<AppTaskSummaryDto> Items, int TotalCount)> GetFilteredTasksAsync(TaskFilterDto filter);
 
         Task StoreSiteVisitLinkAsync(int taskId, int siteVisitId, string currentUser);
 

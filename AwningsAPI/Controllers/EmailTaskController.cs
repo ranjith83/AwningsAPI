@@ -54,7 +54,10 @@ namespace AwningsAPI.Controllers
         /// Get all tasks by status (Pending, Processed, Junk)
         /// </summary>
         [HttpGet("status/{status}")]
-        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetTasksByStatus(string status)
+        public async Task<ActionResult> GetTasksByStatus(
+            string status,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
         {
             try
             {
@@ -66,14 +69,21 @@ namespace AwningsAPI.Controllers
                     Status = status,
                     SortBy = "DateAdded",
                     SortDirection = "DESC",
-                    Page = 1,
-                    PageSize = 1000,
+                    Page = page,
+                    PageSize = pageSize,
                     CurrentUserId = currentUserId > 0 ? currentUserId : null,
                     IsAdmin = isAdmin
                 };
 
                 var (tasks, totalCount) = await _taskService.GetTasksWithFiltersAsync(filter);
-                return Ok(tasks);
+                return Ok(new
+                {
+                    page,
+                    pageSize,
+                    totalCount,
+                    totalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+                    tasks
+                });
             }
             catch (Exception ex)
             {
@@ -110,7 +120,7 @@ namespace AwningsAPI.Controllers
         /// Get tasks assigned to a specific user
         /// </summary>
         [HttpGet("user/{userId}")]
-        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetTasksByUser(int userId)
+        public async Task<ActionResult<IEnumerable<AppTaskSummaryDto>>> GetTasksByUser(int userId)
         {
             try
             {
@@ -128,7 +138,7 @@ namespace AwningsAPI.Controllers
         /// Get tasks assigned to the current authenticated user
         /// </summary>
         [HttpGet("my-tasks")]
-        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetMyTasks()
+        public async Task<ActionResult<IEnumerable<AppTaskSummaryDto>>> GetMyTasks()
         {
             try
             {
@@ -152,17 +162,20 @@ namespace AwningsAPI.Controllers
         /// Get tasks by category
         /// </summary>
         [HttpGet("category/{category}")]
-        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetTasksByCategory(string category)
+        public async Task<ActionResult<IEnumerable<AppTaskSummaryDto>>> GetTasksByCategory(
+            string category,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
         {
             try
             {
                 var filter = new TaskFilterDto
                 {
-                    SearchTerm = category, // Use search term for category filtering
+                    Category = category,
                     SortBy = "DateAdded",
                     SortDirection = "DESC",
-                    Page = 1,
-                    PageSize = 1000
+                    Page = page,
+                    PageSize = pageSize
                 };
 
                 var (tasks, totalCount) = await _taskService.GetTasksWithFiltersAsync(filter);
@@ -179,7 +192,7 @@ namespace AwningsAPI.Controllers
         /// Get tasks by task type
         /// </summary>
         [HttpGet("type/{taskType}")]
-        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetTasksByType(string taskType)
+        public async Task<ActionResult<IEnumerable<AppTaskSummaryDto>>> GetTasksByType(string taskType)
         {
             try
             {
@@ -199,7 +212,7 @@ namespace AwningsAPI.Controllers
         /// <param name="customerId">Customer ID</param>
         /// <param name="sourceType">Optional filter: Email | SiteVisit | Manual</param>
         [HttpGet("customer/{customerId}")]
-        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetTasksByCustomer(
+        public async Task<ActionResult<IEnumerable<AppTaskSummaryDto>>> GetTasksByCustomer(
             int customerId,
             [FromQuery] TaskSourceType? sourceType = null)
         {
@@ -219,7 +232,7 @@ namespace AwningsAPI.Controllers
         /// Get overdue tasks
         /// </summary>
         [HttpGet("overdue")]
-        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetOverdueTasks()
+        public async Task<ActionResult<IEnumerable<AppTaskSummaryDto>>> GetOverdueTasks()
         {
             try
             {
@@ -237,7 +250,7 @@ namespace AwningsAPI.Controllers
         /// Get tasks due today
         /// </summary>
         [HttpGet("due-today")]
-        public async Task<ActionResult<IEnumerable<EmailTaskDto>>> GetTasksDueToday()
+        public async Task<ActionResult<IEnumerable<AppTaskSummaryDto>>> GetTasksDueToday()
         {
             try
             {

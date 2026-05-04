@@ -94,6 +94,51 @@ namespace AwningsAPI.Dto.Tasks
     public class EmailTaskDto : AppTaskDto { }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Summary DTO — returned by list/search endpoints.
+    // Omits heavy fields (EmailBody, BodyBlobUrl, Attachments, History,
+    // ExtractedData, AIReasoning) so the list query stays lean.
+    // Call GET /api/EmailTask/{taskId} to get the full AppTaskDto on selection.
+    // ─────────────────────────────────────────────────────────────────────────
+    public class AppTaskSummaryDto
+    {
+        public int TaskId { get; set; }
+        public string SourceType { get; set; } = "Email";
+        public string DisplayTitle { get; set; } = string.Empty;
+        public int? IncomingEmailId { get; set; }
+        public string? FromName { get; set; }
+        public string? FromEmail { get; set; }
+        public string? Subject { get; set; }
+        public string? Category { get; set; }
+        public DateTime DateAdded { get; set; }
+        public string Status { get; set; } = "New";
+        public string? TaskType { get; set; }
+        public string Priority { get; set; } = "Normal";
+        public int? AssignedToUserId { get; set; }
+        public string? AssignedToUserName { get; set; }
+        public int? AssignedByUserId { get; set; }
+        public string? AssignedByUserName { get; set; }
+        public int? PreviousAssignedToUserId { get; set; }
+        public string? PreviousAssignedToUserName { get; set; }
+        public string? CompanyNumber { get; set; }
+        public bool HasAttachments { get; set; }
+        public string? SelectedAction { get; set; }
+        public int? CustomerId { get; set; }
+        public string? CustomerName { get; set; }
+        public string? CustomerEmail { get; set; }
+        public int? WorkflowId { get; set; }
+        public int? SiteVisitId { get; set; }
+        public DateTime? DueDate { get; set; }
+        public DateTime? DateProcessed { get; set; }
+        public DateTime? CompletedDate { get; set; }
+        public string? CompletionNotes { get; set; }
+        public double? AIConfidence { get; set; }
+        public DateTime DateCreated { get; set; }
+        public DateTime? DateUpdated { get; set; }
+        public string? CreatedBy { get; set; }
+        public string? UpdatedBy { get; set; }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Comment DTO — unchanged
     // ─────────────────────────────────────────────────────────────────────────
     public class TaskCommentDto
@@ -274,6 +319,10 @@ namespace AwningsAPI.Dto.Tasks
         // ── Status filters ────────────────────────────────────────────────────
         public string? Status { get; set; }
         public List<string>? Statuses { get; set; }
+
+        // ── Category filters ──────────────────────────────────────────────────
+        public string? Category { get; set; }
+        public List<string>? Categories { get; set; }
 
         // ── Other filters — unchanged ─────────────────────────────────────────
         public string? TaskType { get; set; }

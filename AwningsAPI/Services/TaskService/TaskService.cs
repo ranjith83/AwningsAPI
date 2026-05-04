@@ -54,6 +54,52 @@ namespace AwningsAPI.Services.Tasks
             return taskDtos;
         }
 
+        private AppTaskSummaryDto MapToSummaryDto(AppTask task)
+        {
+            var displayTitle = !string.IsNullOrWhiteSpace(task.Title)
+                ? task.Title
+                : task.Subject ?? "(No title)";
+
+            return new AppTaskSummaryDto
+            {
+                TaskId = task.TaskId,
+                SourceType = task.SourceType,
+                DisplayTitle = displayTitle,
+                IncomingEmailId = task.IncomingEmailId,
+                FromName = task.FromName,
+                FromEmail = task.FromEmail,
+                Subject = task.Subject,
+                Category = task.Category,
+                DateAdded = task.DateAdded,
+                Status = task.Status,
+                TaskType = task.TaskType,
+                Priority = task.Priority,
+                AssignedToUserId = task.AssignedToUserId,
+                AssignedToUserName = task.AssignedToUserName,
+                AssignedByUserId = task.AssignedByUserId,
+                AssignedByUserName = task.AssignedByUserName,
+                PreviousAssignedToUserId = task.PreviousAssignedToUserId,
+                PreviousAssignedToUserName = task.PreviousAssignedToUserName,
+                CompanyNumber = task.CompanyNumber,
+                HasAttachments = task.HasAttachments,
+                SelectedAction = task.SelectedAction,
+                CustomerId = task.CustomerId,
+                CustomerName = task.CustomerName,
+                CustomerEmail = task.CustomerEmail,
+                WorkflowId = task.WorkflowId,
+                SiteVisitId = task.SiteVisitId,
+                DueDate = task.DueDate,
+                DateProcessed = task.DateProcessed,
+                CompletedDate = task.CompletedDate,
+                CompletionNotes = task.CompletionNotes,
+                AIConfidence = task.AIConfidence,
+                DateCreated = task.DateCreated,
+                DateUpdated = task.DateUpdated,
+                CreatedBy = task.CreatedBy,
+                UpdatedBy = task.UpdatedBy,
+            };
+        }
+
 
         public async Task<AppTaskDto> CreateTaskAsync(CreateTaskDto createDto, string currentUser)
         {
@@ -450,12 +496,9 @@ namespace AwningsAPI.Services.Tasks
 
         #region Filtering & Queries
 
-        public async Task<(IEnumerable<AppTaskDto> Tasks, int TotalCount)> GetTasksWithFiltersAsync(TaskFilterDto filterDto)
+        public async Task<(IEnumerable<AppTaskSummaryDto> Tasks, int TotalCount)> GetTasksWithFiltersAsync(TaskFilterDto filterDto)
         {
-            var query = _context.Tasks
-                .Include(t => t.TaskComments)
-                .Include(t => t.TaskAttachments)
-                .AsQueryable();
+            var query = _context.Tasks.AsQueryable();
 
             // Role-based visibility: non-admin users only see their own tasks
             if (!filterDto.IsAdmin && filterDto.CurrentUserId.HasValue)
@@ -466,6 +509,11 @@ namespace AwningsAPI.Services.Tasks
                 query = query.Where(t => filterDto.Statuses.Contains(t.Status));
             else if (!string.IsNullOrEmpty(filterDto.Status))
                 query = query.Where(t => t.Status == filterDto.Status);
+
+            if (filterDto.Categories != null && filterDto.Categories.Count > 0)
+                query = query.Where(t => filterDto.Categories.Contains(t.Category));
+            else if (!string.IsNullOrEmpty(filterDto.Category))
+                query = query.Where(t => t.Category == filterDto.Category);
 
             if (!string.IsNullOrEmpty(filterDto.TaskType))
                 query = query.Where(t => t.TaskType == filterDto.TaskType);
@@ -520,108 +568,62 @@ namespace AwningsAPI.Services.Tasks
                 .Take(filterDto.PageSize)
                 .ToListAsync();
 
-            var taskDtos = new List<AppTaskDto>();
-            foreach (var task in tasks)
-            {
-                taskDtos.Add(await MapToDto(task));
-            }
-
-            return (taskDtos, totalCount);
+            return (tasks.Select(MapToSummaryDto).ToList(), totalCount);
         }
 
-        public async Task<IEnumerable<AppTaskDto>> GetTasksByUserAsync(int userId)
+        public async Task<IEnumerable<AppTaskSummaryDto>> GetTasksByUserAsync(int userId)
         {
             var tasks = await _context.Tasks
-                .Include(t => t.TaskComments)
-                .Include(t => t.TaskAttachments)
                 .Where(t => t.AssignedToUserId == userId)
                 .OrderByDescending(t => t.DateAdded)
                 .ToListAsync();
 
-            var taskDtos = new List<AppTaskDto>();
-            foreach (var task in tasks)
-            {
-                taskDtos.Add(await MapToDto(task));
-            }
-
-            return taskDtos;
+            return tasks.Select(MapToSummaryDto).ToList();
         }
 
-        public async Task<IEnumerable<AppTaskDto>> GetTasksByCustomerAsync(int customerId, TaskSourceType? sourceType = null)
+        public async Task<IEnumerable<AppTaskSummaryDto>> GetTasksByCustomerAsync(int customerId, TaskSourceType? sourceType = null)
         {
             var sourceFilter = sourceType?.ToString();
 
             var tasks = await _context.Tasks
-                .Include(t => t.TaskComments)
-                .Include(t => t.TaskAttachments)
                 .Where(t => t.CustomerId == customerId
                          && (sourceFilter == null || t.SourceType == sourceFilter))
                 .OrderByDescending(t => t.DateAdded)
                 .ToListAsync();
 
-            var taskDtos = new List<AppTaskDto>();
-            foreach (var task in tasks)
-            {
-                taskDtos.Add(await MapToDto(task));
-            }
-
-            return taskDtos;
+            return tasks.Select(MapToSummaryDto).ToList();
         }
 
-        public async Task<IEnumerable<AppTaskDto>> GetTasksByTypeAsync(string taskType)
+        public async Task<IEnumerable<AppTaskSummaryDto>> GetTasksByTypeAsync(string taskType)
         {
             var tasks = await _context.Tasks
-                .Include(t => t.TaskComments)
-                .Include(t => t.TaskAttachments)
                 .Where(t => t.TaskType == taskType || t.Category == taskType)
                 .OrderByDescending(t => t.DateAdded)
                 .ToListAsync();
 
-            var taskDtos = new List<AppTaskDto>();
-            foreach (var task in tasks)
-            {
-                taskDtos.Add(await MapToDto(task));
-            }
-
-            return taskDtos;
+            return tasks.Select(MapToSummaryDto).ToList();
         }
 
-        public async Task<IEnumerable<AppTaskDto>> GetOverdueTasksAsync()
+        public async Task<IEnumerable<AppTaskSummaryDto>> GetOverdueTasksAsync()
         {
             var today = DateTime.UtcNow.Date;
             var tasks = await _context.Tasks
-                .Include(t => t.TaskComments)
-                .Include(t => t.TaskAttachments)
                 .Where(t => t.DueDate.HasValue && t.DueDate.Value.Date < today && t.Status != "Completed" && t.Status != "Processed")
                 .OrderBy(t => t.DueDate)
                 .ToListAsync();
 
-            var taskDtos = new List<AppTaskDto>();
-            foreach (var task in tasks)
-            {
-                taskDtos.Add(await MapToDto(task));
-            }
-
-            return taskDtos;
+            return tasks.Select(MapToSummaryDto).ToList();
         }
 
-        public async Task<IEnumerable<AppTaskDto>> GetTasksDueTodayAsync()
+        public async Task<IEnumerable<AppTaskSummaryDto>> GetTasksDueTodayAsync()
         {
             var today = DateTime.UtcNow.Date;
             var tasks = await _context.Tasks
-                .Include(t => t.TaskComments)
-                .Include(t => t.TaskAttachments)
                 .Where(t => t.DueDate.HasValue && t.DueDate.Value.Date == today && t.Status != "Completed" && t.Status != "Processed")
                 .OrderBy(t => t.Priority)
                 .ToListAsync();
 
-            var taskDtos = new List<AppTaskDto>();
-            foreach (var task in tasks)
-            {
-                taskDtos.Add(await MapToDto(task));
-            }
-
-            return taskDtos;
+            return tasks.Select(MapToSummaryDto).ToList();
         }
 
 
@@ -629,7 +631,7 @@ namespace AwningsAPI.Services.Tasks
         // GetFilteredTasksAsync — applies SourceType filter for tab routing
         // (replaces / supplements whatever paging method you already have)
         // ────────────────────────────────────────────────────────────────────
-        public async Task<(IEnumerable<AppTaskDto> Items, int TotalCount)>  GetFilteredTasksAsync(TaskFilterDto filter)
+        public async Task<(IEnumerable<AppTaskSummaryDto> Items, int TotalCount)> GetFilteredTasksAsync(TaskFilterDto filter)
         {
             var query = _context.Tasks.AsQueryable();
 
@@ -646,6 +648,13 @@ namespace AwningsAPI.Services.Tasks
 
             if (statuses != null && statuses.Count > 0)
                 query = query.Where(t => statuses.Contains(t.Status));
+
+            // ── Category filter ───────────────────────────────────────────────
+            var categories = filter.Categories ?? (
+                filter.Category != null ? new List<string> { filter.Category } : null);
+
+            if (categories != null && categories.Count > 0)
+                query = query.Where(t => categories.Contains(t.Category));
 
             // ── Other filters ─────────────────────────────────────────────────
             if (!string.IsNullOrEmpty(filter.TaskType))
@@ -703,15 +712,9 @@ namespace AwningsAPI.Services.Tasks
             var tasks = await query
                 .Skip((filter.Page - 1) * filter.PageSize)
                 .Take(filter.PageSize)
-                .Include(t => t.TaskComments)
-                .Include(t => t.TaskAttachments)
                 .ToListAsync();
 
-            var dtos = new List<AppTaskDto>();
-            foreach (var t in tasks)
-                dtos.Add(await MapToDto(t));
-
-            return (dtos, totalCount);
+            return (tasks.Select(MapToSummaryDto).ToList(), totalCount);
         }
 
 
@@ -857,6 +860,7 @@ namespace AwningsAPI.Services.Tasks
             }
 
             // Map category
+            var isJunk = string.Equals(email.Category, "junk", StringComparison.OrdinalIgnoreCase);
             var category = MapCategoryToDisplay(email.Category);
             var taskType = email.Category;
 
@@ -917,11 +921,16 @@ namespace AwningsAPI.Services.Tasks
                 dbTask.ExtractedData = email.ExtractedData;
                 dbTask.AIConfidence = email.CategoryConfidence;
                 dbTask.HasAttachments = email.HasAttachments;
+                if (isJunk) dbTask.Status = "Junk";
 
                 await _context.SaveChangesAsync();
             }
 
             _logger.LogInformation($"Task created successfully: TaskId={task.TaskId}, Category={category}");
+
+            // Junk tasks don't need customer linking or initial enquiry creation
+            if (isJunk)
+                return await GetTaskByIdAsync(task.TaskId);
 
             // ── Auto-link customer and workflow when sender email matches a known customer ──
             // If the sender's email matches an existing Customer.Email or any CustomerContact.Email,
