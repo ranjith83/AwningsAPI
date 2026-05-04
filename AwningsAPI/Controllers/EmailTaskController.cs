@@ -1,9 +1,12 @@
-﻿using AwningsAPI.Dto.Tasks;
+﻿using AwningsAPI.Database;
+using AwningsAPI.Dto.Tasks;
 using AwningsAPI.Services.WorkflowService;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Tasks;
+using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -27,19 +30,22 @@ namespace AwningsAPI.Controllers
         private readonly IConfiguration _configuration;
         private readonly ILogger<EmailTaskController> _logger;
         private readonly FollowUpService _followUpService;
+        private readonly AppDbContext _context;
 
         public EmailTaskController(
             ITaskService taskService,
             IEmailReaderService emailReaderService,
             IConfiguration configuration,
             ILogger<EmailTaskController> logger,
-            FollowUpService followUpService)
+            FollowUpService followUpService,
+            AppDbContext context)
         {
             _taskService = taskService;
             _emailReaderService = emailReaderService;
             _configuration = configuration;
             _logger = logger;
             _followUpService = followUpService;
+            _context = context;
         }
 
         #region GET Endpoints
@@ -507,6 +513,76 @@ namespace AwningsAPI.Controllers
                 _logger.LogError(ex, $"Error deleting task {taskId}");
                 return StatusCode(500, new { error = "An error occurred while deleting the task", details = ex.Message });
             }
+        }
+
+        #endregion
+
+        #region Attachments
+
+        /// <summary>
+        /// Download an attachment by its TaskAttachment ID.
+        /// Streams from Azure Blob when BlobUrl is set; falls back to Base64Content in DB.
+        /// GET /api/EmailTask/{taskId}/attachments/{attachmentId}
+        /// </summary>
+        [HttpGet("{taskId}/attachments/{attachmentId}")]
+        public async Task<IActionResult> DownloadAttachment(int taskId, int attachmentId)
+        {
+            var taskAttachment = await _context.TaskAttachments
+                .FirstOrDefaultAsync(a => a.AttachmentId == attachmentId && a.TaskId == taskId);
+
+            if (taskAttachment == null)
+                return NotFound(new { error = "Attachment not found" });
+
+            var fileName = taskAttachment.FileName ?? "attachment";
+            var contentType = taskAttachment.FileType ?? "application/octet-stream";
+
+            // ── Path 1: read from blob ────────────────────────────────────────
+            if (!string.IsNullOrEmpty(taskAttachment.BlobUrl))
+            {
+                var connectionString = _configuration["BlobStorage:ConnectionString"];
+                var containerName = _configuration["BlobStorage:ContainerName"] ?? "awnings-emails";
+
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    _logger.LogError("BlobStorage:ConnectionString is not configured — cannot stream attachment {Id}", attachmentId);
+                    return StatusCode(503, new { error = "Blob storage is not configured on this server" });
+                }
+
+                try
+                {
+                    // Parse blob name from the URL: strip "https://<account>.blob.core.windows.net/<container>/"
+                    var uri = new Uri(taskAttachment.BlobUrl);
+                    var uriPath = uri.AbsolutePath.TrimStart('/');
+                    var slashIndex = uriPath.IndexOf('/');
+                    var blobName = slashIndex >= 0 ? uriPath[(slashIndex + 1)..] : uriPath;
+
+                    var blobClient = new BlobClient(connectionString, containerName, blobName);
+                    var download = await blobClient.DownloadStreamingAsync();
+
+                    Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
+                    return File(download.Value.Content, contentType, fileName);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to stream attachment {Id} from blob {Url}", attachmentId, taskAttachment.BlobUrl);
+                    // Fall through to Base64 fallback
+                }
+            }
+
+            // ── Path 2: fall back to Base64Content in EmailAttachment ─────────
+            if (taskAttachment.EmailAttachmentId.HasValue)
+            {
+                var emailAttachment = await _context.EmailAttachments
+                    .FirstOrDefaultAsync(a => a.Id == taskAttachment.EmailAttachmentId.Value);
+
+                if (emailAttachment?.Base64Content != null)
+                {
+                    var bytes = Convert.FromBase64String(emailAttachment.Base64Content);
+                    return File(bytes, contentType, fileName);
+                }
+            }
+
+            return NotFound(new { error = "Attachment content is not available" });
         }
 
         #endregion

@@ -1270,6 +1270,28 @@ namespace AwningsAPI.Services.Tasks
                 ? task.Title
                 : task.Subject ?? "(No title)";
 
+            // Fetch BodyBlobUrl from IncomingEmail when present
+            string? bodyBlobUrl = null;
+            if (task.IncomingEmailId.HasValue)
+            {
+                bodyBlobUrl = await _context.IncomingEmails
+                    .Where(e => e.Id == task.IncomingEmailId.Value)
+                    .Select(e => e.BodyBlobUrl)
+                    .FirstOrDefaultAsync();
+            }
+
+            // Batch-fetch IsInline + ContentId from EmailAttachment for any linked attachments
+            var emailAttachmentIds = task.TaskAttachments?
+                .Where(a => a.EmailAttachmentId.HasValue)
+                .Select(a => a.EmailAttachmentId!.Value)
+                .ToList() ?? new();
+
+            var emailAttachmentMeta = emailAttachmentIds.Count > 0
+                ? await _context.EmailAttachments
+                    .Where(ea => emailAttachmentIds.Contains(ea.Id))
+                    .ToDictionaryAsync(ea => ea.Id, ea => (ea.IsInline, ea.ContentId))
+                : new Dictionary<int, (bool IsInline, string? ContentId)>();
+
             var dto = new AppTaskDto
             {
                 TaskId = task.TaskId,
@@ -1292,13 +1314,14 @@ namespace AwningsAPI.Services.Tasks
                 PreviousAssignedToUserName = task.PreviousAssignedToUserName,
                 CompanyNumber = task.CompanyNumber,
                 EmailBody = task.EmailBody,
+                BodyBlobUrl = bodyBlobUrl,
                 HasAttachments = task.HasAttachments,
                 SelectedAction = task.SelectedAction,
                 CustomerId = task.CustomerId,
                 CustomerName = task.CustomerName,
                 CustomerEmail = task.CustomerEmail,
                 WorkflowId = task.WorkflowId,
-                SiteVisitId = task.SiteVisitId,      // ← NEW
+                SiteVisitId = task.SiteVisitId,
                 DueDate = task.DueDate,
                 DateProcessed = task.DateProcessed,
                 ProcessedBy = task.ProcessedBy,
@@ -1325,17 +1348,24 @@ namespace AwningsAPI.Services.Tasks
                     IsEdited = c.IsEdited
                 }).ToList() ?? new(),
 
-                Attachments = task.TaskAttachments?.Select(a => new TaskAttachmentDto
+                Attachments = task.TaskAttachments?.Select(a =>
                 {
-                    AttachmentId = a.AttachmentId,
-                    TaskId = a.TaskId,
-                    FileName = a.FileName,
-                    FileType = a.FileType,
-                    FileSize = a.FileSize,
-                    FilePath = a.FilePath,
-                    BlobUrl = a.BlobUrl,
-                    DateUploaded = a.DateUploaded,
-                    UploadedBy = a.UploadedBy
+                    emailAttachmentMeta.TryGetValue(a.EmailAttachmentId ?? -1, out var meta);
+                    return new TaskAttachmentDto
+                    {
+                        AttachmentId = a.AttachmentId,
+                        TaskId = a.TaskId,
+                        FileName = a.FileName,
+                        FileType = a.FileType,
+                        FileSize = a.FileSize,
+                        FilePath = a.FilePath,
+                        BlobUrl = a.BlobUrl,
+                        IsInline = meta.IsInline,
+                        ContentId = meta.ContentId,
+                        ExtractedText = a.ExtractedText,
+                        DateUploaded = a.DateUploaded,
+                        UploadedBy = a.UploadedBy
+                    };
                 }).ToList() ?? new(),
             };
 

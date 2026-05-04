@@ -120,6 +120,7 @@ namespace AwningsAPI.Controllers
                         e.FromEmail,
                         e.FromName,
                         e.BodyPreview,
+                        e.BodyBlobUrl,
                         e.ReceivedDateTime,
                         e.Category,
                         e.CategoryConfidence,

@@ -16,7 +16,11 @@ public class GraphSubscriptionService : IGraphSubscriptionService
     private readonly ILogger<GraphSubscriptionService> _logger;
     private readonly EmailFunctionDbContext _context;
 
-    private static readonly TimeSpan RenewalBuffer = TimeSpan.FromMinutes(30);
+    private TimeSpan SubscriptionLifetime =>
+        TimeSpan.FromMinutes(_configuration.GetValue<int>("GraphSubscription:LifetimeMinutes", 4230));
+
+    private TimeSpan RenewalBuffer =>
+        TimeSpan.FromHours(_configuration.GetValue<int>("GraphSubscription:RenewalBufferHours", 12));
 
     public GraphSubscriptionService(
         GraphServiceClient graphClient,
@@ -78,7 +82,7 @@ public class GraphSubscriptionService : IGraphSubscriptionService
                 try
                 {
                     _logger.LogInformation("Renewing Graph subscription {Id}...", persisted.SubscriptionId);
-                    var newExpiry = DateTimeOffset.UtcNow.AddMinutes(4230);
+                    var newExpiry = DateTimeOffset.UtcNow.Add(SubscriptionLifetime);
                     await _graphClient.Subscriptions[persisted.SubscriptionId]
                         .PatchAsync(new Subscription { ExpirationDateTime = newExpiry });
 
@@ -109,7 +113,7 @@ public class GraphSubscriptionService : IGraphSubscriptionService
                 ChangeType = "created",
                 NotificationUrl = notificationUrl,
                 Resource = $"users/{mailboxEmail}/mailFolders/inbox/messages",
-                ExpirationDateTime = DateTimeOffset.UtcNow.AddMinutes(4230),
+                ExpirationDateTime = DateTimeOffset.UtcNow.Add(SubscriptionLifetime),
                 ClientState = clientState,
                 LatestSupportedTlsVersion = "v1_2"
             };
@@ -122,7 +126,7 @@ public class GraphSubscriptionService : IGraphSubscriptionService
             _context.GraphSubscriptions.Add(new GraphSubscription
             {
                 SubscriptionId = created.Id,
-                ExpiryDateTime = created.ExpirationDateTime ?? DateTimeOffset.UtcNow.AddMinutes(4230),
+                ExpiryDateTime = created.ExpirationDateTime ?? DateTimeOffset.UtcNow.Add(SubscriptionLifetime),
                 UpdatedAt = DateTime.UtcNow
             });
             await _context.SaveChangesAsync();

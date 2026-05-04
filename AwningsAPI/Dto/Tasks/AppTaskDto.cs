@@ -46,6 +46,7 @@ namespace AwningsAPI.Dto.Tasks
         // ── Email viewer ──────────────────────────────────────────────────────
         public string? CompanyNumber { get; set; }
         public string? EmailBody { get; set; }
+        public string? BodyBlobUrl { get; set; }
         public bool HasAttachments { get; set; }
         public string? SelectedAction { get; set; }
 
@@ -119,6 +120,9 @@ namespace AwningsAPI.Dto.Tasks
         public long FileSize { get; set; }
         public string? FilePath { get; set; }
         public string? BlobUrl { get; set; }
+        public bool IsInline { get; set; }
+        public string? ContentId { get; set; }
+        public string? ExtractedText { get; set; }
         public DateTime DateUploaded { get; set; }
         public string? UploadedBy { get; set; }
     }
