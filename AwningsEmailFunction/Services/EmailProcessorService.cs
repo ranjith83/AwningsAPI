@@ -103,7 +103,8 @@ public class EmailProcessorService : IEmailProcessorService
             FromEmail = fetched.FromEmail,
             FromName = fetched.FromName,
             BodyPreview = fetched.BodyPreview,
-            BodyContent = fetched.BodyContent,
+            // Only persist body in DB when blob upload failed — blob is the source of truth
+            BodyContent = bodyBlobUrl == null ? fetched.BodyContent : null,
             BodyBlobUrl = bodyBlobUrl,
             IsHtml = fetched.IsHtml,
             ReceivedDateTime = fetched.ReceivedDateTime,
@@ -124,7 +125,8 @@ public class EmailProcessorService : IEmailProcessorService
                 ContentType = att.ContentType,
                 Size = att.Size,
                 IsInline = att.IsInline,
-                Base64Content = att.Base64Content,
+                // Only persist base64 in DB when blob upload failed — blob is the source of truth
+                Base64Content = attBlobUrl == null ? att.Base64Content : null,
                 BlobStorageUrl = attBlobUrl ?? att.BlobStorageUrl,
                 ExtractedText = att.ExtractedText,
                 DateDownloaded = DateTime.UtcNow
@@ -135,6 +137,15 @@ public class EmailProcessorService : IEmailProcessorService
         {
             _context.IncomingEmails.Add(email);
             await _context.SaveChangesAsync();
+
+            // Restore body in-memory for AI analysis downstream.
+            // Blob is the DB record's source of truth but the processing pipeline
+            // needs the body without an extra blob fetch.
+            if (bodyBlobUrl != null && fetched.BodyContent != null)
+            {
+                email.BodyContent = fetched.BodyContent;
+                _context.Entry(email).Property(e => e.BodyContent).IsModified = false;
+            }
         }
         catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("IX_IncomingEmails_EmailId_Unique") == true)
         {

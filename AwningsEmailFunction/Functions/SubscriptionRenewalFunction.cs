@@ -17,8 +17,8 @@ public class SubscriptionRenewalFunction
         _logger = logger;
     }
 
-    // Runs every hour — Graph subscriptions for mail expire after ~3 days (4230 min).
-    // Renewal happens 30 minutes before expiry. CRON: second minute hour day month weekday
+    // Runs every 12 hours — Graph subscriptions for mail expire after ~3 days (4230 min).
+    // Renewal happens when within 12 hours of expiry. CRON: second minute hour day month weekday
     [Function("SubscriptionRenewal")]
     public async Task Run([TimerTrigger("0 0 */12 * * *")] TimerInfo timerInfo)
     {

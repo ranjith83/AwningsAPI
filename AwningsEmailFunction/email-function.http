@@ -1,0 +1,44 @@
+### Variables — change port if needed
+@base = http://localhost:7071/api
+
+### ─────────────────────────────────────────────────────────
+### 1. Check subscription status
+### ─────────────────────────────────────────────────────────
+GET {{base}}/EmailWatch/status
+
+### ─────────────────────────────────────────────────────────
+### 2. Register / renew Graph subscription
+###    Run this first — Graph will start pushing email notifications
+### ─────────────────────────────────────────────────────────
+POST {{base}}/EmailWatch/subscribe
+
+### ─────────────────────────────────────────────────────────
+### 3. Delete the active Graph subscription
+### ─────────────────────────────────────────────────────────
+DELETE {{base}}/EmailWatch/subscribe
+
+### ─────────────────────────────────────────────────────────
+### 4. Simulate a Graph webhook notification
+###    Replace AAMkAG... with a real message ID from the mailbox
+###    (copy from IncomingEmails table or Graph Explorer)
+### ─────────────────────────────────────────────────────────
+POST {{base}}/EmailWatch/notify
+Content-Type: application/json
+
+{
+  "value": [
+    {
+      "changeType": "created",
+      "clientState": "AwningsEmailWatcher-SuperSecretToken",
+      "subscriptionId": "local-test",
+      "resource": "Users/hello@awningsofireland.com/messages/AAMkAGYOUR_MESSAGE_ID_HERE"
+    }
+  ]
+}
+
+### ─────────────────────────────────────────────────────────
+### 5. Re-process a specific email already in the database
+###    Useful when ProcessingStatus = Failed and you want to retry
+###    POST a message ID directly to the queue instead of the HTTP trigger
+###    (use Azure Storage Explorer → Azurite → email-processing queue → Add message)
+### ─────────────────────────────────────────────────────────
