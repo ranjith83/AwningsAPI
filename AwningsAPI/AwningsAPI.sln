@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AwningsEmailFunction", "..\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AwningsAPI.Tests", "..\AwningsAPI.Tests\AwningsAPI.Tests.csproj", "{C3D14E28-7A5B-4F9C-8E2D-1B6A3F0C5E74}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AwningsEmailFunction.Tests", "..\AwningsEmailFunction.Tests\AwningsEmailFunction.Tests.csproj", "{A3B22B50-08BA-7F8E-8AD0-9E9D18A6DD00}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,18 @@ Global
 		{C3D14E28-7A5B-4F9C-8E2D-1B6A3F0C5E74}.Release|x64.Build.0 = Release|Any CPU
 		{C3D14E28-7A5B-4F9C-8E2D-1B6A3F0C5E74}.Release|x86.ActiveCfg = Release|Any CPU
 		{C3D14E28-7A5B-4F9C-8E2D-1B6A3F0C5E74}.Release|x86.Build.0 = Release|Any CPU
+		{A3B22B50-08BA-7F8E-8AD0-9E9D18A6DD00}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3B22B50-08BA-7F8E-8AD0-9E9D18A6DD00}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3B22B50-08BA-7F8E-8AD0-9E9D18A6DD00}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A3B22B50-08BA-7F8E-8AD0-9E9D18A6DD00}.Debug|x64.Build.0 = Debug|Any CPU
+		{A3B22B50-08BA-7F8E-8AD0-9E9D18A6DD00}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A3B22B50-08BA-7F8E-8AD0-9E9D18A6DD00}.Debug|x86.Build.0 = Debug|Any CPU
+		{A3B22B50-08BA-7F8E-8AD0-9E9D18A6DD00}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3B22B50-08BA-7F8E-8AD0-9E9D18A6DD00}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3B22B50-08BA-7F8E-8AD0-9E9D18A6DD00}.Release|x64.ActiveCfg = Release|Any CPU
+		{A3B22B50-08BA-7F8E-8AD0-9E9D18A6DD00}.Release|x64.Build.0 = Release|Any CPU
+		{A3B22B50-08BA-7F8E-8AD0-9E9D18A6DD00}.Release|x86.ActiveCfg = Release|Any CPU
+		{A3B22B50-08BA-7F8E-8AD0-9E9D18A6DD00}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

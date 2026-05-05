@@ -78,7 +78,7 @@ public class EmailProcessorServiceTests
     // ── Junk category ─────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task ProcessIncomingEmail_JunkCategory_NoTaskCreated()
+    public async Task ProcessIncomingEmail_JunkCategory_TaskCreated()
     {
         using var ctx    = EmailFunctionDbContextFactory.Create();
         var mockReader   = new Mock<IEmailReaderService>();
@@ -93,14 +93,14 @@ public class EmailProcessorServiceTests
         await svc.ProcessIncomingEmailAsync("msg-junk", "inbox@test.com");
 
         ctx.IncomingEmails.Should().HaveCount(1);
-        ctx.Tasks.Should().BeEmpty();
         ctx.IncomingEmails.First().ProcessingStatus.Should().Be("Completed");
+        ctx.Tasks.Should().HaveCount(1);
     }
 
-    // ── General category treated as junk ──────────────────────────────────────
+    // ── General category ──────────────────────────────────────────────────────
 
     [Fact]
-    public async Task ProcessIncomingEmail_GeneralCategory_NoTaskCreated()
+    public async Task ProcessIncomingEmail_GeneralCategory_TaskCreated()
     {
         using var ctx    = EmailFunctionDbContextFactory.Create();
         var mockReader   = new Mock<IEmailReaderService>();
@@ -114,7 +114,7 @@ public class EmailProcessorServiceTests
         var svc = Build(ctx, mockReader.Object, mockAnalysis.Object);
         await svc.ProcessIncomingEmailAsync("msg-gen", "inbox@test.com");
 
-        ctx.Tasks.Should().BeEmpty();
+        ctx.Tasks.Should().HaveCount(1);
     }
 
     // ── Complaint priority ────────────────────────────────────────────────────
