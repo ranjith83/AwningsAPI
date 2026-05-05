@@ -41,17 +41,10 @@ public class EmailProcessorService : IEmailProcessorService
 
             await AnalyzeEmailAsync(email);
 
-           // if (!IsJunk(email))
-           // {
-                var task = await CreateTaskAsync(email);
-                await AutoLinkCustomerAndWorkflowAsync(task, email.FromEmail);
-                if (IsInitialEnquiry(email))
-                    await CreateInitialEnquiryAsync(task, email);
-          //  }
-          //  else
-           // {
-            //    _logger.LogInformation("Junk email {Id} — no task created", email.Id);
-           // }
+            var task = await CreateTaskAsync(email);
+            await AutoLinkCustomerAndWorkflowAsync(task, email.FromEmail);
+            if (IsInitialEnquiry(email))
+                await CreateInitialEnquiryAsync(task, email);
 
             await MarkCompletedAsync(email);
         }
