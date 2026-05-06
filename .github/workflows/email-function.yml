@@ -97,4 +97,15 @@ jobs:
         env:
           RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
           APP_NAME: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
-        run: az functionapp deployment source config-zip --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --src publish.zip
+        run: |
+          USERNAME=$(az webapp deployment list-publishing-credentials \
+            --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" \
+            --query publishingUserName -o tsv)
+          PASSWORD=$(az webapp deployment list-publishing-credentials \
+            --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" \
+            --query publishingPassword -o tsv)
+          curl --fail -X POST \
+            "https://$APP_NAME.scm.azurewebsites.net/api/zipdeploy" \
+            -u "$USERNAME:$PASSWORD" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @publish.zip
