@@ -3,8 +3,13 @@ name: CI / CD
 on:
   push:
     branches: ["**"]
+    paths:
+      - "AwningsAPI/**"
+      - ".github/workflows/ci.yml"
   pull_request:
     branches: [master]
+    paths:
+      - "AwningsAPI/**"
 
 jobs:
   # ── Build & Test ────────────────────────────────────────────────────────────
@@ -73,14 +78,13 @@ jobs:
           ConnectionStrings__DefaultConnection: ${{ secrets.DB_CONNECTION_STRING }}
 
   # ── Deploy to Azure Container Apps ─────────────────────────────────────────
-  # Scoped to AwningsAPI only. AwningsEmailFunction and AwningsAPI.Functions
-  # have their own separate deployment pipelines.
+  # Scoped to AwningsAPI only. AwningsEmailFunction has its own pipeline.
   #
   # Flow:
   #   1. Build Docker image and push to GitHub Container Registry (ghcr.io) — free, no ACR needed.
   #   2. Deploy the pre-built image to Container Apps via azure/container-apps-deploy-action.
   #
-  # Required secrets: AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, CONTAINER_APP_NAME, AZURE_RESOURCE_GROUP, GHCR_PAT
+  # Required secrets: AZURE_CREDENTIALS, CONTAINER_APP_NAME, AZURE_RESOURCE_GROUP, GHCR_PAT
   deploy:
     name: Deploy to Azure Container Apps
     runs-on: ubuntu-latest

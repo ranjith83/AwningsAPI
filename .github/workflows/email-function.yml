@@ -98,7 +98,7 @@ jobs:
           APP_NAME: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
         run: |
           TOKEN=$(az account get-access-token --resource "https://management.azure.com/" --query accessToken -o tsv)
-          curl --fail --show-error -X POST \
+          curl --fail --show-error --max-time 300 -X POST \
             "https://$APP_NAME.scm.azurewebsites.net/api/zipdeploy" \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/octet-stream" \
