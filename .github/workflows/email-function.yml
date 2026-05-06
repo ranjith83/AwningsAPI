@@ -84,7 +84,7 @@ jobs:
           --output ./publish
 
       - name: Zip publish output
-        run: zip -r publish.zip ./publish
+        run: cd ./publish && zip -r ../publish.zip .
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -97,4 +97,4 @@ jobs:
         env:
           RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
           APP_NAME: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
-        run: az functionapp deployment source config-zip --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --src publish.zip
+        run: az functionapp deploy --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --src-path publish.zip --type zip
