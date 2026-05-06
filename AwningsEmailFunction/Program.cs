@@ -40,6 +40,7 @@ var host = new HostBuilder()
     })
     .Build();
 
+// DB init runs before the host starts — no HTTP needed for this.
 using (var scope = host.Services.CreateScope())
 {
     try
@@ -60,19 +61,27 @@ using (var scope = host.Services.CreateScope())
     {
         Console.WriteLine($"[STARTUP ERROR] Database initialization failed: {ex.Message}");
     }
-
-    // Register Graph subscription immediately on startup so emails are
-    // received right away rather than waiting up to 12 hours for the timer.
-    try
-    {
-        var subscriptionService = scope.ServiceProvider.GetRequiredService<IGraphSubscriptionService>();
-        await subscriptionService.EnsureSubscriptionAsync();
-        Console.WriteLine("[STARTUP] Graph subscription ensured.");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[STARTUP WARNING] Graph subscription setup failed: {ex.Message}");
-    }
 }
+
+// Graph subscription must be ensured AFTER the host is fully started so that
+// HTTP triggers are live when Graph sends its validation request to NotificationUrl.
+var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
+lifetime.ApplicationStarted.Register(() =>
+{
+    _ = Task.Run(async () =>
+    {
+        using var scope = host.Services.CreateScope();
+        try
+        {
+            var subscriptionService = scope.ServiceProvider.GetRequiredService<IGraphSubscriptionService>();
+            await subscriptionService.EnsureSubscriptionAsync();
+            Console.WriteLine("[STARTUP] Graph subscription ensured.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[STARTUP WARNING] Graph subscription setup failed: {ex.Message}");
+        }
+    });
+});
 
 await host.RunAsync();
