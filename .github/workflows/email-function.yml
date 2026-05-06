@@ -97,4 +97,4 @@ jobs:
         env:
           RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
           APP_NAME: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
-        run: az functionapp deploy --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --src-path publish.zip --type zip
+        run: az functionapp deployment source config-zip --resource-group "$RESOURCE_GROUP" --name "$APP_NAME" --src publish.zip
