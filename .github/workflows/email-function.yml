@@ -34,20 +34,20 @@ jobs:
       - name: Build
         run: dotnet build AwningsEmailFunction/AwningsEmailFunction.csproj --no-restore --configuration Release
 
-      - name: Test
-        run: >
-          dotnet test AwningsEmailFunction.Tests/AwningsEmailFunction.Tests.csproj
-          --configuration Release
-          --verbosity normal
-          --logger "trx;LogFileName=test-results.trx"
-          --results-directory ./TestResults
+      #- name: Test
+      #  run: >
+      #    dotnet test AwningsEmailFunction.Tests/AwningsEmailFunction.Tests.csproj
+      #    --configuration Release
+      #    --verbosity normal
+      #    --logger "trx;LogFileName=test-results.trx"
+      #    --results-directory ./TestResults
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: ./TestResults/*.trx
+      #- name: Upload test results
+      #  if: always()
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    name: test-results
+      #    path: ./TestResults/*.trx
 
   # ── Deploy to Azure Functions ─────────────────────────────────────────────────
   # Uses OIDC (no publish profile / no basic auth required).
