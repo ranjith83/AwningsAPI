@@ -3,6 +3,7 @@ using AwningsAPI.Dto.Tasks;
 using AwningsAPI.Services.WorkflowService;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Tasks;
+using Azure.Identity;
 using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -552,33 +553,20 @@ namespace AwningsAPI.Controllers
             // ── Path 1: read from blob ────────────────────────────────────────
             if (!string.IsNullOrEmpty(taskAttachment.BlobUrl))
             {
-                var connectionString = _configuration["BlobStorage:ConnectionString"];
-                var containerName = _configuration["BlobStorage:ContainerName"] ?? "awnings-emails";
-
-                if (string.IsNullOrEmpty(connectionString))
+                var blobClient = CreateBlobClient(taskAttachment.BlobUrl);
+                if (blobClient != null)
                 {
-                    _logger.LogWarning("BlobStorage:ConnectionString not configured — falling back to Base64 for attachment {Id}", attachmentId);
-                    // Fall through to Base64 fallback below
-                }
-                else
-                try
-                {
-                    // Parse blob name from the URL: strip "https://<account>.blob.core.windows.net/<container>/"
-                    var uri = new Uri(taskAttachment.BlobUrl);
-                    var uriPath = uri.AbsolutePath.TrimStart('/');
-                    var slashIndex = uriPath.IndexOf('/');
-                    var blobName = slashIndex >= 0 ? uriPath[(slashIndex + 1)..] : uriPath;
-
-                    var blobClient = new BlobClient(connectionString, containerName, blobName);
-                    var download = await blobClient.DownloadStreamingAsync();
-
-                    Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
-                    return File(download.Value.Content, contentType, fileName);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to stream attachment {Id} from blob {Url}", attachmentId, taskAttachment.BlobUrl);
-                    // Fall through to Base64 fallback
+                    try
+                    {
+                        var download = await blobClient.DownloadStreamingAsync();
+                        Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
+                        return File(download.Value.Content, contentType, fileName);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to stream attachment {Id} from blob {Url}", attachmentId, taskAttachment.BlobUrl);
+                        // Fall through to Base64 fallback
+                    }
                 }
             }
 
@@ -624,31 +612,18 @@ namespace AwningsAPI.Controllers
 
                 if (!string.IsNullOrEmpty(bodyBlobUrl))
                 {
-                    var connectionString = _configuration["BlobStorage:ConnectionString"];
-                    var containerName = _configuration["BlobStorage:ContainerName"] ?? "awnings-emails";
-
-                    if (!string.IsNullOrEmpty(connectionString))
+                    var blobClient = CreateBlobClient(bodyBlobUrl);
+                    if (blobClient != null)
                     {
                         try
                         {
-                            var uri = new Uri(bodyBlobUrl);
-                            var uriPath = uri.AbsolutePath.TrimStart('/');
-                            var slashIndex = uriPath.IndexOf('/');
-                            var blobName = slashIndex >= 0 ? uriPath[(slashIndex + 1)..] : uriPath;
-
-                            var blobClient = new BlobClient(connectionString, containerName, blobName);
                             var download = await blobClient.DownloadContentAsync();
-                            var html = download.Value.Content.ToString();
-                            return Content(html, "text/html; charset=utf-8");
+                            return Content(download.Value.Content.ToString(), "text/html; charset=utf-8");
                         }
                         catch (Exception ex)
                         {
                             _logger.LogWarning(ex, "Failed to fetch email body blob for task {TaskId}, falling back to EmailBody", taskId);
                         }
-                    }
-                    else
-                    {
-                        _logger.LogWarning("BlobStorage:ConnectionString not configured — serving EmailBody fallback for task {TaskId}", taskId);
                     }
                 }
             }
@@ -1204,6 +1179,38 @@ namespace AwningsAPI.Controllers
             var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
                            ?? User?.FindFirst("userId")?.Value;
             return int.TryParse(userIdClaim, out var userId) ? userId : 0;
+        }
+
+        /// <summary>
+        /// Creates a BlobClient for the given blob URL using whichever auth is configured:
+        ///   • BlobStorage:ConnectionString set → connection string (local Azurite or access-key)
+        ///   • BlobStorage:AccountUrl set      → DefaultAzureCredential (Managed Identity / Entra)
+        ///   • Neither                         → returns null (caller falls back to DB content)
+        /// </summary>
+        private BlobClient? CreateBlobClient(string blobUrl)
+        {
+            // Parse the blob name from the stored URL: strip /<container>/ prefix
+            var uri = new Uri(blobUrl);
+            var uriPath = uri.AbsolutePath.TrimStart('/');
+            var slashIndex = uriPath.IndexOf('/');
+            var blobName = slashIndex >= 0 ? uriPath[(slashIndex + 1)..] : uriPath;
+            var containerName = _configuration["BlobStorage:ContainerName"] ?? "awnings-emails";
+
+            // Local dev: Azurite connection string (UseDevelopmentStorage=true)
+            var connectionString = _configuration["BlobStorage:ConnectionString"];
+            if (!string.IsNullOrEmpty(connectionString))
+                return new BlobClient(connectionString, containerName, blobName);
+
+            // Production: Managed Identity via AccountUrl
+            var accountUrl = _configuration["BlobStorage:AccountUrl"];
+            if (!string.IsNullOrEmpty(accountUrl))
+            {
+                var blobUri = new Uri($"{accountUrl.TrimEnd('/')}/{containerName}/{blobName}");
+                return new BlobClient(blobUri, new DefaultAzureCredential());
+            }
+
+            _logger.LogWarning("BlobStorage not configured — set ConnectionString (local) or AccountUrl (production)");
+            return null;
         }
 
         #endregion
