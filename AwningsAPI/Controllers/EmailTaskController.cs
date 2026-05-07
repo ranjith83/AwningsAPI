@@ -557,10 +557,10 @@ namespace AwningsAPI.Controllers
 
                 if (string.IsNullOrEmpty(connectionString))
                 {
-                    _logger.LogError("BlobStorage:ConnectionString is not configured — cannot stream attachment {Id}", attachmentId);
-                    return StatusCode(503, new { error = "Blob storage is not configured on this server" });
+                    _logger.LogWarning("BlobStorage:ConnectionString not configured — falling back to Base64 for attachment {Id}", attachmentId);
+                    // Fall through to Base64 fallback below
                 }
-
+                else
                 try
                 {
                     // Parse blob name from the URL: strip "https://<account>.blob.core.windows.net/<container>/"
@@ -596,6 +596,64 @@ namespace AwningsAPI.Controllers
             }
 
             return NotFound(new { error = "Attachment content is not available" });
+        }
+
+        /// <summary>
+        /// Proxy endpoint that returns the email body HTML for a task.
+        /// Reads from Azure Blob when BodyBlobUrl is set; falls back to EmailBody stored on the task.
+        /// The blob is private so the frontend cannot fetch it directly — this endpoint handles auth.
+        /// GET /api/EmailTask/{taskId}/body
+        /// </summary>
+        [HttpGet("{taskId}/body")]
+        public async Task<IActionResult> GetEmailBody(int taskId)
+        {
+            var task = await _context.Tasks
+                .Where(t => t.TaskId == taskId)
+                .Select(t => new { t.IncomingEmailId, t.EmailBody })
+                .FirstOrDefaultAsync();
+
+            if (task == null)
+                return NotFound(new { error = "Task not found" });
+
+            if (task.IncomingEmailId.HasValue)
+            {
+                var bodyBlobUrl = await _context.IncomingEmails
+                    .Where(e => e.Id == task.IncomingEmailId.Value)
+                    .Select(e => e.BodyBlobUrl)
+                    .FirstOrDefaultAsync();
+
+                if (!string.IsNullOrEmpty(bodyBlobUrl))
+                {
+                    var connectionString = _configuration["BlobStorage:ConnectionString"];
+                    var containerName = _configuration["BlobStorage:ContainerName"] ?? "awnings-emails";
+
+                    if (!string.IsNullOrEmpty(connectionString))
+                    {
+                        try
+                        {
+                            var uri = new Uri(bodyBlobUrl);
+                            var uriPath = uri.AbsolutePath.TrimStart('/');
+                            var slashIndex = uriPath.IndexOf('/');
+                            var blobName = slashIndex >= 0 ? uriPath[(slashIndex + 1)..] : uriPath;
+
+                            var blobClient = new BlobClient(connectionString, containerName, blobName);
+                            var download = await blobClient.DownloadContentAsync();
+                            var html = download.Value.Content.ToString();
+                            return Content(html, "text/html; charset=utf-8");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to fetch email body blob for task {TaskId}, falling back to EmailBody", taskId);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("BlobStorage:ConnectionString not configured — serving EmailBody fallback for task {TaskId}", taskId);
+                    }
+                }
+            }
+
+            return Content(task.EmailBody ?? string.Empty, "text/html; charset=utf-8");
         }
 
         #endregion
