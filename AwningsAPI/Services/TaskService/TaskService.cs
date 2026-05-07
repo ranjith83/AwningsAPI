@@ -515,6 +515,9 @@ namespace AwningsAPI.Services.Tasks
             else if (!string.IsNullOrEmpty(filterDto.Category))
                 query = query.Where(t => t.Category == filterDto.Category);
 
+            if (filterDto.ExcludeCategories != null && filterDto.ExcludeCategories.Count > 0)
+                query = query.Where(t => !filterDto.ExcludeCategories.Contains(t.Category));
+
             if (!string.IsNullOrEmpty(filterDto.TaskType))
                 query = query.Where(t => t.TaskType == filterDto.TaskType);
 

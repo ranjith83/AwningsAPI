@@ -323,6 +323,7 @@ namespace AwningsAPI.Dto.Tasks
         // ── Category filters ──────────────────────────────────────────────────
         public string? Category { get; set; }
         public List<string>? Categories { get; set; }
+        public List<string>? ExcludeCategories { get; set; }
 
         // ── Other filters — unchanged ─────────────────────────────────────────
         public string? TaskType { get; set; }

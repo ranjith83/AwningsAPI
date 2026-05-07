@@ -676,6 +676,30 @@ namespace AwningsAPI.Controllers
         /// <summary>
         /// Get history for a task
         /// </summary>
+        [HttpPost("{taskId}/read")]
+        public async Task<IActionResult> LogRead(int taskId)
+        {
+            var task = await _context.Tasks.FindAsync(taskId);
+            if (task == null) return NotFound();
+
+            var username = User.FindFirstValue(ClaimTypes.Name)
+                        ?? User.FindFirstValue(ClaimTypes.Email)
+                        ?? "Unknown";
+
+            _context.TaskHistories.Add(new TaskHistory
+            {
+                TaskId      = taskId,
+                Action      = "Read",
+                Details     = $"Email viewed by {username}",
+                DateCreated = DateTime.UtcNow,
+                CreatedBy   = username,
+                Subject     = task.Subject,
+                Category    = task.Category
+            });
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
         [HttpGet("{taskId}/history")]
         public async Task<ActionResult<IEnumerable<TaskHistoryDto>>> GetTaskHistory(int taskId)
         {

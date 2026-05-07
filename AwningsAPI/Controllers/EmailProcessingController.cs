@@ -269,6 +269,50 @@ namespace AwningsAPI.Controllers
         }
 
         /// <summary>
+        /// Get junk and general emails combined (no task was created for these)
+        /// </summary>
+        [HttpGet("junk")]
+        public async Task<IActionResult> GetJunkEmails([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                var query = _context.IncomingEmails
+                    .Where(e => e.Category == "junk" || e.Category == "general")
+                    .OrderByDescending(e => e.ReceivedDateTime);
+
+                var totalCount = await query.CountAsync();
+                var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+                var emails = await query
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(e => new
+                    {
+                        e.Id,
+                        e.EmailId,
+                        e.Subject,
+                        e.FromEmail,
+                        e.FromName,
+                        e.BodyPreview,
+                        e.BodyBlobUrl,
+                        e.ReceivedDateTime,
+                        e.Category,
+                        e.CategoryConfidence,
+                        e.HasAttachments,
+                        e.Importance
+                    })
+                    .ToListAsync();
+
+                return Ok(new { page, pageSize, totalPages, totalCount, emails });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving junk emails");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Reprocess a failed email
         /// </summary>
         [HttpPost("reprocess/{id}")]
