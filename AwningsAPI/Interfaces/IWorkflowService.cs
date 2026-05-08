@@ -1,4 +1,5 @@
 ﻿using AwningsAPI.Dto.Auth;
+using AwningsAPI.Dto.Product;
 using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Model.Products;
 using AwningsAPI.Model.Workflow;
@@ -67,7 +68,7 @@ namespace AwningsAPI.Interfaces
         Task<bool> HasValanceStylesAsync(int productId);
         Task<bool> HasWallSealingProfilesAsync(int productId);
         Task<bool> HasFrameColourAsync(int productId);
-        Task<decimal> GetFrameColourPriceAsync(int productId, int widthcm);
+        Task<List<FrameColourOptionDto>> GetFrameColourOptionsAsync();
 
     }
 }

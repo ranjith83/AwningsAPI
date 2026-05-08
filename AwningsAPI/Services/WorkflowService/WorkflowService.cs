@@ -1,5 +1,6 @@
 ﻿using AwningsAPI.Database;
 using AwningsAPI.Dto.Auth;
+using AwningsAPI.Dto.Product;
 using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Auth;
@@ -409,14 +410,28 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<bool> HasWallSealingProfilesAsync(int productId) =>
             await _context.wallSealingProfiles.AnyAsync(p => p.ProductId == productId);
 
-        public async Task<bool> HasFrameColourAsync(int productId) =>
-            await _context.FrameColours.AnyAsync(p => p.ProductId == productId);
-
-        public async Task<decimal> GetFrameColourPriceAsync(int productId, int widthcm) =>
-            await _context.FrameColours
-                .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
-                .Select(p => p.Price)
+        public async Task<bool> HasFrameColourAsync(int productId)
+        {
+            // Frame Colour applies to Folding-arm Cassette Awnings (ProductTypeId = 1)
+            var productTypeId = await _context.Products
+                .Where(p => p.ProductId == productId)
+                .Select(p => p.ProductTypeId)
                 .FirstOrDefaultAsync();
+            return productTypeId == 1 && await _context.FrameColours.AnyAsync();
+        }
+
+        public async Task<List<FrameColourOptionDto>> GetFrameColourOptionsAsync() =>
+            await _context.FrameColours
+                .OrderBy(f => f.SortOrder)
+                .Select(f => new FrameColourOptionDto
+                {
+                    FrameColourId = f.FrameColourId,
+                    Description   = f.Description,
+                    ColorValue    = f.ColorValue,
+                    Price         = f.Price,
+                    SortOrder     = f.SortOrder
+                })
+                .ToListAsync();
 
         public async Task<List<Heaters>> GeHeatersForProductAsync(int productId) =>
             await _context.Heaters.Where(f => f.ProductId == productId).ToListAsync();
