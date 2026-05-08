@@ -409,6 +409,15 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<bool> HasWallSealingProfilesAsync(int productId) =>
             await _context.wallSealingProfiles.AnyAsync(p => p.ProductId == productId);
 
+        public async Task<bool> HasFrameColourAsync(int productId) =>
+            await _context.FrameColours.AnyAsync(p => p.ProductId == productId);
+
+        public async Task<decimal> GetFrameColourPriceAsync(int productId, int widthcm) =>
+            await _context.FrameColours
+                .Where(p => p.ProductId == productId && p.WidthCm == widthcm)
+                .Select(p => p.Price)
+                .FirstOrDefaultAsync();
+
         public async Task<List<Heaters>> GeHeatersForProductAsync(int productId) =>
             await _context.Heaters.Where(f => f.ProductId == productId).ToListAsync();
 

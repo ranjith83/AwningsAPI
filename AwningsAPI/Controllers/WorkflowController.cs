@@ -263,6 +263,15 @@ namespace AwningsAPI.Controllers
         public async Task<bool> HasWallSealingProfiles(int ProductId) =>
             await _workflowService.HasWallSealingProfilesAsync(ProductId);
 
+        /// <summary>Returns true if the product has any FrameColour records.</summary>
+        [HttpGet("HasFrameColour")]
+        public async Task<bool> HasFrameColour(int ProductId) =>
+            await _workflowService.HasFrameColourAsync(ProductId);
+
+        [HttpGet("GetFrameColourPriceForProduct")]
+        public async Task<decimal> GetFrameColourPriceForProduct(int ProductId, int widthcm) =>
+            await _workflowService.GetFrameColourPriceAsync(ProductId, widthcm);
+
         [HttpGet("GeHeatersForProduct")]
         public async Task<ActionResult<IEnumerable<HeaterDto>>> GeHeatersForProduct(int ProductId)
         {

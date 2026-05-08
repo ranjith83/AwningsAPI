@@ -41,6 +41,7 @@ namespace AwningsAPI.Database
         public DbSet<ValanceStyle> valanceStyles { get; set; }
         public DbSet<NonStandardRALColours> nonStandardRALColours { get; set; }
         public DbSet<WallSealingProfile> wallSealingProfiles { get; set; }
+        public DbSet<FrameColour> FrameColours { get; set; }
         public DbSet<Heaters> Heaters { get; set; }
         public DbSet<Quote> Quotes { get; set; }
         public DbSet<QuoteItem> QuoteItems { get; set; }
@@ -158,6 +159,10 @@ namespace AwningsAPI.Database
                 .HasPrecision(18, 4);
 
             modelBuilder.Entity<WallSealingProfile>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 4);
+
+            modelBuilder.Entity<FrameColour>()
                 .Property(p => p.Price)
                 .HasPrecision(18, 4);
 
