@@ -141,7 +141,7 @@ namespace AwningsAPI.Services.OutlookService
             }
         }
 
-        public async Task<object> GetCalendarEventsAsync(DateTime startDate, DateTime endDate)
+        public async Task<List<CalendarEventResponseDto>> GetCalendarEventsAsync(DateTime startDate, DateTime endDate)
         {
             try
             {
@@ -149,11 +149,11 @@ namespace AwningsAPI.Services.OutlookService
 
                 // Ensure endDate covers the full last day (23:59:59) so events
                 // created earlier that day are not excluded by the range boundary.
-                var endOfDay = endDate.Date == endDate
+                var endOfDay = endDate.Date == endDate.Date && endDate.TimeOfDay == TimeSpan.Zero
                     ? endDate.Date.AddDays(1).AddSeconds(-1)   // midnight → end of day
                     : endDate;                                   // already has time component
 
-                var events = await _graphClient.Users[organizerEmail]
+                var response = await _graphClient.Users[organizerEmail]
                     .CalendarView
                     .GetAsync((requestConfiguration) =>
                     {
@@ -169,7 +169,42 @@ namespace AwningsAPI.Services.OutlookService
                         // that Graph rejects on this endpoint.
                     });
 
-                return events;
+                var events = response?.Value ?? new List<Microsoft.Graph.Models.Event>();
+
+                return events.Select(e => new CalendarEventResponseDto
+                {
+                    Id = e.Id,
+                    Subject = e.Subject,
+                    IsAllDay = e.IsAllDay ?? false,
+                    Body = e.Body == null ? null : new EventBody
+                    {
+                        ContentType = e.Body.ContentType?.ToString() ?? "Text",
+                        Content = e.Body.Content
+                    },
+                    Start = e.Start == null ? null : new EventDateTime
+                    {
+                        DateTime = e.Start.DateTime,
+                        TimeZone = e.Start.TimeZone
+                    },
+                    End = e.End == null ? null : new EventDateTime
+                    {
+                        DateTime = e.End.DateTime,
+                        TimeZone = e.End.TimeZone
+                    },
+                    Location = e.Location?.DisplayName == null ? null : new EventLocation
+                    {
+                        DisplayName = e.Location.DisplayName
+                    },
+                    Attendees = e.Attendees?.Select(a => new EventAttendee
+                    {
+                        EmailAddress = new Dto.Outlook.EmailAddress
+                        {
+                            Address = a.EmailAddress?.Address,
+                            Name = a.EmailAddress?.Name
+                        },
+                        Type = a.Type?.ToString() ?? "required"
+                    }).ToList() ?? new List<EventAttendee>()
+                }).ToList();
             }
             catch (Exception ex)
             {

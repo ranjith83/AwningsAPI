@@ -52,4 +52,16 @@
         public string Address { get; set; }
         public string Name { get; set; }
     }
+
+    public class CalendarEventResponseDto
+    {
+        public string Id { get; set; }
+        public string Subject { get; set; }
+        public EventBody Body { get; set; }
+        public EventDateTime Start { get; set; }
+        public EventDateTime End { get; set; }
+        public EventLocation Location { get; set; }
+        public List<EventAttendee> Attendees { get; set; }
+        public bool IsAllDay { get; set; }
+    }
 }
