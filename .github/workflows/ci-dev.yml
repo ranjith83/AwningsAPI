@@ -1,0 +1,72 @@
+name: CI/CD – Dev
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "AwningsAPI/**"
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build & Test (.NET 9)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore
+        run: dotnet restore AwningsAPI/AwningsAPI.csproj
+
+      - name: Build
+        run: dotnet build AwningsAPI/AwningsAPI.csproj --no-restore --configuration Release
+
+  deploy-dev:
+    name: Deploy to Dev Container App
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    environment: dev
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image (dev)
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ github.workspace }}/AwningsAPI
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/awningsapi:dev
+            ghcr.io/${{ github.repository_owner }}/awningsapi:dev-${{ github.sha }}
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy image to Dev Container App
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          containerAppName: ${{ secrets.CONTAINER_APP_NAME_DEV }}
+          resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          imageToDeploy: ghcr.io/${{ github.repository_owner }}/awningsapi:dev-${{ github.sha }}
+          registryUrl: ghcr.io
+          registryUsername: ${{ github.actor }}
+          registryPassword: ${{ secrets.GHCR_PAT }}
