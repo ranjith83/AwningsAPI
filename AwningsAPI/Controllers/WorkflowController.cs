@@ -268,10 +268,18 @@ namespace AwningsAPI.Controllers
         public async Task<bool> HasFrameColour(int ProductId) =>
             await _workflowService.HasFrameColourAsync(ProductId);
 
-        /// <summary>Returns all frame colour options (ordered by SortOrder). Price is 0 for black (ColorValue=1), non-zero for white/light (ColorValue=0).</summary>
+        /// <summary>Returns frame colour options for a specific product ordered by DisplayOrder.</summary>
         [HttpGet("GetFrameColourOptions")]
-        public async Task<ActionResult<IEnumerable<FrameColourOptionDto>>> GetFrameColourOptions() =>
-            Ok(await _workflowService.GetFrameColourOptionsAsync());
+        public async Task<ActionResult<IEnumerable<FrameColourOptionDto>>> GetFrameColourOptions([FromQuery] int productId) =>
+            Ok(await _workflowService.GetFrameColourOptionsAsync(productId));
+
+        /// <summary>
+        /// GET /api/workflow/GetFrameColourPrice?productId=1&amp;frameColourOptionId=5&amp;widthCm=300
+        /// Returns the price surcharge for the selected frame colour. Returns 0 when included (isNonStandardRAL=false).
+        /// </summary>
+        [HttpGet("GetFrameColourPrice")]
+        public async Task<decimal> GetFrameColourPrice([FromQuery] int productId, [FromQuery] int frameColourOptionId, [FromQuery] int widthCm) =>
+            await _workflowService.GetFrameColourPriceAsync(productId, frameColourOptionId, widthCm);
 
         [HttpGet("GeHeatersForProduct")]
         public async Task<ActionResult<IEnumerable<HeaterDto>>> GeHeatersForProduct(int ProductId)

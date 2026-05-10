@@ -68,7 +68,8 @@ namespace AwningsAPI.Interfaces
         Task<bool> HasValanceStylesAsync(int productId);
         Task<bool> HasWallSealingProfilesAsync(int productId);
         Task<bool> HasFrameColourAsync(int productId);
-        Task<List<FrameColourOptionDto>> GetFrameColourOptionsAsync();
+        Task<List<FrameColourOptionDto>> GetFrameColourOptionsAsync(int productId);
+        Task<decimal> GetFrameColourPriceAsync(int productId, int frameColourOptionId, int widthCm);
 
     }
 }

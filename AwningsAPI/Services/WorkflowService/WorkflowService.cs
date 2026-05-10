@@ -410,28 +410,33 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<bool> HasWallSealingProfilesAsync(int productId) =>
             await _context.wallSealingProfiles.AnyAsync(p => p.ProductId == productId);
 
-        public async Task<bool> HasFrameColourAsync(int productId)
-        {
-            // Frame Colour applies to Folding-arm Cassette Awnings (ProductTypeId = 1)
-            var productTypeId = await _context.Products
-                .Where(p => p.ProductId == productId)
-                .Select(p => p.ProductTypeId)
-                .FirstOrDefaultAsync();
-            return productTypeId == 1 && await _context.FrameColours.AnyAsync();
-        }
+        public async Task<bool> HasFrameColourAsync(int productId) =>
+            await _context.FrameColours.AnyAsync(f => f.ProductId == productId);
 
-        public async Task<List<FrameColourOptionDto>> GetFrameColourOptionsAsync() =>
+        public async Task<List<FrameColourOptionDto>> GetFrameColourOptionsAsync(int productId) =>
             await _context.FrameColours
-                .OrderBy(f => f.SortOrder)
+                .Where(f => f.ProductId == productId)
+                .OrderBy(f => f.FrameColourOption.DisplayOrder)
                 .Select(f => new FrameColourOptionDto
                 {
-                    FrameColourId = f.FrameColourId,
-                    Description   = f.Description,
-                    ColorValue    = f.ColorValue,
-                    Price         = f.Price,
-                    SortOrder     = f.SortOrder
+                    FrameColourOptionId = f.FrameColourOptionId,
+                    Description         = f.FrameColourOption.Description,
+                    IsNonStandardRAL    = f.IsNonStandardRAL
                 })
                 .ToListAsync();
+
+        public async Task<decimal> GetFrameColourPriceAsync(int productId, int frameColourOptionId, int widthCm)
+        {
+            var isNonStandard = await _context.FrameColours
+                .Where(f => f.ProductId == productId && f.FrameColourOptionId == frameColourOptionId)
+                .Select(f => f.IsNonStandardRAL)
+                .FirstOrDefaultAsync();
+            if (!isNonStandard) return 0m;
+            return await _context.nonStandardRALColours
+                .Where(p => p.ProductId == productId && p.WidthCm == widthCm)
+                .Select(p => p.Price * p.MultiplyBy)
+                .FirstOrDefaultAsync();
+        }
 
         public async Task<List<Heaters>> GeHeatersForProductAsync(int productId) =>
             await _context.Heaters.Where(f => f.ProductId == productId).ToListAsync();
