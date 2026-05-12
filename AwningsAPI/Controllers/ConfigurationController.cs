@@ -118,6 +118,15 @@ namespace AwiningsIreland_WebAPI.Controllers
             return bracket == null ? NotFound(new { message = $"Bracket with ID {id} not found" }) : Ok(bracket);
         }
 
+        [HttpPut("brackets/{id}/flags")]
+        [ProducesResponseType(typeof(BracketDto), 200)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<BracketDto>> UpdateBracketFlags(int id, [FromBody] UpdateBracketFlagsDto dto)
+        {
+            var result = await _configurationService.UpdateBracketFlagsAsync(id, dto.IsDefault, dto.IsPriceIgnored);
+            return result == null ? NotFound(new { message = $"Bracket with ID {id} not found" }) : Ok(result);
+        }
+
         [HttpDelete("brackets/{id}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
@@ -634,6 +643,38 @@ namespace AwiningsIreland_WebAPI.Controllers
         {
             var result = await _configurationService.DeleteRadioControlledMotorAsync(id);
             return result ? NoContent() : NotFound(new { message = $"Radio motor with ID {id} not found" });
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  FRAME COLOURS  —  /api/configuration/frame-colours
+        // ══════════════════════════════════════════════════════════════════════
+
+        [HttpGet("frame-colours")]
+        [ProducesResponseType(typeof(IEnumerable<FrameColourConfigDto>), 200)]
+        public async Task<ActionResult<IEnumerable<FrameColourConfigDto>>> GetAllFrameColours() =>
+            Ok(await _configurationService.GetAllFrameColoursAsync());
+
+        [HttpGet("frame-colours/product/{productId}")]
+        [ProducesResponseType(typeof(IEnumerable<FrameColourConfigDto>), 200)]
+        public async Task<ActionResult<IEnumerable<FrameColourConfigDto>>> GetFrameColoursByProduct(int productId) =>
+            Ok(await _configurationService.GetFrameColoursByProductIdAsync(productId));
+
+        [HttpPut("frame-colours/{id}")]
+        [ProducesResponseType(typeof(FrameColourConfigDto), 200)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<FrameColourConfigDto>> UpdateFrameColour(int id, [FromBody] UpdateFrameColourDto dto)
+        {
+            var result = await _configurationService.UpdateFrameColourAsync(id, dto);
+            return result == null ? NotFound(new { message = $"Frame colour with ID {id} not found" }) : Ok(result);
+        }
+
+        [HttpDelete("frame-colours/{id}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult> DeleteFrameColour(int id)
+        {
+            var result = await _configurationService.DeleteFrameColourAsync(id);
+            return result ? NoContent() : NotFound(new { message = $"Frame colour with ID {id} not found" });
         }
     }
 }

@@ -834,6 +834,16 @@ namespace AwningsAPI.Services.ConfigurationService
             CreatedBy = v.CreatedBy
         };
 
+        public async Task<AwningsAPI.Dto.Product.BracketDto> UpdateBracketFlagsAsync(int id, bool isDefault, bool isPriceIgnored)
+        {
+            var entity = await _context.Brackets.FindAsync(id);
+            if (entity == null) return null;
+            entity.IsDefault      = isDefault;
+            entity.IsPriceIgnored = isPriceIgnored;
+            await _context.SaveChangesAsync();
+            return MapBracketToDto(entity);
+        }
+
         private static AwningsAPI.Dto.Product.BracketDto MapBracketToDto(Brackets b) => new()
         {
             BracketId = b.BracketId,
@@ -841,6 +851,8 @@ namespace AwningsAPI.Services.ConfigurationService
             BracketName = b.BracketName,
             PartNumber = b.PartNumber ?? string.Empty,
             Price = b.Price,
+            IsDefault = b.IsDefault,
+            IsPriceIgnored = b.IsPriceIgnored,
             DateCreated = b.DateCreated,
             CreatedBy = b.CreatedBy
         };
@@ -937,5 +949,48 @@ namespace AwningsAPI.Services.ConfigurationService
             DateCreated = m.DateCreated,
             CreatedBy = m.CreatedBy
         };
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  FRAME COLOURS
+        // ══════════════════════════════════════════════════════════════════════
+
+        public async Task<IEnumerable<FrameColourConfigDto>> GetAllFrameColoursAsync() =>
+            await FrameColourQuery().ToListAsync();
+
+        public async Task<IEnumerable<FrameColourConfigDto>> GetFrameColoursByProductIdAsync(int productId) =>
+            await FrameColourQuery().Where(f => f.ProductId == productId).ToListAsync();
+
+        public async Task<FrameColourConfigDto> UpdateFrameColourAsync(int frameColourId, UpdateFrameColourDto dto)
+        {
+            var entity = await _context.FrameColours.FindAsync(frameColourId);
+            if (entity == null) return null;
+            entity.IsNonStandardRAL = dto.IsNonStandardRAL;
+            await _context.SaveChangesAsync();
+            return await FrameColourQuery().FirstOrDefaultAsync(f => f.FrameColourId == frameColourId);
+        }
+
+        public async Task<bool> DeleteFrameColourAsync(int frameColourId)
+        {
+            var entity = await _context.FrameColours.FindAsync(frameColourId);
+            if (entity == null) return false;
+            _context.FrameColours.Remove(entity);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        private IQueryable<FrameColourConfigDto> FrameColourQuery() =>
+            _context.FrameColours
+                .Include(f => f.FrameColourOption)
+                .Join(_context.Products, f => f.ProductId, p => p.ProductId,
+                    (f, p) => new FrameColourConfigDto
+                    {
+                        FrameColourId       = f.FrameColourId,
+                        ProductId           = f.ProductId,
+                        ProductName         = p.Description,
+                        FrameColourOptionId = f.FrameColourOptionId,
+                        Description         = f.FrameColourOption.Description,
+                        IsNonStandardRAL    = f.IsNonStandardRAL
+                    })
+                .OrderBy(f => f.ProductName).ThenBy(f => f.Description);
     }
 }

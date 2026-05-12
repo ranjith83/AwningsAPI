@@ -24,6 +24,12 @@ namespace AwningsAPI.Model.Products
         /// </summary>
         public int? ArmTypeId { get; set; }
 
+        /// <summary>true = pre-selected by default in create-quote / final-quote screens</summary>
+        public bool IsDefault { get; set; }
+
+        /// <summary>true = add line item at €0 (price included, no surcharge)</summary>
+        public bool IsPriceIgnored { get; set; }
+
         public DateTime DateCreated { get; set; }
         public string CreatedBy { get; set; } = string.Empty;
         public DateTime? DateUpdated { get; set; }

@@ -23,6 +23,10 @@ namespace AwningsAPI.Dto.Product
 
         public int? ArmTypeId { get; set; }
 
+        public bool IsDefault { get; set; }
+
+        public bool IsPriceIgnored { get; set; }
+
         public DateTime DateCreated { get; set; }
 
         public string CreatedBy { get; set; }
@@ -42,5 +46,11 @@ namespace AwningsAPI.Dto.Product
         [Required][MaxLength(300)] public string BracketName { get; set; }
         [MaxLength(50)] public string? PartNumber { get; set; } = string.Empty;
         [Range(0, double.MaxValue)] public decimal Price { get; set; }
+    }
+
+    public class UpdateBracketFlagsDto
+    {
+        public bool IsDefault { get; set; }
+        public bool IsPriceIgnored { get; set; }
     }
 }

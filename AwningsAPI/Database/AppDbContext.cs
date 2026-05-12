@@ -139,6 +139,14 @@ namespace AwningsAPI.Database
                 .Property(p => p.Price)
                 .HasPrecision(18, 4);
 
+            modelBuilder.Entity<Brackets>()
+                .Property(p => p.IsDefault)
+                .HasDefaultValue(false);
+
+            modelBuilder.Entity<Brackets>()
+                .Property(p => p.IsPriceIgnored)
+                .HasDefaultValue(false);
+
             modelBuilder.Entity<BF>()
                 .Property(p => p.Price)
                 .HasPrecision(18, 4);

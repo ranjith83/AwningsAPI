@@ -174,7 +174,9 @@ namespace AwningsAPI.Controllers
                 BracketId = c.BracketId,
                 BracketName = c.BracketName,
                 Price = c.Price,
-                ArmTypeId = c.ArmTypeId
+                ArmTypeId = c.ArmTypeId,
+                IsDefault = c.IsDefault,
+                IsPriceIgnored = c.IsPriceIgnored
             }).ToList());
         }
 

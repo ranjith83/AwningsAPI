@@ -19,6 +19,7 @@ namespace AwningsAPI.Interfaces
         Task<BracketDto> GetBracketByIdAsync(int id);
         Task<BracketDto> CreateBracketAsync(CreateBracketDto createDto, string currentUser);
         Task<BracketDto> UpdateBracketAsync(int id, UpdateBracketDto updateDto, string currentUser);
+        Task<BracketDto> UpdateBracketFlagsAsync(int id, bool isDefault, bool isPriceIgnored);
         Task<bool> DeleteBracketAsync(int id);
 
         // ── Suppliers ─────────────────────────────────────────────────────────
@@ -84,6 +85,12 @@ namespace AwningsAPI.Interfaces
         Task<ProjectionDto> CreateProjectionAsync(CreateProjectionDto createDto, string currentUser);
         Task<ProjectionDto> UpdateProjectionAsync(int id, UpdateProjectionDto updateDto, string currentUser);
         Task<bool> DeleteProjectionAsync(int id);
+
+        // ── Frame Colours (junction-row CRUD) ─────────────────────────────────
+        Task<IEnumerable<FrameColourConfigDto>> GetAllFrameColoursAsync();
+        Task<IEnumerable<FrameColourConfigDto>> GetFrameColoursByProductIdAsync(int productId);
+        Task<FrameColourConfigDto> UpdateFrameColourAsync(int frameColourId, UpdateFrameColourDto dto);
+        Task<bool> DeleteFrameColourAsync(int frameColourId);
 
         // ── Radio Controlled Motors ───────────────────────────────────────────
         Task<IEnumerable<RadioControlledMotorDto>> GetAllRadioControlledMotorsAsync();
