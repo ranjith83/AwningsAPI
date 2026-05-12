@@ -167,6 +167,22 @@ namespace AwningsAPI.Database
                 .Property(p => p.Price)
                 .HasPrecision(18, 4);
 
+            modelBuilder.Entity<NonStandardRALColours>()
+                .Property(p => p.MultiplyBy)
+                .HasPrecision(18, 4);
+
+            modelBuilder.Entity<RadioControlledMotors>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 4);
+
+            modelBuilder.Entity<FaceFixtureSurcharge>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 4);
+
+            modelBuilder.Entity<FixingPoints>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 4);
+
             modelBuilder.Entity<WallSealingProfile>()
                 .Property(p => p.Price)
                 .HasPrecision(18, 4);
