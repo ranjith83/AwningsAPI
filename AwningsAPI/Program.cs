@@ -142,16 +142,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Migrations run automatically on startup.
-// To switch back to CI-managed migrations:
-//   1. Revert this block to: var pending = db.Database.GetPendingMigrations().ToList(); if (pending.Count != 0) throw ...
-//   2. Re-enable the migrate job in .github/workflows/ci.yml
-//   3. Change deploy.needs back to 'migrate'
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-}
 
 app.UseCors("AllowAngularDev");
 app.UseExceptionHandler();
