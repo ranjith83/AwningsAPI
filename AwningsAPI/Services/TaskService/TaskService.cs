@@ -504,6 +504,12 @@ namespace AwningsAPI.Services.Tasks
             if (!filterDto.IsAdmin && filterDto.CurrentUserId.HasValue)
                 query = query.Where(t => t.AssignedToUserId == filterDto.CurrentUserId.Value);
 
+            // Source type filter (drives tab selection: Email | SiteVisit | Manual)
+            var sourceTypes = filterDto.SourceTypes ?? (
+                filterDto.SourceType != null ? new List<string> { filterDto.SourceType } : null);
+            if (sourceTypes != null && sourceTypes.Count > 0)
+                query = query.Where(t => sourceTypes.Contains(t.SourceType));
+
             // Apply filters
             if (filterDto.Statuses != null && filterDto.Statuses.Count > 0)
                 query = query.Where(t => filterDto.Statuses.Contains(t.Status));
