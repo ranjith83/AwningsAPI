@@ -157,9 +157,10 @@ namespace AwningsAPI.Services.OutlookService
                     .CalendarView
                     .GetAsync((requestConfiguration) =>
                     {
-                        requestConfiguration.QueryParameters.StartDateTime = startDate.ToString("yyyy-MM-ddTHH:mm:ss");
-                        requestConfiguration.QueryParameters.EndDateTime = endOfDay.ToString("yyyy-MM-ddTHH:mm:ss");
+                        requestConfiguration.QueryParameters.StartDateTime =  startDate.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss");
+                        requestConfiguration.QueryParameters.EndDateTime =  endOfDay.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss");
                         requestConfiguration.QueryParameters.Top = 500;
+                        requestConfiguration.Headers.Add("Prefer", "outlook.timezone=\"Europe/Dublin\"");
                         // NOTE: Do NOT add $orderby on CalendarView — Graph rejects it and the
                         // SDK then fails to deserialize the error response, producing a 500.
                         // Events are returned in chronological order by default; sort in-memory.

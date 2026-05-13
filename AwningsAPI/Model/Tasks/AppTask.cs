@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace AwningsAPI.Model.Tasks
 {
@@ -221,6 +222,7 @@ namespace AwningsAPI.Model.Tasks
         public bool IsEdited { get; set; } = false;
 
         [ForeignKey("TaskId")]
+        [JsonIgnore]
         public virtual AppTask Task { get; set; }
     }
 
@@ -258,6 +260,7 @@ namespace AwningsAPI.Model.Tasks
         public string? UploadedBy { get; set; }
 
         [ForeignKey("TaskId")]
+        [JsonIgnore]
         public virtual AppTask Task { get; set; }
     }
 
@@ -300,6 +303,7 @@ namespace AwningsAPI.Model.Tasks
         public string? CreatedBy { get; set; }
 
         [ForeignKey("TaskId")]
+        [JsonIgnore]
         public virtual AppTask Task { get; set; }
     }
 
