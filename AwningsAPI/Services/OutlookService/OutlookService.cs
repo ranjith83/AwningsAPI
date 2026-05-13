@@ -147,105 +147,90 @@ namespace AwningsAPI.Services.OutlookService
             {
                 var organizerEmail = _configuration["AzureAd:OrganizerEmail"];
 
-                // Ensure endDate covers the full last day (23:59:59) so events
-                // created earlier that day are not excluded by the range boundary.
                 var endOfDay = endDate.TimeOfDay == TimeSpan.Zero
-                    ? endDate.AddDays(1).AddSeconds(-1)   // midnight → end of day
-                    : endDate;                             // already has time component
-                var requestInfo = _graphClient.Users[organizerEmail]
+                    ? endDate.AddDays(1).AddSeconds(-1)
+                    : endDate;
+
+                var allEvents = new List<Microsoft.Graph.Models.Event>();
+
+                var response = await _graphClient.Users[organizerEmail]
                     .CalendarView
-                    .ToGetRequestInformation();
+                    .GetAsync(config =>
+                    {
+                        config.QueryParameters.StartDateTime = startDate.ToUniversalTime().ToString("o");
+                        config.QueryParameters.EndDateTime = endOfDay.ToUniversalTime().ToString("o");
+                        config.QueryParameters.Top = 1000;
 
-                requestInfo.QueryParameters.Add(
-                    "startDateTime",
-                    startDate.ToUniversalTime().ToString("o")
-                );
+                        config.Headers.Add("Prefer", "outlook.timezone=\"Europe/Dublin\"");
+                    });
 
-                requestInfo.QueryParameters.Add(
-                    "endDateTime",
-                    endOfDay.ToUniversalTime().ToString("o")
-                );
+                while (response?.Value != null)
+                {
+                    allEvents.AddRange(response.Value);
 
-                requestInfo.QueryParameters.Add(
-                    "top",
-                    "500"
-                );
+                    if (string.IsNullOrEmpty(response.OdataNextLink))
+                        break;
 
-                requestInfo.Headers.Add(
-                    "Prefer",
-                    "outlook.timezone=\"Europe/Dublin\""
-                );
+                    response = await _graphClient.RequestAdapter.SendAsync(
+                        new Microsoft.Kiota.Abstractions.RequestInformation
+                        {
+                            HttpMethod = Microsoft.Kiota.Abstractions.Method.GET,
+                            UrlTemplate = response.OdataNextLink
+                        },
+                        Microsoft.Graph.Models.EventCollectionResponse.CreateFromDiscriminatorValue
+                    );
+                }
 
-                _logger.LogInformation("GRAPH URI: {Uri}", requestInfo.URI);
-
-                var response = await _graphClient.RequestAdapter.SendAsync(
-                    requestInfo,
-                    Microsoft.Graph.Models.EventCollectionResponse.CreateFromDiscriminatorValue
-                );
-
-                var events = (response?.Value ?? new List<Microsoft.Graph.Models.Event>())
+                var result = allEvents
                     .OrderBy(e => e.Start?.DateTime)
+                    .Select(e => new CalendarEventResponseDto
+                    {
+                        Id = e.Id,
+                        Subject = e.Subject,
+                        IsAllDay = e.IsAllDay ?? false,
+
+                        Body = e.Body == null ? null : new EventBody
+                        {
+                            ContentType = e.Body.ContentType?.ToString() ?? "Text",
+                            Content = e.Body.Content
+                        },
+
+                        Start = e.Start == null ? null : new EventDateTime
+                        {
+                            DateTime = e.Start.DateTime,
+                            TimeZone = e.Start.TimeZone
+                        },
+
+                        End = e.End == null ? null : new EventDateTime
+                        {
+                            DateTime = e.End.DateTime,
+                            TimeZone = e.End.TimeZone
+                        },
+
+                        Location = e.Location?.DisplayName == null ? null : new EventLocation
+                        {
+                            DisplayName = e.Location.DisplayName
+                        },
+
+                        Attendees = e.Attendees?.Select(a => new EventAttendee
+                        {
+                            EmailAddress = new Dto.Outlook.EmailAddress
+                            {
+                                Address = a.EmailAddress?.Address,
+                                Name = a.EmailAddress?.Name
+                            },
+                            Type = a.Type?.ToString() ?? "required"
+                        }).ToList() ?? new()
+                    })
                     .ToList();
 
-                var result = new List<CalendarEventResponseDto>();
-                foreach (var e in events)
-                {
-                    try
-                    {
-                        result.Add(new CalendarEventResponseDto
-                        {
-                            Id = e.Id,
-                            Subject = e.Subject,
-                            IsAllDay = e.IsAllDay ?? false,
-                            Body = e.Body == null ? null : new EventBody
-                            {
-                                ContentType = e.Body.ContentType?.ToString() ?? "Text",
-                                Content = e.Body.Content
-                            },
-                            Start = e.Start == null ? null : new EventDateTime
-                            {
-                                DateTime = e.Start.DateTime,
-                                TimeZone = e.Start.TimeZone
-                            },
-                            End = e.End == null ? null : new EventDateTime
-                            {
-                                DateTime = e.End.DateTime,
-                                TimeZone = e.End.TimeZone
-                            },
-                            Location = e.Location?.DisplayName == null ? null : new EventLocation
-                            {
-                                DisplayName = e.Location.DisplayName
-                            },
-                            Attendees = e.Attendees?.Select(a => new EventAttendee
-                            {
-                                EmailAddress = new Dto.Outlook.EmailAddress
-                                {
-                                    Address = a.EmailAddress?.Address,
-                                    Name = a.EmailAddress?.Name
-                                },
-                                Type = a.Type?.ToString() ?? "required"
-                            }).ToList() ?? new List<EventAttendee>()
-                        });
-                    }
-                    catch (Exception mapEx)
-                    {
-                        _logger.LogWarning(mapEx, "Skipping calendar event {EventId} due to mapping error", e.Id);
-                    }
-                }
+                _logger.LogInformation("GRAPH returned {Count} total events", result.Count);
+
                 return result;
             }
             catch (Microsoft.Kiota.Abstractions.ApiException apiEx)
             {
                 _logger.LogError("GRAPH STATUS: {Status}", apiEx.ResponseStatusCode);
-
-                if (apiEx.ResponseHeaders != null)
-                {
-                    foreach (var h in apiEx.ResponseHeaders)
-                    {
-                        _logger.LogError("GRAPH HEADER {Key}: {Value}", h.Key, string.Join(",", h.Value));
-                    }
-                }
-
                 throw;
             }
             catch (Exception ex)
