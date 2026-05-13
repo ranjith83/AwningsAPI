@@ -149,9 +149,9 @@ namespace AwningsAPI.Services.OutlookService
 
                 // Ensure endDate covers the full last day (23:59:59) so events
                 // created earlier that day are not excluded by the range boundary.
-                var endOfDay = endDate.Date == endDate.Date && endDate.TimeOfDay == TimeSpan.Zero
-                    ? endDate.Date.AddDays(1).AddSeconds(-1)   // midnight → end of day
-                    : endDate;                                   // already has time component
+                var endOfDay = endDate.TimeOfDay == TimeSpan.Zero
+                    ? endDate.AddDays(1).AddSeconds(-1)   // midnight → end of day
+                    : endDate;                             // already has time component
 
                 var response = await _graphClient.Users[organizerEmail]
                     .CalendarView
@@ -160,16 +160,16 @@ namespace AwningsAPI.Services.OutlookService
                         requestConfiguration.QueryParameters.StartDateTime = startDate.ToString("yyyy-MM-ddTHH:mm:ss");
                         requestConfiguration.QueryParameters.EndDateTime = endOfDay.ToString("yyyy-MM-ddTHH:mm:ss");
                         requestConfiguration.QueryParameters.Top = 500;
-                        requestConfiguration.QueryParameters.Orderby = new[] { "start/dateTime" };
-                        // NOTE: Do NOT add Prefer/outlook.timezone via requestConfiguration.Headers
-                        // on a CalendarView request — the Kiota SDK sends it as a request-level
-                        // header that Graph rejects with HTTP 500. The frontend parses UTC
-                        // dateTime strings returned by Graph and converts them locally.
-                        // Also avoid $select on CalendarView — "start"/"end" are complex types
-                        // that Graph rejects on this endpoint.
+                        // NOTE: Do NOT add $orderby on CalendarView — Graph rejects it and the
+                        // SDK then fails to deserialize the error response, producing a 500.
+                        // Events are returned in chronological order by default; sort in-memory.
+                        // Also avoid Prefer/outlook.timezone headers and $select on CalendarView
+                        // — Graph rejects both on this endpoint.
                     });
 
-                var events = response?.Value ?? new List<Microsoft.Graph.Models.Event>();
+                var events = (response?.Value ?? new List<Microsoft.Graph.Models.Event>())
+                    .OrderBy(e => e.Start?.DateTime)
+                    .ToList();
 
                 return events.Select(e => new CalendarEventResponseDto
                 {
