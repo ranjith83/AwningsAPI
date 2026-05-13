@@ -69,50 +69,50 @@ jobs:
       - name: Install EF Core tools
         run: dotnet tool install --global dotnet-ef
 
-      - name: Open SQL firewall for runner
-        run: |
-          RUNNER_IP=$(curl -s https://api.ipify.org)
-          az sql server firewall-rule create \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --server ${{ secrets.AZURE_SQL_SERVER }} \
-            --name github-runner \
-            --start-ip-address $RUNNER_IP \
-            --end-ip-address $RUNNER_IP
+      #- name: Open SQL firewall for runner
+      #  run: |
+      #    RUNNER_IP=$(curl -s https://api.ipify.org)
+      #    az sql server firewall-rule create \
+      #      --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+      #      --server ${{ secrets.AZURE_SQL_SERVER }} \
+      #      --name github-runner \
+      #      --start-ip-address $RUNNER_IP \
+      #      --end-ip-address $RUNNER_IP
 
-      - name: Record current migration
-        id: pre-migrate
-        run: |
-          LAST=$(dotnet ef migrations list \
-            --project AwningsAPI/AwningsAPI.csproj \
-            --no-build \
-            --connection "${{ secrets.SQL_CONNECTION_STRING }}" \
-            2>/dev/null | grep -v "(Pending)" | tail -1 | awk '{print $1}')
-          echo "last_migration=${LAST:-0}" >> $GITHUB_OUTPUT
+      # - name: Record current migration
+      #   id: pre-migrate
+      #   run: |
+      #     LAST=$(dotnet ef migrations list \
+      #       --project AwningsAPI/AwningsAPI.csproj \
+      #       --no-build \
+      #       --connection "${{ secrets.SQL_CONNECTION_STRING }}" \
+      #       2>/dev/null | grep -v "(Pending)" | tail -1 | awk '{print $1}')
+      #     echo "last_migration=${LAST:-0}" >> $GITHUB_OUTPUT
 
-      - name: Run database migrations
-        id: migrate
-        run: |
-          dotnet ef database update \
-            --project AwningsAPI/AwningsAPI.csproj \
-            --no-build \
-            --connection "${{ secrets.SQL_CONNECTION_STRING }}"
+      # - name: Run database migrations
+      #   id: migrate
+      #   run: |
+      #     dotnet ef database update \
+      #       --project AwningsAPI/AwningsAPI.csproj \
+      #       --no-build \
+      #       --connection "${{ secrets.SQL_CONNECTION_STRING }}"
 
-      - name: Rollback migration on failure
-        if: failure() && steps.migrate.outcome == 'failure'
-        run: |
-          dotnet ef database update ${{ steps.pre-migrate.outputs.last_migration }} \
-            --project AwningsAPI/AwningsAPI.csproj \
-            --no-build \
-            --connection "${{ secrets.SQL_CONNECTION_STRING }}"
+      # - name: Rollback migration on failure
+      #   if: failure() && steps.migrate.outcome == 'failure'
+      #   run: |
+      #     dotnet ef database update ${{ steps.pre-migrate.outputs.last_migration }} \
+      #       --project AwningsAPI/AwningsAPI.csproj \
+      #       --no-build \
+      #       --connection "${{ secrets.SQL_CONNECTION_STRING }}"
 
-      - name: Remove SQL firewall rule
-        if: always()
-        run: |
-          az sql server firewall-rule delete \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --server ${{ secrets.AZURE_SQL_SERVER }} \
-            --name github-runner \
-            --yes
+      # - name: Remove SQL firewall rule
+      #   if: always()
+      #   run: |
+      #     az sql server firewall-rule delete \
+      #       --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+      #       --server ${{ secrets.AZURE_SQL_SERVER }} \
+      #       --name github-runner \
+      #       --yes
 
       - name: Deploy image to Dev Container App
         uses: azure/container-apps-deploy-action@v2
