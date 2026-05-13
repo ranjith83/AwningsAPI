@@ -152,21 +152,26 @@ namespace AwningsAPI.Services.OutlookService
                 var endOfDay = endDate.TimeOfDay == TimeSpan.Zero
                     ? endDate.AddDays(1).AddSeconds(-1)   // midnight → end of day
                     : endDate;                             // already has time component
-
-                var response = await _graphClient.Users[organizerEmail]
+                var requestInfo = _graphClient.Users[organizerEmail]
                     .CalendarView
-                    .GetAsync((requestConfiguration) =>
-                    {
-                        requestConfiguration.QueryParameters.StartDateTime =  startDate.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss");
-                        requestConfiguration.QueryParameters.EndDateTime =  endOfDay.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss");
-                        requestConfiguration.QueryParameters.Top = 500;
-                        requestConfiguration.Headers.Add("Prefer", "outlook.timezone=\"Europe/Dublin\"");
-                        // NOTE: Do NOT add $orderby on CalendarView — Graph rejects it and the
-                        // SDK then fails to deserialize the error response, producing a 500.
-                        // Events are returned in chronological order by default; sort in-memory.
-                        // Also avoid Prefer/outlook.timezone headers and $select on CalendarView
-                        // — Graph rejects both on this endpoint.
-                    });
+                    .ToGetRequestInformation();
+
+                requestInfo.URI = new Uri(
+                    $"{_graphClient.RequestAdapter.BaseUrl}/users/{organizerEmail}/calendarView" +
+                    $"?startDateTime={Uri.EscapeDataString(startDate.ToUniversalTime().ToString("o"))}" +
+                    $"&endDateTime={Uri.EscapeDataString(endOfDay.ToUniversalTime().ToString("o"))}" +
+                    $"&$top=500"
+                );
+
+                requestInfo.Headers.Add(
+                    "Prefer",
+                    "outlook.timezone=\"Europe/Dublin\""
+                );
+
+                var response = await _graphClient.RequestAdapter.SendAsync(
+                    requestInfo,
+                    Microsoft.Graph.Models.EventCollectionResponse.CreateFromDiscriminatorValue
+                );
 
                 var events = (response?.Value ?? new List<Microsoft.Graph.Models.Event>())
                     .OrderBy(e => e.Start?.DateTime)
