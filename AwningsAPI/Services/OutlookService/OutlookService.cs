@@ -153,15 +153,23 @@ namespace AwningsAPI.Services.OutlookService
                     ? endDate.AddDays(1).AddSeconds(-1)   // midnight → end of day
                     : endDate;                             // already has time component
                 var requestInfo = _graphClient.Users[organizerEmail]
-                     .CalendarView
-                     .ToGetRequestInformation();
+                    .CalendarView
+                    .ToGetRequestInformation();
 
-                requestInfo.AddQueryParameters(new Dictionary<string, object>
-                    {
-                        { "startDateTime", startDate.ToUniversalTime().ToString("o") },
-                        { "endDateTime", endOfDay.ToUniversalTime().ToString("o") },
-                        { "top", 500 }
-                    });
+                requestInfo.QueryParameters.Add(
+                    "startDateTime",
+                    startDate.ToUniversalTime().ToString("o")
+                );
+
+                requestInfo.QueryParameters.Add(
+                    "endDateTime",
+                    endOfDay.ToUniversalTime().ToString("o")
+                );
+
+                requestInfo.QueryParameters.Add(
+                    "top",
+                    "500"
+                );
 
                 requestInfo.Headers.Add(
                     "Prefer",
