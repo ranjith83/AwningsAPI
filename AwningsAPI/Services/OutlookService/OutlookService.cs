@@ -153,19 +153,22 @@ namespace AwningsAPI.Services.OutlookService
                     ? endDate.AddDays(1).AddSeconds(-1)   // midnight → end of day
                     : endDate;                             // already has time component
                 var requestInfo = _graphClient.Users[organizerEmail]
-                             .CalendarView
-                             .ToGetRequestInformation();
+                     .CalendarView
+                     .ToGetRequestInformation();
 
-                requestInfo.QueryParameters.Add("startDateTime", startDate.ToUniversalTime().ToString("o"));
-
-                requestInfo.QueryParameters.Add("endDateTime", endOfDay.ToUniversalTime().ToString("o"));
-
-                requestInfo.QueryParameters.Add("%24top", "500");
+                requestInfo.AddQueryParameters(new Dictionary<string, object>
+                    {
+                        { "startDateTime", startDate.ToUniversalTime().ToString("o") },
+                        { "endDateTime", endOfDay.ToUniversalTime().ToString("o") },
+                        { "top", 500 }
+                    });
 
                 requestInfo.Headers.Add(
                     "Prefer",
                     "outlook.timezone=\"Europe/Dublin\""
                 );
+
+                _logger.LogInformation("GRAPH URI: {Uri}", requestInfo.URI);
 
                 var response = await _graphClient.RequestAdapter.SendAsync(
                     requestInfo,
@@ -222,6 +225,20 @@ namespace AwningsAPI.Services.OutlookService
                     }
                 }
                 return result;
+            }
+            catch (Microsoft.Kiota.Abstractions.ApiException apiEx)
+            {
+                _logger.LogError("GRAPH STATUS: {Status}", apiEx.ResponseStatusCode);
+
+                if (apiEx.ResponseHeaders != null)
+                {
+                    foreach (var h in apiEx.ResponseHeaders)
+                    {
+                        _logger.LogError("GRAPH HEADER {Key}: {Value}", h.Key, string.Join(",", h.Value));
+                    }
+                }
+
+                throw;
             }
             catch (Exception ex)
             {
