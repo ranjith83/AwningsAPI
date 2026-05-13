@@ -171,40 +171,52 @@ namespace AwningsAPI.Services.OutlookService
                     .OrderBy(e => e.Start?.DateTime)
                     .ToList();
 
-                return events.Select(e => new CalendarEventResponseDto
+                var result = new List<CalendarEventResponseDto>();
+                foreach (var e in events)
                 {
-                    Id = e.Id,
-                    Subject = e.Subject,
-                    IsAllDay = e.IsAllDay ?? false,
-                    Body = e.Body == null ? null : new EventBody
+                    try
                     {
-                        ContentType = e.Body.ContentType?.ToString() ?? "Text",
-                        Content = e.Body.Content
-                    },
-                    Start = e.Start == null ? null : new EventDateTime
-                    {
-                        DateTime = e.Start.DateTime,
-                        TimeZone = e.Start.TimeZone
-                    },
-                    End = e.End == null ? null : new EventDateTime
-                    {
-                        DateTime = e.End.DateTime,
-                        TimeZone = e.End.TimeZone
-                    },
-                    Location = e.Location?.DisplayName == null ? null : new EventLocation
-                    {
-                        DisplayName = e.Location.DisplayName
-                    },
-                    Attendees = e.Attendees?.Select(a => new EventAttendee
-                    {
-                        EmailAddress = new Dto.Outlook.EmailAddress
+                        result.Add(new CalendarEventResponseDto
                         {
-                            Address = a.EmailAddress?.Address,
-                            Name = a.EmailAddress?.Name
-                        },
-                        Type = a.Type?.ToString() ?? "required"
-                    }).ToList() ?? new List<EventAttendee>()
-                }).ToList();
+                            Id = e.Id,
+                            Subject = e.Subject,
+                            IsAllDay = e.IsAllDay ?? false,
+                            Body = e.Body == null ? null : new EventBody
+                            {
+                                ContentType = e.Body.ContentType?.ToString() ?? "Text",
+                                Content = e.Body.Content
+                            },
+                            Start = e.Start == null ? null : new EventDateTime
+                            {
+                                DateTime = e.Start.DateTime,
+                                TimeZone = e.Start.TimeZone
+                            },
+                            End = e.End == null ? null : new EventDateTime
+                            {
+                                DateTime = e.End.DateTime,
+                                TimeZone = e.End.TimeZone
+                            },
+                            Location = e.Location?.DisplayName == null ? null : new EventLocation
+                            {
+                                DisplayName = e.Location.DisplayName
+                            },
+                            Attendees = e.Attendees?.Select(a => new EventAttendee
+                            {
+                                EmailAddress = new Dto.Outlook.EmailAddress
+                                {
+                                    Address = a.EmailAddress?.Address,
+                                    Name = a.EmailAddress?.Name
+                                },
+                                Type = a.Type?.ToString() ?? "required"
+                            }).ToList() ?? new List<EventAttendee>()
+                        });
+                    }
+                    catch (Exception mapEx)
+                    {
+                        _logger.LogWarning(mapEx, "Skipping calendar event {EventId} due to mapping error", e.Id);
+                    }
+                }
+                return result;
             }
             catch (Exception ex)
             {
