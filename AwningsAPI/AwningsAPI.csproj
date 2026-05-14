@@ -44,4 +44,10 @@
     <Folder Include="Services\FollowUpService\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Brochures\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

@@ -32,6 +32,19 @@ namespace AwningsAPI.Interfaces
             string? replyToEmailId = null,
             System.Collections.Generic.IEnumerable<(string FileName, string Base64Content, string ContentType)>? attachments = null);
 
+        /// <summary>
+        /// Resolves the mailbox, optionally looks up brochures by product ID, and sends
+        /// a fresh outbound email. Handles test/prod email redirection from configuration.
+        /// </summary>
+        Task SendDirectEmailAsync(
+            string toEmail,
+            string? toName,
+            string subject,
+            string body,
+            bool attachBrochure,
+            List<int>? productIds,
+            IEnumerable<(string FileName, string Base64Content, string ContentType)>? attachments = null);
+
         Task MoveEmailToFolderAsync(string mailboxEmail, string emailId, string folderName);
     }
 }

@@ -1026,43 +1026,27 @@ namespace AwningsAPI.Controllers
         [HttpPost("send-direct")]
         public async Task<IActionResult> SendDirectEmail([FromBody] SendDirectEmailRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.ToEmail))
+                return BadRequest(new { error = "ToEmail is required" });
+            if (string.IsNullOrWhiteSpace(request.Subject))
+                return BadRequest(new { error = "Subject is required" });
+
             try
             {
-                if (string.IsNullOrWhiteSpace(request.ToEmail))
-                    return BadRequest(new { error = "ToEmail is required" });
-
-                if (string.IsNullOrWhiteSpace(request.Subject))
-                    return BadRequest(new { error = "Subject is required" });
-
-                var isProd = bool.TryParse(_configuration["EmailConfiguration:IsProd"], out var parsedIsProd) && parsedIsProd;
-                
-                if(!isProd)
-                    request.ToEmail = _configuration["EmailConfiguration:TestMailAddress"];
-
-                var mailboxEmail = _configuration["AzureAd:MonitoredMailbox"]
-                    ?? _configuration["AzureAd:OrganizerEmail"]
-                    ?? throw new InvalidOperationException("Monitored mailbox not configured");
-
-                // Map attachment DTOs to the tuple list SendEmailAsync expects
                 var attachments = request.Attachments?
                     .Where(a => !string.IsNullOrWhiteSpace(a.Base64Content))
-                    .Select(a => (a.FileName, a.Base64Content, a.ContentType))
-                    .ToList();
+                    .Select(a => (a.FileName, a.Base64Content, a.ContentType));
 
-                await _emailReaderService.SendEmailAsync(
-                    mailboxEmail: mailboxEmail,
-                    toEmail: request.ToEmail,
-                    toName: request.ToName ?? request.ToEmail,
-                    subject: request.Subject,
-                    bodyHtml: WrapPlainTextAsHtml(request.Body),
-                    replyToEmailId: null,   // always a fresh email — no thread
-                    attachments: attachments?.Count > 0 ? attachments : null
-                );
+                await _emailReaderService.SendDirectEmailAsync(
+                    toEmail:        request.ToEmail,
+                    toName:         request.ToName,
+                    subject:        request.Subject,
+                    body:           request.Body,
+                    attachBrochure: request.AttachBrochure,
+                    productIds:     request.ProductIds,
+                    attachments:    attachments);
 
-                _logger.LogInformation(
-                    "Direct email sent to {ToEmail} by {User} ({AttachCount} attachments, no task context)",
-                    request.ToEmail, GetCurrentUserName(), attachments?.Count ?? 0);
-
+                _logger.LogInformation("Direct email sent to {ToEmail} by {User}", request.ToEmail, GetCurrentUserName());
                 return Ok(new { message = "Email sent successfully" });
             }
             catch (Exception ex)
@@ -1140,6 +1124,20 @@ namespace AwningsAPI.Controllers
 
             /// <summary>Optional file attachments encoded as base64.</summary>
             public List<EmailAttachmentDto>? Attachments { get; set; }
+
+            /// <summary>
+            /// When true, brochure PDFs matching the supplied ProductIds are auto-attached
+            /// from the Brochures folder (files named {productId}_{name}.pdf).
+            /// Callers that never attach brochures (e.g. initial enquiry) should pass false
+            /// so the intent is explicit and future changes stay safe.
+            /// </summary>
+            public bool AttachBrochure { get; set; } = false;
+
+            /// <summary>
+            /// Product IDs whose brochures should be attached. Only used when AttachBrochure is true.
+            /// Files must be named {productId}_{name}.pdf, e.g. "1_Markilux MX-1 compact.pdf".
+            /// </summary>
+            public List<int>? ProductIds { get; set; }
         }
 
         public class SendTaskEmailRequest

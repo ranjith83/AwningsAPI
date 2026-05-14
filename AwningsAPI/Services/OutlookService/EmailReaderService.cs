@@ -18,6 +18,7 @@ namespace AwningsAPI.Services.Email
         private readonly ILogger<EmailReaderService> _logger;
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _env;
 
         /// <summary>
         /// UTC timestamp captured when the service is first constructed.
@@ -46,12 +47,14 @@ namespace AwningsAPI.Services.Email
             GraphServiceClient graphClient,
             ILogger<EmailReaderService> logger,
             AppDbContext context,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IWebHostEnvironment env)
         {
             _graphClient = graphClient;
             _logger = logger;
             _context = context;
             _configuration = configuration;
+            _env = env;
         }
 
         public async Task<List<IncomingEmail>> GetUnreadEmailsAsync(string mailboxEmail, int maxResults = 0)
@@ -383,6 +386,77 @@ namespace AwningsAPI.Services.Email
                 _logger.LogError(ex, $"Error sending email to {toEmail}");
                 throw;
             }
+        }
+
+        public async Task SendDirectEmailAsync(
+            string toEmail,
+            string? toName,
+            string subject,
+            string body,
+            bool attachBrochure,
+            List<int>? productIds,
+            IEnumerable<(string FileName, string Base64Content, string ContentType)>? attachments = null)
+        {
+            var isProd = bool.TryParse(_configuration["EmailConfiguration:IsProd"], out var parsedIsProd) && parsedIsProd;
+            var effectiveToEmail = isProd ? toEmail : (_configuration["EmailConfiguration:TestMailAddress"] ?? toEmail);
+
+            var mailboxEmail = _configuration["AzureAd:MonitoredMailbox"]
+                ?? _configuration["AzureAd:OrganizerEmail"]
+                ?? throw new InvalidOperationException("Monitored mailbox not configured");
+
+            var allAttachments = attachments?.ToList() ?? new List<(string, string, string)>();
+
+            if (attachBrochure && productIds?.Count > 0)
+            {
+                var brochuresPath = Path.Combine(_env.ContentRootPath, "Brochures");
+                if (Directory.Exists(brochuresPath))
+                {
+                    foreach (var productId in productIds)
+                    {
+                        var match = Directory.GetFiles(brochuresPath)
+                            .FirstOrDefault(f =>
+                            {
+                                var name = Path.GetFileName(f);
+                                var underscoreIdx = name.IndexOf('_');
+                                return underscoreIdx > 0
+                                    && int.TryParse(name[..underscoreIdx], out var id)
+                                    && id == productId;
+                            });
+
+                        if (match != null)
+                        {
+                            var bytes = await File.ReadAllBytesAsync(match);
+                            allAttachments.Add((Path.GetFileName(match), Convert.ToBase64String(bytes), "application/pdf"));
+                            _logger.LogInformation("Attaching brochure {File} for product {ProductId}", Path.GetFileName(match), productId);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("No brochure found for product ID {ProductId}", productId);
+                        }
+                    }
+                }
+            }
+
+            await SendEmailAsync(
+                mailboxEmail: mailboxEmail,
+                toEmail: effectiveToEmail,
+                toName: toName ?? effectiveToEmail,
+                subject: subject,
+                bodyHtml: WrapPlainTextAsHtml(body),
+                replyToEmailId: null,
+                attachments: allAttachments.Count > 0 ? allAttachments : null);
+
+            _logger.LogInformation("Direct email sent to {ToEmail} ({AttachCount} attachments)", effectiveToEmail, allAttachments.Count);
+        }
+
+        private static string WrapPlainTextAsHtml(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body)) return "<p></p>";
+            if (body.TrimStart().StartsWith("<", StringComparison.Ordinal)) return body;
+            var escaped = System.Net.WebUtility.HtmlEncode(body)
+                                               .Replace("\r\n", "<br>")
+                                               .Replace("\n", "<br>");
+            return $"<div style=\"font-family:Aptos,Calibri,Arial,sans-serif;font-size:12pt;\">{escaped}</div>";
         }
 
         public async Task MoveEmailToFolderAsync(string mailboxEmail, string emailId, string folderName)
