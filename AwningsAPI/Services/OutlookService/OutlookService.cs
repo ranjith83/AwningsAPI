@@ -5,6 +5,7 @@ using AwningsAPI.Model.Showroom;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Azure.Identity;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,15 +17,18 @@ namespace AwningsAPI.Services.OutlookService
         private readonly IConfiguration _configuration;
         private readonly GraphServiceClient _graphClient;
         private readonly ILogger<OutlookService> _logger;
+        private readonly IMemoryCache _cache;
 
         public OutlookService(
             AppDbContext context,
             IConfiguration configuration,
-            ILogger<OutlookService> logger)
+            ILogger<OutlookService> logger,
+            IMemoryCache cache)
         {
             _context = context;
             _configuration = configuration;
             _logger = logger;
+            _cache = cache;
 
             var tenantId = _configuration["AzureAd:TenantId"];
             var clientId = _configuration["AzureAd:ClientId"];
@@ -143,6 +147,9 @@ namespace AwningsAPI.Services.OutlookService
 
         public async Task<List<CalendarEventResponseDto>> GetCalendarEventsAsync(DateTime startDate, DateTime endDate)
         {
+            var key = $"cal:{startDate:yyyyMMdd}:{endDate:yyyyMMdd}";
+            if (_cache.TryGetValue(key, out List<CalendarEventResponseDto> cachedEvents)) return cachedEvents!;
+
             try
             {
                 var organizerEmail = _configuration["AzureAd:OrganizerEmail"];
@@ -225,6 +232,12 @@ namespace AwningsAPI.Services.OutlookService
                     .ToList();
 
                 _logger.LogInformation("GRAPH returned {Count} total events", result.Count);
+
+                _cache.Set(key, result, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                    Size = 1
+                });
 
                 return result;
             }

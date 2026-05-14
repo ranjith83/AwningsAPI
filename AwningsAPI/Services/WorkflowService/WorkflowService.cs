@@ -9,6 +9,7 @@ using AwningsAPI.Model.Suppliers;
 using AwningsAPI.Model.Tasks;
 using AwningsAPI.Model.Workflow;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace AwningsAPI.Services.WorkflowService
 {
@@ -16,11 +17,19 @@ namespace AwningsAPI.Services.WorkflowService
     {
         private readonly AppDbContext _context;
         private readonly FollowUpService _followUpService;
+        private readonly IMemoryCache _cache;
 
-        public WorkflowService(AppDbContext context, FollowUpService followUpService)
+        private static readonly MemoryCacheEntryOptions _cacheOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1),
+            Size = 1
+        };
+
+        public WorkflowService(AppDbContext context, FollowUpService followUpService, IMemoryCache cache)
         {
             _context = context;
             _followUpService = followUpService;
+            _cache = cache;
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -304,14 +313,32 @@ namespace AwningsAPI.Services.WorkflowService
         // PRODUCT / PRICING
         // ════════════════════════════════════════════════════════════════════
 
-        public async Task<List<int>> GetStandardWidthsForProductAsync(int productId) =>
-            await _context.Projections.Where(p => p.ProductId == productId).Select(p => p.Width_cm).Distinct().ToListAsync();
+        public async Task<List<int>> GetStandardWidthsForProductAsync(int productId)
+        {
+            var key = $"wf:widths:{productId}";
+            if (_cache.TryGetValue(key, out List<int> cached)) return cached!;
+            var result = await _context.Projections.Where(p => p.ProductId == productId).Select(p => p.Width_cm).Distinct().ToListAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
-        public async Task<List<int>> GetProjectionWidthsForProductAsync(int productId) =>
-            await _context.Projections.Where(p => p.ProductId == productId).Select(p => p.Projection_cm).Distinct().ToListAsync();
+        public async Task<List<int>> GetProjectionWidthsForProductAsync(int productId)
+        {
+            var key = $"wf:projwidths:{productId}";
+            if (_cache.TryGetValue(key, out List<int> cached)) return cached!;
+            var result = await _context.Projections.Where(p => p.ProductId == productId).Select(p => p.Projection_cm).Distinct().ToListAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
-        public async Task<decimal> GetProjectionPriceForProductAsync(int productId, int widthcm, int projectioncm) =>
-            await _context.Projections.Where(p => p.ProductId == productId && p.Width_cm == widthcm && p.Projection_cm == projectioncm).Select(p => p.Price).FirstOrDefaultAsync();
+        public async Task<decimal> GetProjectionPriceForProductAsync(int productId, int widthcm, int projectioncm)
+        {
+            var key = $"wf:projprice:{productId}:{widthcm}:{projectioncm}";
+            if (_cache.TryGetValue(key, out decimal cached)) return cached;
+            var result = await _context.Projections.Where(p => p.ProductId == productId && p.Width_cm == widthcm && p.Projection_cm == projectioncm).Select(p => p.Price).FirstOrDefaultAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
         /// <summary>
         /// Returns the ArmTypeId from the Projections row that matches the given
@@ -319,19 +346,29 @@ namespace AwningsAPI.Services.WorkflowService
         /// the user picks a width so the brackets dropdown can be filtered.
         /// Returns null if no matching projection row is found.
         /// </summary>
-        public async Task<int?> GetArmTypeForProjectionAsync(int productId, int widthcm, int projectioncm) =>
-            await _context.Projections
+        public async Task<int?> GetArmTypeForProjectionAsync(int productId, int widthcm, int projectioncm)
+        {
+            var key = $"wf:armtype:{productId}:{widthcm}:{projectioncm}";
+            if (_cache.TryGetValue(key, out int? cached)) return cached;
+            var result = await _context.Projections
                 .Where(p => p.ProductId == productId && p.Width_cm == widthcm && p.Projection_cm == projectioncm)
                 .Select(p => (int?)p.ArmTypeId)
                 .FirstOrDefaultAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
         public async Task<List<Brackets>> GeBracketsForProductAsync(int productId, int? armTypeId = null)
         {
+            var key = $"wf:brackets:{productId}:{armTypeId}";
+            if (_cache.TryGetValue(key, out List<Brackets> cached)) return cached!;
             var query = _context.Brackets.Where(b => b.ProductId == productId);
             query = armTypeId.HasValue
                 ? query.Where(b => b.ArmTypeId == null || b.ArmTypeId == 1 || b.ArmTypeId == armTypeId.Value)
                 : query.Where(b => b.ArmTypeId == null || b.ArmTypeId == 1);
-            return await query.ToListAsync();
+            var result = await query.ToListAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
         }
 
         public async Task<List<Arms>> GeArmsForProductAsync(int productId) =>
@@ -339,30 +376,70 @@ namespace AwningsAPI.Services.WorkflowService
 
         public async Task<List<Motors>> GeMotorsForProductAsync(int productId, int? armTypeId = null)
         {
+            var key = $"wf:motors:{productId}:{armTypeId}";
+            if (_cache.TryGetValue(key, out List<Motors> cached)) return cached!;
             var query = _context.Motors.Where(f => f.ProductId == productId);
             query = armTypeId.HasValue
                 ? query.Where(m => m.ArmTypeId == null || m.ArmTypeId == armTypeId.Value)
                 : query.Where(m => m.ArmTypeId == null);
-            return await query.ToListAsync();
+            var result = await query.ToListAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
         }
 
-        public async Task<List<Control>> GetControlsForProductAsync(int productId) =>
-            await _context.Controls.Where(c => c.ProductId == productId).ToListAsync();
+        public async Task<List<Control>> GetControlsForProductAsync(int productId)
+        {
+            var key = $"wf:controls:{productId}";
+            if (_cache.TryGetValue(key, out List<Control> cached)) return cached!;
+            var result = await _context.Controls.Where(c => c.ProductId == productId).ToListAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
-        public async Task<bool> HasControlsAsync(int productId) =>
-            await _context.Controls.AnyAsync(c => c.ProductId == productId);
+        public async Task<bool> HasControlsAsync(int productId)
+        {
+            var key = $"wf:hascontrols:{productId}";
+            if (_cache.TryGetValue(key, out bool cached)) return cached;
+            var result = await _context.Controls.AnyAsync(c => c.ProductId == productId);
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
-        public async Task<List<LightingCassette>> GetLightingForProductAsync(int productId) =>
-            await _context.LightingCassettes.Where(l => l.ProductId == productId).ToListAsync();
+        public async Task<List<LightingCassette>> GetLightingForProductAsync(int productId)
+        {
+            var key = $"wf:lighting:{productId}";
+            if (_cache.TryGetValue(key, out List<LightingCassette> cached)) return cached!;
+            var result = await _context.LightingCassettes.Where(l => l.ProductId == productId).ToListAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
-        public async Task<bool> HasLightingAsync(int productId) =>
-            await _context.LightingCassettes.AnyAsync(l => l.ProductId == productId);
+        public async Task<bool> HasLightingAsync(int productId)
+        {
+            var key = $"wf:haslighting:{productId}";
+            if (_cache.TryGetValue(key, out bool cached)) return cached;
+            var result = await _context.LightingCassettes.AnyAsync(l => l.ProductId == productId);
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
-        public async Task<decimal> GeValanceStylePriceForProductAsync(int productId, int widthcm) =>
-            await _context.valanceStyles.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price).FirstOrDefaultAsync();
+        public async Task<decimal> GeValanceStylePriceForProductAsync(int productId, int widthcm)
+        {
+            var key = $"wf:valanceprice:{productId}:{widthcm}";
+            if (_cache.TryGetValue(key, out decimal cached)) return cached;
+            var result = await _context.valanceStyles.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price).FirstOrDefaultAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
-        public async Task<decimal> GeNonStandardRALColourPriceForProductAsync(int productId, int widthcm) =>
-            await _context.nonStandardRALColours.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price * p.MultiplyBy).FirstOrDefaultAsync();
+        public async Task<decimal> GeNonStandardRALColourPriceForProductAsync(int productId, int widthcm)
+        {
+            var key = $"wf:ralprice:{productId}:{widthcm}";
+            if (_cache.TryGetValue(key, out decimal cached)) return cached;
+            var result = await _context.nonStandardRALColours.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price * p.MultiplyBy).FirstOrDefaultAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
         /// <summary>
         /// Returns all ShadePlus rows for the given product and width, together with a
@@ -373,6 +450,9 @@ namespace AwningsAPI.Services.WorkflowService
         /// </summary>
         public async Task<ShadePlusOptionsDto> GetShadePlusOptionsAsync(int productId, int widthcm)
         {
+            var key = $"wf:shadeplus:{productId}:{widthcm}";
+            if (_cache.TryGetValue(key, out ShadePlusOptionsDto cached)) return cached!;
+
             var rows = await _context.ShadePlus
                 .Where(p => p.ProductId == productId ) // && p.WidthCm == widthcm)
                 .OrderBy(p => p.ShadePlusId)
@@ -385,36 +465,77 @@ namespace AwningsAPI.Services.WorkflowService
                 })
                 .ToListAsync();
 
-            return new ShadePlusOptionsDto
+            var result = new ShadePlusOptionsDto
             {
                 HasMultiple = rows.Count > 1,
                 Options = rows
             };
+            _cache.Set(key, result, _cacheOptions);
+            return result;
         }
 
-        public async Task<decimal> GeWallSealingProfilerPriceForProductAsync(int productId, int widthcm) =>
-            await _context.wallSealingProfiles.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price).FirstOrDefaultAsync();
+        public async Task<decimal> GeWallSealingProfilerPriceForProductAsync(int productId, int widthcm)
+        {
+            var key = $"wf:wallsealprice:{productId}:{widthcm}";
+            if (_cache.TryGetValue(key, out decimal cached)) return cached;
+            var result = await _context.wallSealingProfiles.Where(p => p.ProductId == productId && p.WidthCm == widthcm).Select(p => p.Price).FirstOrDefaultAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
         // ── Addon availability checks ─────────────────────────────────────────
         // Used by the frontend to show/hide optional addon checkboxes.
 
-        public async Task<bool> HasNonStandardRALColoursAsync(int productId) =>
-            await _context.nonStandardRALColours.AnyAsync(p => p.ProductId == productId);
+        public async Task<bool> HasNonStandardRALColoursAsync(int productId)
+        {
+            var key = $"wf:hasral:{productId}";
+            if (_cache.TryGetValue(key, out bool cached)) return cached;
+            var result = await _context.nonStandardRALColours.AnyAsync(p => p.ProductId == productId);
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
-        public async Task<bool> HasShadePlusAsync(int productId) =>
-            await _context.ShadePlus.AnyAsync(p => p.ProductId == productId);
+        public async Task<bool> HasShadePlusAsync(int productId)
+        {
+            var key = $"wf:hasshadeplus:{productId}";
+            if (_cache.TryGetValue(key, out bool cached)) return cached;
+            var result = await _context.ShadePlus.AnyAsync(p => p.ProductId == productId);
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
-        public async Task<bool> HasValanceStylesAsync(int productId) =>
-            await _context.valanceStyles.AnyAsync(p => p.ProductId == productId);
+        public async Task<bool> HasValanceStylesAsync(int productId)
+        {
+            var key = $"wf:hasvalance:{productId}";
+            if (_cache.TryGetValue(key, out bool cached)) return cached;
+            var result = await _context.valanceStyles.AnyAsync(p => p.ProductId == productId);
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
-        public async Task<bool> HasWallSealingProfilesAsync(int productId) =>
-            await _context.wallSealingProfiles.AnyAsync(p => p.ProductId == productId);
+        public async Task<bool> HasWallSealingProfilesAsync(int productId)
+        {
+            var key = $"wf:haswallseal:{productId}";
+            if (_cache.TryGetValue(key, out bool cached)) return cached;
+            var result = await _context.wallSealingProfiles.AnyAsync(p => p.ProductId == productId);
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
-        public async Task<bool> HasFrameColourAsync(int productId) =>
-            await _context.FrameColours.AnyAsync(f => f.ProductId == productId);
+        public async Task<bool> HasFrameColourAsync(int productId)
+        {
+            var key = $"wf:hasframecolour:{productId}";
+            if (_cache.TryGetValue(key, out bool cached)) return cached;
+            var result = await _context.FrameColours.AnyAsync(f => f.ProductId == productId);
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
-        public async Task<List<FrameColourOptionDto>> GetFrameColourOptionsAsync(int productId) =>
-            await _context.FrameColours
+        public async Task<List<FrameColourOptionDto>> GetFrameColourOptionsAsync(int productId)
+        {
+            var key = $"wf:framecolouroptions:{productId}";
+            if (_cache.TryGetValue(key, out List<FrameColourOptionDto> cached)) return cached!;
+            var result = await _context.FrameColours
                 .Where(f => f.ProductId == productId)
                 .OrderBy(f => f.FrameColourOption.DisplayOrder)
                 .Select(f => new FrameColourOptionDto
@@ -424,22 +545,39 @@ namespace AwningsAPI.Services.WorkflowService
                     IsNonStandardRAL    = f.IsNonStandardRAL
                 })
                 .ToListAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
         public async Task<decimal> GetFrameColourPriceAsync(int productId, int frameColourOptionId, int widthCm)
         {
+            var key = $"wf:framecolourprice:{productId}:{frameColourOptionId}:{widthCm}";
+            if (_cache.TryGetValue(key, out decimal cached)) return cached;
             var isNonStandard = await _context.FrameColours
                 .Where(f => f.ProductId == productId && f.FrameColourOptionId == frameColourOptionId)
                 .Select(f => f.IsNonStandardRAL)
                 .FirstOrDefaultAsync();
-            if (!isNonStandard) return 0m;
-            return await _context.nonStandardRALColours
+            if (!isNonStandard)
+            {
+                _cache.Set(key, 0m, _cacheOptions);
+                return 0m;
+            }
+            var result = await _context.nonStandardRALColours
                 .Where(p => p.ProductId == productId && p.WidthCm == widthCm)
                 .Select(p => p.Price * p.MultiplyBy)
                 .FirstOrDefaultAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
         }
 
-        public async Task<List<Heaters>> GeHeatersForProductAsync(int productId) =>
-            await _context.Heaters.Where(f => f.ProductId == productId).ToListAsync();
+        public async Task<List<Heaters>> GeHeatersForProductAsync(int productId)
+        {
+            var key = $"wf:heaters:{productId}";
+            if (_cache.TryGetValue(key, out List<Heaters> cached)) return cached!;
+            var result = await _context.Heaters.Where(f => f.ProductId == productId).ToListAsync();
+            _cache.Set(key, result, _cacheOptions);
+            return result;
+        }
 
         // ════════════════════════════════════════════════════════════════════
         // USER SIGNATURES

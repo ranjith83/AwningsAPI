@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Dto.Workflow;
+using AwningsAPI.Services.WorkflowService;
 
 namespace AwiningsIreland_WebAPI.Controllers
 {
@@ -103,8 +104,7 @@ namespace AwiningsIreland_WebAPI.Controllers
             if (string.IsNullOrEmpty(statusDto.Status))
                 return BadRequest(new { message = "Status is required" });
 
-            var validStatuses = new[] { "Draft", "Sent", "Paid", "Overdue", "Cancelled", "Partially Paid" };
-            if (!validStatuses.Contains(statusDto.Status))
+            if (!InvoiceService.ValidStatuses.Contains(statusDto.Status))
                 return BadRequest(new { message = "Invalid status value" });
 
             var currentUser = User?.Identity?.Name ?? "System";

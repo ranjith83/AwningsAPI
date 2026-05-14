@@ -10,6 +10,8 @@ namespace AwningsAPI.Services.WorkflowService
     {
         private readonly AppDbContext _context;
 
+        public static readonly string[] ValidStatuses = { "Draft", "Sent", "Paid", "Overdue", "Cancelled", "Partially Paid" };
+
         public InvoiceService(AppDbContext context)
         {
             _context = context;
@@ -199,6 +201,9 @@ namespace AwningsAPI.Services.WorkflowService
 
         public async Task<InvoiceDto> UpdateInvoiceStatusAsync(int id, string status, string currentUser)
         {
+            if (!ValidStatuses.Contains(status))
+                throw new ArgumentException($"Invalid status value: {status}");
+
             var invoice = await _context.Invoices.FindAsync(id);
             if (invoice == null)
                 return null;

@@ -22,26 +22,9 @@ namespace AwningsAPI.Controllers
 
         [Authorize]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Customer>>> GetAllCustomersWithContacts()
+        public async Task<ActionResult<IEnumerable<CustomerMainViewDto>>> GetAllCustomersWithContacts()
         {
-            var customers = await _customerService.GetAllCustomersWithContactsAsync();
-
-            var customerDtos = customers.Select(c => new CustomerMainViewDto
-            {
-                CustomerId = c.CustomerId,
-                CompanyName = c.Name ?? string.Empty,
-                ContactName = c.CustomerContacts?.FirstOrDefault()?.FirstName + " " +
-                             c.CustomerContacts?.FirstOrDefault()?.LastName ?? string.Empty,
-                ContactEmail = c.CustomerContacts?.FirstOrDefault()?.Email ?? string.Empty,
-                MobilePhone = c.Mobile ?? string.Empty,
-                Email = c.Email ?? string.Empty,
-                Phone = c.Phone ?? string.Empty,
-                SiteAddress = string.Join(", ", new[] { c.Address1, c.Address2, c.Address3 }
-                              .Where(a => !string.IsNullOrWhiteSpace(a))),
-                AssignedSalesperson = c.AssignedSalespersonName ?? string.Empty
-            }).ToList();
-
-            return Ok(customerDtos);
+            return Ok(await _customerService.GetAllCustomersMainViewAsync());
         }
 
         [HttpGet("{id}")]

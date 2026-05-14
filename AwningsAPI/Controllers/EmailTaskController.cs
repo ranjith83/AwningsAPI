@@ -956,57 +956,28 @@ namespace AwningsAPI.Controllers
         {
             try
             {
-#if DEBUG 
+#if DEBUG
                 request.ToEmail = "gistyf30@hotmail.com"; // "mrk.ranjithkumar@gmail.com";
 #endif
-                var mailboxEmail = _configuration["AzureAd:MonitoredMailbox"]
-                    ?? _configuration["AzureAd:OrganizerEmail"]
-                    ?? throw new InvalidOperationException("Monitored mailbox not configured");
-
-                // Resolve recipient details from the task if not supplied in the request
-                if (string.IsNullOrWhiteSpace(request.ToEmail))
-                {
-                    var task = await _taskService.GetTaskByIdAsync(taskId);
-                    if (task == null)
-                        return NotFound(new { error = "Task not found" });
-
-                    request.ToEmail = task.FromEmail;
-                    request.ToName = task.FromName ?? task.FromEmail;
-                }
-
-                // Map attachment DTOs to the tuple list SendEmailAsync expects
                 var attachments = request.Attachments?
                     .Where(a => !string.IsNullOrWhiteSpace(a.Base64Content))
-                    .Select(a => (a.FileName, a.Base64Content, a.ContentType))
-                    .ToList();
+                    .Select(a => (a.FileName, a.Base64Content, a.ContentType));
 
-                await _emailReaderService.SendEmailAsync(
-                    mailboxEmail: mailboxEmail,
+                await _emailReaderService.SendTaskEmailAsync(
+                    taskId: taskId,
                     toEmail: request.ToEmail,
-                    toName: request.ToName ?? request.ToEmail,
+                    toName: request.ToName,
                     subject: request.Subject,
-                    bodyHtml: WrapPlainTextAsHtml(request.Body),
-                    replyToEmailId: request.OriginalEmailGraphId,  // null = fresh email
-                    attachments: attachments?.Count > 0 ? attachments : null
-                );
-
-                _logger.LogInformation(
-                    "Email sent from task {TaskId} to {ToEmail} by {User} ({AttachCount} attachments)",
-                    taskId, request.ToEmail, GetCurrentUserName(), attachments?.Count ?? 0);
-
-                // Auto-dismiss any active follow-up for this task's workflow.
-                // Sending a reply email constitutes "following up" — the 3-day timer resets.
-                var sentTask = await _taskService.GetTaskByIdAsync(taskId);
-                if (sentTask?.WorkflowId.HasValue == true)
-                {
-                    await _followUpService.DismissActiveForWorkflowAsync(
-                        sentTask.WorkflowId.Value, GetCurrentUserName());
-                    _logger.LogInformation(
-                        "Auto-dismissed follow-up for workflow {WorkflowId} after email reply",
-                        sentTask.WorkflowId.Value);
-                }
+                    body: request.Body,
+                    originalEmailGraphId: request.OriginalEmailGraphId,
+                    attachments: attachments,
+                    currentUser: GetCurrentUserName());
 
                 return Ok(new { message = "Email sent successfully" });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { error = ex.Message });
             }
             catch (Exception ex)
             {

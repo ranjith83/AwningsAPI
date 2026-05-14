@@ -1,7 +1,9 @@
 ﻿using AwningsAPI.Database;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Email;
+using AwningsAPI.Services.WorkflowService;
 using Azure;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
@@ -19,6 +21,9 @@ namespace AwningsAPI.Services.Email
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
+        private readonly IMemoryCache _cache;
+        private readonly ITaskService _taskService;
+        private readonly FollowUpService _followUpService;
 
         /// <summary>
         /// UTC timestamp captured when the service is first constructed.
@@ -48,13 +53,19 @@ namespace AwningsAPI.Services.Email
             ILogger<EmailReaderService> logger,
             AppDbContext context,
             IConfiguration configuration,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            IMemoryCache cache,
+            ITaskService taskService,
+            FollowUpService followUpService)
         {
             _graphClient = graphClient;
             _logger = logger;
             _context = context;
             _configuration = configuration;
             _env = env;
+            _cache = cache;
+            _taskService = taskService;
+            _followUpService = followUpService;
         }
 
         public async Task<List<IncomingEmail>> GetUnreadEmailsAsync(string mailboxEmail, int maxResults = 0)
@@ -413,25 +424,36 @@ namespace AwningsAPI.Services.Email
                 {
                     foreach (var productId in productIds)
                     {
-                        var match = Directory.GetFiles(brochuresPath)
-                            .FirstOrDefault(f =>
-                            {
-                                var name = Path.GetFileName(f);
-                                var underscoreIdx = name.IndexOf('_');
-                                return underscoreIdx > 0
-                                    && int.TryParse(name[..underscoreIdx], out var id)
-                                    && id == productId;
-                            });
-
-                        if (match != null)
+                        var cacheKey = $"brochure:{productId}";
+                        if (_cache.TryGetValue(cacheKey, out (string FileName, string Base64Content, string ContentType) cachedBrochure))
                         {
-                            var bytes = await File.ReadAllBytesAsync(match);
-                            allAttachments.Add((Path.GetFileName(match), Convert.ToBase64String(bytes), "application/pdf"));
-                            _logger.LogInformation("Attaching brochure {File} for product {ProductId}", Path.GetFileName(match), productId);
+                            allAttachments.Add(cachedBrochure);
+                            _logger.LogInformation("Attaching brochure {File} for product {ProductId} (from cache)", cachedBrochure.FileName, productId);
                         }
                         else
                         {
-                            _logger.LogWarning("No brochure found for product ID {ProductId}", productId);
+                            var match = Directory.GetFiles(brochuresPath)
+                                .FirstOrDefault(f =>
+                                {
+                                    var name = Path.GetFileName(f);
+                                    var underscoreIdx = name.IndexOf('_');
+                                    return underscoreIdx > 0
+                                        && int.TryParse(name[..underscoreIdx], out var id)
+                                        && id == productId;
+                                });
+
+                            if (match != null)
+                            {
+                                var bytes = await File.ReadAllBytesAsync(match);
+                                var tuple = (Path.GetFileName(match), Convert.ToBase64String(bytes), "application/pdf");
+                                allAttachments.Add(tuple);
+                                _cache.Set(cacheKey, tuple, new MemoryCacheEntryOptions { Size = 1 });
+                                _logger.LogInformation("Attaching brochure {File} for product {ProductId}", Path.GetFileName(match), productId);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("No brochure found for product ID {ProductId}", productId);
+                            }
                         }
                     }
                 }
@@ -457,6 +479,57 @@ namespace AwningsAPI.Services.Email
                                                .Replace("\r\n", "<br>")
                                                .Replace("\n", "<br>");
             return $"<div style=\"font-family:Aptos,Calibri,Arial,sans-serif;font-size:12pt;\">{escaped}</div>";
+        }
+
+        public async Task SendTaskEmailAsync(
+            int taskId,
+            string? toEmail,
+            string? toName,
+            string subject,
+            string body,
+            string? originalEmailGraphId,
+            IEnumerable<(string FileName, string Base64Content, string ContentType)>? attachments,
+            string currentUser)
+        {
+            var mailboxEmail = _configuration["AzureAd:MonitoredMailbox"]
+                ?? _configuration["AzureAd:OrganizerEmail"]
+                ?? throw new InvalidOperationException("Monitored mailbox not configured");
+
+            // Resolve recipient from the task when not supplied
+            if (string.IsNullOrWhiteSpace(toEmail))
+            {
+                var task = await _taskService.GetTaskByIdAsync(taskId)
+                    ?? throw new KeyNotFoundException($"Task {taskId} not found");
+                toEmail = task.FromEmail;
+                toName = task.FromName ?? task.FromEmail;
+            }
+
+            var attachmentList = attachments?
+                .Where(a => !string.IsNullOrWhiteSpace(a.Base64Content))
+                .ToList();
+
+            await SendEmailAsync(
+                mailboxEmail: mailboxEmail,
+                toEmail: toEmail!,
+                toName: toName ?? toEmail!,
+                subject: subject,
+                bodyHtml: WrapPlainTextAsHtml(body),
+                replyToEmailId: originalEmailGraphId,
+                attachments: attachmentList?.Count > 0 ? attachmentList : null);
+
+            _logger.LogInformation(
+                "Email sent from task {TaskId} to {ToEmail} by {User} ({AttachCount} attachments)",
+                taskId, toEmail, currentUser, attachmentList?.Count ?? 0);
+
+            // Auto-dismiss any active follow-up for this task's workflow
+            var sentTask = await _taskService.GetTaskByIdAsync(taskId);
+            if (sentTask?.WorkflowId.HasValue == true)
+            {
+                await _followUpService.DismissActiveForWorkflowAsync(sentTask.WorkflowId.Value, currentUser);
+                _logger.LogInformation(
+                    "Auto-dismissed follow-up for workflow {WorkflowId} after email reply",
+                    sentTask.WorkflowId.Value);
+            }
         }
 
         public async Task MoveEmailToFolderAsync(string mailboxEmail, string emailId, string folderName)

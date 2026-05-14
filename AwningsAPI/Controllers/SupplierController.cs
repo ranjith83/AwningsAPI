@@ -1,7 +1,6 @@
 using AwningsAPI.Dto.Product;
 using AwningsAPI.Dto.Supplier;
 using AwningsAPI.Interfaces;
-using AwningsAPI.Model.Suppliers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AwningsAPI.Controllers
@@ -20,12 +19,11 @@ namespace AwningsAPI.Controllers
         }
 
         [HttpGet("GetAllSuppliers")]
-        public async Task<ActionResult<IEnumerable<Supplier>>> GetAllSuppliers()
+        public async Task<ActionResult<IEnumerable<SupplierDto>>> GetAllSuppliers()
         {
             try
             {
-                var suppliers = await _supplierService.GetAllSuppliersAsync();
-                return Ok(suppliers.Select(c => new SupplierDto { SupplierId = c.SupplierId, SupplierName = c.SupplierName }).ToList());
+                return Ok(await _supplierService.GetAllSuppliersAsync());
             }
             catch (Exception ex)
             {
@@ -35,12 +33,11 @@ namespace AwningsAPI.Controllers
         }
 
         [HttpGet("GetAllProductTypesForSupplier")]
-        public async Task<ActionResult<IEnumerable<ProductType>>> GetAllProductTypesForSupplier(int SupplierId)
+        public async Task<ActionResult<IEnumerable<ProductTypeDto>>> GetAllProductTypesForSupplier(int SupplierId)
         {
             try
             {
-                var productTypes = await _supplierService.GetAllProductTypesForSupplierAsync(SupplierId);
-                return Ok(productTypes.Select(c => new ProductTypeDto { ProductTypeId = c.ProductTypeId, Description = c.Description }).ToList());
+                return Ok(await _supplierService.GetAllProductTypesForSupplierAsync(SupplierId));
             }
             catch (Exception ex)
             {
@@ -50,12 +47,11 @@ namespace AwningsAPI.Controllers
         }
 
         [HttpGet("GetAllProductsBySupplier")]
-        public async Task<ActionResult<IEnumerable<Product>>> GetAllProductsBySupplier(int SupplierId, int ProductTypeId)
+        public async Task<ActionResult<IEnumerable<ProductDto>>> GetAllProductsBySupplier(int SupplierId, int ProductTypeId)
         {
             try
             {
-                var products = await _supplierService.GetAllProductsBySupplierAsync(SupplierId, ProductTypeId);
-                return Ok(products.Select(c => new ProductDto { ProductId = c.ProductId, ProductName = c.Description }).ToList());
+                return Ok(await _supplierService.GetAllProductsBySupplierAsync(SupplierId, ProductTypeId));
             }
             catch (Exception ex)
             {

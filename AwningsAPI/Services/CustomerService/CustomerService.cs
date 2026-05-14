@@ -27,9 +27,29 @@ namespace AwningsAPI.Services.CustomerService
         {
             return await _context.Customers.ToListAsync();
         }
+
         public async Task<IEnumerable<Customer>> GetAllCustomersWithContactsAsync()
         {
             return await _context.Customers.Include(c => c.CustomerContacts).ToListAsync();
+        }
+
+        public async Task<List<CustomerMainViewDto>> GetAllCustomersMainViewAsync()
+        {
+            var customers = await _context.Customers.Include(c => c.CustomerContacts).ToListAsync();
+            return customers.Select(c => new CustomerMainViewDto
+            {
+                CustomerId = c.CustomerId,
+                CompanyName = c.Name ?? string.Empty,
+                ContactName = c.CustomerContacts?.FirstOrDefault()?.FirstName + " " +
+                             c.CustomerContacts?.FirstOrDefault()?.LastName ?? string.Empty,
+                ContactEmail = c.CustomerContacts?.FirstOrDefault()?.Email ?? string.Empty,
+                MobilePhone = c.Mobile ?? string.Empty,
+                Email = c.Email ?? string.Empty,
+                Phone = c.Phone ?? string.Empty,
+                SiteAddress = string.Join(", ", new[] { c.Address1, c.Address2, c.Address3 }
+                              .Where(a => !string.IsNullOrWhiteSpace(a))),
+                AssignedSalesperson = c.AssignedSalespersonName ?? string.Empty
+            }).ToList();
         }
 
         public async Task<Customer> GetCustomerByIdAsync(int customerId)

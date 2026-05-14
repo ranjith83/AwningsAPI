@@ -8,6 +8,7 @@ namespace AwningsAPI.Interfaces
     public interface ICustomerService
     {
         Task<IEnumerable<Customer>> GetAllCustomersWithContactsAsync();
+        Task<List<CustomerMainViewDto>> GetAllCustomersMainViewAsync();
         Task<Customer> GetCustomerByIdAsync(int id);
         Task<EircodeResultDto?> LookupEircodeAsync(string eircode);
 

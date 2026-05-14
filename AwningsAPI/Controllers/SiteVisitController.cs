@@ -32,67 +32,7 @@ namespace AwningsAPI.Controllers
         [HttpGet("workflow/{workflowId}")]
         public async Task<ActionResult<IEnumerable<SiteVisitDto>>> GetSiteVisitsByWorkflowId(int workflowId)
         {
-                var siteVisits = await _siteVisitService.GetSiteVisitsByWorkflowIdAsync(workflowId);
-
-                var siteVisitDtos = siteVisits.Select(sv => new SiteVisitDto
-                {
-                    SiteVisitId = sv.SiteVisitId,
-                    WorkflowId = sv.WorkflowId,
-                    ProductModelType = sv.ProductModelType,
-                    Model = sv.Model,
-                    OtherPleaseSpecify = sv.OtherPleaseSpecify,
-                    SiteLayout = sv.SiteLayout,
-                    Structure = sv.Structure,
-                    PassageHeight = sv.PassageHeight,
-                    Width = sv.Width,
-                    Projection = sv.Projection,
-                    HeightAvailable = sv.HeightAvailable,
-                    WallType = sv.WallType,
-                    ExternalInsulation = sv.ExternalInsulation,
-                    WallFinish = sv.WallFinish,
-                    WallThickness = sv.WallThickness,
-                    SpecialBrackets = sv.SpecialBrackets,
-                    SideInfills = sv.SideInfills,
-                    FlashingRequired = sv.FlashingRequired,
-                    FlashingDimensions = sv.FlashingDimensions,
-                    StandOfBrackets = sv.StandOfBrackets,
-                    StandOfBracketDimension = sv.StandOfBracketDimension,
-                    Electrician = sv.Electrician,
-                    ElectricalConnection = sv.ElectricalConnection,
-                    Location = sv.Location,
-                    OtherSiteSurveyNotes = sv.OtherSiteSurveyNotes,
-                    FixtureType = sv.FixtureType,
-                    Operation = sv.Operation,
-                    CrankLength = sv.CrankLength,
-                    OperationSide = sv.OperationSide,
-                    Fabric = sv.Fabric,
-                    RAL = sv.RAL,
-                    ValanceChoice = sv.ValanceChoice,
-                    Valance = sv.Valance,
-                    WindSensor = sv.WindSensor,
-                    ShadePlusRequired = sv.ShadePlusRequired,
-                    ShadeType = sv.ShadeType,
-                    ShadeplusFabric = sv.ShadeplusFabric,
-                    ShadePlusAnyOtherDetail = sv.ShadePlusAnyOtherDetail,
-                    Lights = sv.Lights,
-                    LightsType = sv.LightsType,
-                    LightsAnyOtherDetails = sv.LightsAnyOtherDetails,
-                    Heater = sv.Heater,
-                    HeaterManufacturer = sv.HeaterManufacturer,
-                    NumberRequired = sv.NumberRequired,
-                    HeaterOutput = sv.HeaterOutput,
-                    HeaterColour = sv.HeaterColour,
-                    RemoteControl = sv.RemoteControl,
-                    ControllerBox = sv.ControllerBox,
-                    HeaterAnyOtherDetails = sv.HeaterAnyOtherDetails,
-                    DateCreated = sv.DateCreated,
-                    CreatedBy = sv.CreatedBy,
-                    DateUpdated = sv.DateUpdated,
-                    UpdatedBy = sv.UpdatedBy,
-                    ImageUrls = sv.Images.Select(i => i.ImageUrl).ToList()
-                }).ToList();
-
-                return Ok(siteVisitDtos);
+            return Ok(await _siteVisitService.GetSiteVisitDtosByWorkflowIdAsync(workflowId));
         }
 
         /// <summary>
@@ -104,72 +44,10 @@ namespace AwningsAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<SiteVisitDto>> GetSiteVisitById(int id)
         {
-                var siteVisit = await _siteVisitService.GetSiteVisitByIdAsync(id);
-
-                if (siteVisit == null)
-                {
-                    return NotFound(new { message = $"Site visit with ID {id} not found" });
-                }
-
-                var siteVisitDto = new SiteVisitDto
-                {
-                    SiteVisitId = siteVisit.SiteVisitId,
-                    WorkflowId = siteVisit.WorkflowId,
-                    ProductModelType = siteVisit.ProductModelType,
-                    Model = siteVisit.Model,
-                    OtherPleaseSpecify = siteVisit.OtherPleaseSpecify,
-                    SiteLayout = siteVisit.SiteLayout,
-                    Structure = siteVisit.Structure,
-                    PassageHeight = siteVisit.PassageHeight,
-                    Width = siteVisit.Width,
-                    Projection = siteVisit.Projection,
-                    HeightAvailable = siteVisit.HeightAvailable,
-                    WallType = siteVisit.WallType,
-                    ExternalInsulation = siteVisit.ExternalInsulation,
-                    WallFinish = siteVisit.WallFinish,
-                    WallThickness = siteVisit.WallThickness,
-                    SpecialBrackets = siteVisit.SpecialBrackets,
-                    SideInfills = siteVisit.SideInfills,
-                    FlashingRequired = siteVisit.FlashingRequired,
-                    FlashingDimensions = siteVisit.FlashingDimensions,
-                    StandOfBrackets = siteVisit.StandOfBrackets,
-                    StandOfBracketDimension = siteVisit.StandOfBracketDimension,
-                    Electrician = siteVisit.Electrician,
-                    ElectricalConnection = siteVisit.ElectricalConnection,
-                    Location = siteVisit.Location,
-                    OtherSiteSurveyNotes = siteVisit.OtherSiteSurveyNotes,
-                    FixtureType = siteVisit.FixtureType,
-                    Operation = siteVisit.Operation,
-                    CrankLength = siteVisit.CrankLength,
-                    OperationSide = siteVisit.OperationSide,
-                    Fabric = siteVisit.Fabric,
-                    RAL = siteVisit.RAL,
-                    ValanceChoice = siteVisit.ValanceChoice,
-                    Valance = siteVisit.Valance,
-                    WindSensor = siteVisit.WindSensor,
-                    ShadePlusRequired = siteVisit.ShadePlusRequired,
-                    ShadeType = siteVisit.ShadeType,
-                    ShadeplusFabric = siteVisit.ShadeplusFabric,
-                    ShadePlusAnyOtherDetail = siteVisit.ShadePlusAnyOtherDetail,
-                    Lights = siteVisit.Lights,
-                    LightsType = siteVisit.LightsType,
-                    LightsAnyOtherDetails = siteVisit.LightsAnyOtherDetails,
-                    Heater = siteVisit.Heater,
-                    HeaterManufacturer = siteVisit.HeaterManufacturer,
-                    NumberRequired = siteVisit.NumberRequired,
-                    HeaterOutput = siteVisit.HeaterOutput,
-                    HeaterColour = siteVisit.HeaterColour,
-                    RemoteControl = siteVisit.RemoteControl,
-                    ControllerBox = siteVisit.ControllerBox,
-                    HeaterAnyOtherDetails = siteVisit.HeaterAnyOtherDetails,
-                    DateCreated = siteVisit.DateCreated,
-                    CreatedBy = siteVisit.CreatedBy,
-                    DateUpdated = siteVisit.DateUpdated,
-                    UpdatedBy = siteVisit.UpdatedBy,
-                    ImageUrls = siteVisit.Images.Select(i => i.ImageUrl).ToList()
-                };
-
-                return Ok(siteVisitDto);
+            var siteVisitDto = await _siteVisitService.GetSiteVisitDtoByIdAsync(id);
+            if (siteVisitDto == null)
+                return NotFound(new { message = $"Site visit with ID {id} not found" });
+            return Ok(siteVisitDto);
         }
 
         /// <summary>

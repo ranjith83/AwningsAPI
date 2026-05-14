@@ -112,6 +112,12 @@ builder.Services.AddAuthorization();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+builder.Services.AddMemoryCache(options =>
+{
+    options.SizeLimit = 1000;
+    options.CompactionPercentage = 0.25;
+});
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.ReferenceHandler =

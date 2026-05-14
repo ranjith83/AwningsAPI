@@ -24,6 +24,16 @@ namespace AwningsAPI.Services.SiteVisitService
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<SiteVisitDto>> GetSiteVisitDtosByWorkflowIdAsync(int workflowId)
+        {
+            var siteVisits = await _context.SiteVisits
+                .Include(sv => sv.Images)
+                .Where(sv => sv.WorkflowId == workflowId)
+                .OrderByDescending(sv => sv.DateCreated)
+                .ToListAsync();
+            return siteVisits.Select(MapToDto).ToList();
+        }
+
         public async Task<Model.SiteVisit.SiteVisit?> GetSiteVisitByIdAsync(int id)
         {
             return await _context.SiteVisits
@@ -31,6 +41,73 @@ namespace AwningsAPI.Services.SiteVisitService
                 .Include(sv => sv.Images)
                 .FirstOrDefaultAsync(sv => sv.SiteVisitId == id);
         }
+
+        public async Task<SiteVisitDto?> GetSiteVisitDtoByIdAsync(int id)
+        {
+            var sv = await _context.SiteVisits
+                .Include(sv => sv.Workflow)
+                .Include(sv => sv.Images)
+                .FirstOrDefaultAsync(sv => sv.SiteVisitId == id);
+            return sv == null ? null : MapToDto(sv);
+        }
+
+        public static SiteVisitDto MapToDto(Model.SiteVisit.SiteVisit sv) => new SiteVisitDto
+        {
+            SiteVisitId = sv.SiteVisitId,
+            WorkflowId = sv.WorkflowId,
+            ProductModelType = sv.ProductModelType,
+            Model = sv.Model,
+            OtherPleaseSpecify = sv.OtherPleaseSpecify,
+            SiteLayout = sv.SiteLayout,
+            Structure = sv.Structure,
+            PassageHeight = sv.PassageHeight,
+            Width = sv.Width,
+            Projection = sv.Projection,
+            HeightAvailable = sv.HeightAvailable,
+            WallType = sv.WallType,
+            ExternalInsulation = sv.ExternalInsulation,
+            WallFinish = sv.WallFinish,
+            WallThickness = sv.WallThickness,
+            SpecialBrackets = sv.SpecialBrackets,
+            SideInfills = sv.SideInfills,
+            FlashingRequired = sv.FlashingRequired,
+            FlashingDimensions = sv.FlashingDimensions,
+            StandOfBrackets = sv.StandOfBrackets,
+            StandOfBracketDimension = sv.StandOfBracketDimension,
+            Electrician = sv.Electrician,
+            ElectricalConnection = sv.ElectricalConnection,
+            Location = sv.Location,
+            OtherSiteSurveyNotes = sv.OtherSiteSurveyNotes,
+            FixtureType = sv.FixtureType,
+            Operation = sv.Operation,
+            CrankLength = sv.CrankLength,
+            OperationSide = sv.OperationSide,
+            Fabric = sv.Fabric,
+            RAL = sv.RAL,
+            ValanceChoice = sv.ValanceChoice,
+            Valance = sv.Valance,
+            WindSensor = sv.WindSensor,
+            ShadePlusRequired = sv.ShadePlusRequired,
+            ShadeType = sv.ShadeType,
+            ShadeplusFabric = sv.ShadeplusFabric,
+            ShadePlusAnyOtherDetail = sv.ShadePlusAnyOtherDetail,
+            Lights = sv.Lights,
+            LightsType = sv.LightsType,
+            LightsAnyOtherDetails = sv.LightsAnyOtherDetails,
+            Heater = sv.Heater,
+            HeaterManufacturer = sv.HeaterManufacturer,
+            NumberRequired = sv.NumberRequired,
+            HeaterOutput = sv.HeaterOutput,
+            HeaterColour = sv.HeaterColour,
+            RemoteControl = sv.RemoteControl,
+            ControllerBox = sv.ControllerBox,
+            HeaterAnyOtherDetails = sv.HeaterAnyOtherDetails,
+            DateCreated = sv.DateCreated,
+            CreatedBy = sv.CreatedBy,
+            DateUpdated = sv.DateUpdated,
+            UpdatedBy = sv.UpdatedBy,
+            ImageUrls = sv.Images.Select(i => i.ImageUrl).ToList()
+        };
 
         public async Task<Model.SiteVisit.SiteVisit> CreateSiteVisitAsync(CreateSiteVisitDto dto, string currentUser)
         {

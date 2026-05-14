@@ -46,5 +46,20 @@ namespace AwningsAPI.Interfaces
             IEnumerable<(string FileName, string Base64Content, string ContentType)>? attachments = null);
 
         Task MoveEmailToFolderAsync(string mailboxEmail, string emailId, string folderName);
+
+        /// <summary>
+        /// Orchestrates the full send-task-email flow: resolves the mailbox from config,
+        /// looks up the task if ToEmail is empty, maps attachment DTOs, sends the email,
+        /// and auto-dismisses any active follow-up for the task's workflow.
+        /// </summary>
+        Task SendTaskEmailAsync(
+            int taskId,
+            string? toEmail,
+            string? toName,
+            string subject,
+            string body,
+            string? originalEmailGraphId,
+            IEnumerable<(string FileName, string Base64Content, string ContentType)>? attachments,
+            string currentUser);
     }
 }
