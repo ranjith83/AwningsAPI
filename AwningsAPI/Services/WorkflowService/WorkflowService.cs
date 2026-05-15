@@ -39,6 +39,7 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<IEnumerable<WorkflowDto>> GetAllWorfflowsForCustomerAsync(int customerId)
         {
             var workflows = await _context.WorkflowStarts
+                .AsNoTracking()
                 .Include(w => w.Product)
                 .Where(w => w.CustomerId == customerId)
                 .ToListAsync();
@@ -260,7 +261,7 @@ namespace AwningsAPI.Services.WorkflowService
         // ════════════════════════════════════════════════════════════════════
 
         public async Task<IEnumerable<InitialEnquiry>> GetInitialEnquiryForWorkflowAsync(int workflowId) =>
-            await _context.InitialEnquiries.Where(w => w.WorkflowId == workflowId).ToListAsync();
+            await _context.InitialEnquiries.AsNoTracking().Where(w => w.WorkflowId == workflowId).ToListAsync();
 
         public async Task<InitialEnquiry> AddInitialEnquiry(InitialEnquiryDto dto, string currentUser)
         {
@@ -362,7 +363,7 @@ namespace AwningsAPI.Services.WorkflowService
         {
             var key = $"wf:brackets:{productId}:{armTypeId}";
             if (_cache.TryGetValue(key, out List<Brackets> cached)) return cached!;
-            var query = _context.Brackets.Where(b => b.ProductId == productId);
+            var query = _context.Brackets.AsNoTracking().Where(b => b.ProductId == productId);
             query = armTypeId.HasValue
                 ? query.Where(b => b.ArmTypeId == null || b.ArmTypeId == 1 || b.ArmTypeId == armTypeId.Value)
                 : query.Where(b => b.ArmTypeId == null || b.ArmTypeId == 1);
@@ -372,13 +373,13 @@ namespace AwningsAPI.Services.WorkflowService
         }
 
         public async Task<List<Arms>> GeArmsForProductAsync(int productId) =>
-            await _context.Arms.Where(f => f.ProductId == productId).ToListAsync();
+            await _context.Arms.AsNoTracking().Where(f => f.ProductId == productId).ToListAsync();
 
         public async Task<List<Motors>> GeMotorsForProductAsync(int productId, int? armTypeId = null)
         {
             var key = $"wf:motors:{productId}:{armTypeId}";
             if (_cache.TryGetValue(key, out List<Motors> cached)) return cached!;
-            var query = _context.Motors.Where(f => f.ProductId == productId);
+            var query = _context.Motors.AsNoTracking().Where(f => f.ProductId == productId);
             query = armTypeId.HasValue
                 ? query.Where(m => m.ArmTypeId == null || m.ArmTypeId == armTypeId.Value)
                 : query.Where(m => m.ArmTypeId == null);
@@ -391,7 +392,7 @@ namespace AwningsAPI.Services.WorkflowService
         {
             var key = $"wf:controls:{productId}";
             if (_cache.TryGetValue(key, out List<Control> cached)) return cached!;
-            var result = await _context.Controls.Where(c => c.ProductId == productId).ToListAsync();
+            var result = await _context.Controls.AsNoTracking().Where(c => c.ProductId == productId).ToListAsync();
             _cache.Set(key, result, _cacheOptions);
             return result;
         }
@@ -409,7 +410,7 @@ namespace AwningsAPI.Services.WorkflowService
         {
             var key = $"wf:lighting:{productId}";
             if (_cache.TryGetValue(key, out List<LightingCassette> cached)) return cached!;
-            var result = await _context.LightingCassettes.Where(l => l.ProductId == productId).ToListAsync();
+            var result = await _context.LightingCassettes.AsNoTracking().Where(l => l.ProductId == productId).ToListAsync();
             _cache.Set(key, result, _cacheOptions);
             return result;
         }
@@ -574,7 +575,7 @@ namespace AwningsAPI.Services.WorkflowService
         {
             var key = $"wf:heaters:{productId}";
             if (_cache.TryGetValue(key, out List<Heaters> cached)) return cached!;
-            var result = await _context.Heaters.Where(f => f.ProductId == productId).ToListAsync();
+            var result = await _context.Heaters.AsNoTracking().Where(f => f.ProductId == productId).ToListAsync();
             _cache.Set(key, result, _cacheOptions);
             return result;
         }

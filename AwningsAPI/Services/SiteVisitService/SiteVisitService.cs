@@ -18,6 +18,7 @@ namespace AwningsAPI.Services.SiteVisitService
         public async Task<IEnumerable<Model.SiteVisit.SiteVisit>> GetSiteVisitsByWorkflowIdAsync(int workflowId)
         {
             return await _context.SiteVisits
+                .AsNoTracking()
                 .Include(sv => sv.Images)
                 .Where(sv => sv.WorkflowId == workflowId)
                 .OrderByDescending(sv => sv.DateCreated)
@@ -27,6 +28,7 @@ namespace AwningsAPI.Services.SiteVisitService
         public async Task<IEnumerable<SiteVisitDto>> GetSiteVisitDtosByWorkflowIdAsync(int workflowId)
         {
             var siteVisits = await _context.SiteVisits
+                .AsNoTracking()
                 .Include(sv => sv.Images)
                 .Where(sv => sv.WorkflowId == workflowId)
                 .OrderByDescending(sv => sv.DateCreated)
@@ -37,6 +39,7 @@ namespace AwningsAPI.Services.SiteVisitService
         public async Task<Model.SiteVisit.SiteVisit?> GetSiteVisitByIdAsync(int id)
         {
             return await _context.SiteVisits
+                .AsNoTracking()
                 .Include(sv => sv.Workflow)
                 .Include(sv => sv.Images)
                 .FirstOrDefaultAsync(sv => sv.SiteVisitId == id);
@@ -45,6 +48,7 @@ namespace AwningsAPI.Services.SiteVisitService
         public async Task<SiteVisitDto?> GetSiteVisitDtoByIdAsync(int id)
         {
             var sv = await _context.SiteVisits
+                .AsNoTracking()
                 .Include(sv => sv.Workflow)
                 .Include(sv => sv.Images)
                 .FirstOrDefaultAsync(sv => sv.SiteVisitId == id);
@@ -283,6 +287,7 @@ namespace AwningsAPI.Services.SiteVisitService
         public async Task<IEnumerable<SiteVisitValues>> GetAllValuesAsync()
         {
             return await _context.SiteVisitValues
+                .AsNoTracking()
                 .Where(v => v.IsActive)
                 .OrderBy(v => v.Category)
                 .ThenBy(v => v.DisplayOrder)
@@ -292,6 +297,7 @@ namespace AwningsAPI.Services.SiteVisitService
         public async Task<IEnumerable<SiteVisitValues>> GetValuesByCategoryAsync(string category)
         {
             return await _context.SiteVisitValues
+                .AsNoTracking()
                 .Where(v => v.IsActive && v.Category == category)
                 .OrderBy(v => v.DisplayOrder)
                 .ToListAsync();

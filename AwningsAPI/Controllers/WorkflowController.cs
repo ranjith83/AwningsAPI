@@ -10,7 +10,7 @@ namespace AwningsAPI.Controllers
 {
     [ApiController]
     [Route("api/workflow")]
-    public class WorkflowController : Controller
+    public class WorkflowController : ControllerBase
     {
         private readonly IWorkflowService _workflowService;
         private readonly ILogger<WorkflowController> _logger;

@@ -29,7 +29,7 @@ namespace AwningsAPI.Services.Suppliers
         {
             const string key = "sup:all";
             if (_cache.TryGetValue(key, out IEnumerable<SupplierDto> cached)) return cached!;
-            var result = (await _context.Suppliers.ToListAsync())
+            var result = (await _context.Suppliers.AsNoTracking().ToListAsync())
                 .Select(c => new SupplierDto { SupplierId = c.SupplierId, SupplierName = c.SupplierName })
                 .ToList();
             _cache.Set(key, (IEnumerable<SupplierDto>)result, _cacheOptions);
@@ -40,7 +40,7 @@ namespace AwningsAPI.Services.Suppliers
         {
             var key = $"sup:types:{SupplierId}";
             if (_cache.TryGetValue(key, out IEnumerable<ProductTypeDto> cached)) return cached!;
-            var result = (await _context.ProductTypes.Where(s => s.SupplierId == SupplierId).ToListAsync())
+            var result = (await _context.ProductTypes.AsNoTracking().Where(s => s.SupplierId == SupplierId).ToListAsync())
                 .Select(c => new ProductTypeDto { ProductTypeId = c.ProductTypeId, Description = c.Description })
                 .ToList();
             _cache.Set(key, (IEnumerable<ProductTypeDto>)result, _cacheOptions);
@@ -51,7 +51,7 @@ namespace AwningsAPI.Services.Suppliers
         {
             var key = $"sup:products:{SupplierId}:{ProductTypeId}";
             if (_cache.TryGetValue(key, out IEnumerable<ProductDto> cached)) return cached!;
-            var result = (await _context.Products.Where(p => p.SupplierId == SupplierId && p.ProductTypeId == ProductTypeId).ToListAsync())
+            var result = (await _context.Products.AsNoTracking().Where(p => p.SupplierId == SupplierId && p.ProductTypeId == ProductTypeId).ToListAsync())
                 .Select(c => new ProductDto { ProductId = c.ProductId, ProductName = c.Description })
                 .ToList();
             _cache.Set(key, (IEnumerable<ProductDto>)result, _cacheOptions);

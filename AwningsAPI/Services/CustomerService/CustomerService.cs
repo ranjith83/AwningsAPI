@@ -25,17 +25,17 @@ namespace AwningsAPI.Services.CustomerService
 
         public async Task<IEnumerable<Customer>> GetAllCustomersAsync()
         {
-            return await _context.Customers.ToListAsync();
+            return await _context.Customers.AsNoTracking().ToListAsync();
         }
 
         public async Task<IEnumerable<Customer>> GetAllCustomersWithContactsAsync()
         {
-            return await _context.Customers.Include(c => c.CustomerContacts).ToListAsync();
+            return await _context.Customers.AsNoTracking().Include(c => c.CustomerContacts).ToListAsync();
         }
 
         public async Task<List<CustomerMainViewDto>> GetAllCustomersMainViewAsync()
         {
-            var customers = await _context.Customers.Include(c => c.CustomerContacts).ToListAsync();
+            var customers = await _context.Customers.AsNoTracking().Include(c => c.CustomerContacts).ToListAsync();
             return customers.Select(c => new CustomerMainViewDto
             {
                 CustomerId = c.CustomerId,
@@ -55,6 +55,7 @@ namespace AwningsAPI.Services.CustomerService
         public async Task<Customer> GetCustomerByIdAsync(int customerId)
         {
             var company = await _context.Customers
+                .AsNoTracking()
                 .Include(c => c.CustomerContacts)
                 .FirstOrDefaultAsync(c => c.CustomerId == customerId);
 

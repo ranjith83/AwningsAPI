@@ -123,10 +123,15 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler =
             System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
 
+builder.Services.AddResponseCompression(options => options.EnableForHttps = true);
+builder.Services.AddHealthChecks();
+
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
-           .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()); 
+    options.UseSqlServer(
+               builder.Configuration.GetConnectionString("DefaultConnection"),
+               sql => sql.EnableRetryOnFailure())
+           .AddInterceptors(sp.GetRequiredService<AuditInterceptor>());
 });
 
 builder.Services.AddSwaggerGen(options =>
@@ -153,6 +158,7 @@ var app = builder.Build();
 
 
 app.UseCors("AllowAngularDev");
+app.UseResponseCompression();
 app.UseExceptionHandler();
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -166,6 +172,7 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 /*
 var summaries = new[]

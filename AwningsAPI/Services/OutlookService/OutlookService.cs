@@ -4,7 +4,6 @@ using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Showroom;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
-using Azure.Identity;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
@@ -22,27 +21,15 @@ namespace AwningsAPI.Services.OutlookService
         public OutlookService(
             AppDbContext context,
             IConfiguration configuration,
+            GraphServiceClient graphClient,
             ILogger<OutlookService> logger,
             IMemoryCache cache)
         {
             _context = context;
             _configuration = configuration;
+            _graphClient = graphClient;
             _logger = logger;
             _cache = cache;
-
-            var tenantId = _configuration["AzureAd:TenantId"];
-            var clientId = _configuration["AzureAd:ClientId"];
-            var clientSecret = _configuration["AzureAd:ClientSecret"];
-
-            var options = new ClientSecretCredentialOptions
-            {
-                AuthorityHost = AzureAuthorityHosts.AzurePublicCloud,
-            };
-
-            var clientSecretCredential = new ClientSecretCredential(
-                tenantId, clientId, clientSecret, options);
-
-            _graphClient = new GraphServiceClient(clientSecretCredential);
         }
 
         public async Task<string> CreateShowroomInviteAsync(ShowroomInviteDto dto, string currentUser)

@@ -19,6 +19,7 @@ namespace AwningsAPI.Services.QuoteService
         public async Task<IEnumerable<QuoteDto>> GetAllQuotesAsync()
         {
             var quotes = await _context.Quotes
+                .AsNoTracking()
                 .Include(q => q.QuoteItems)
                 .OrderByDescending(i => i.CreatedAt)
                 .ToListAsync();
@@ -29,6 +30,7 @@ namespace AwningsAPI.Services.QuoteService
         public async Task<IEnumerable<QuoteDto>> GetQuotesByWorkflowIdAsync(int workflowId)
         {
             var quotes = await _context.Quotes
+                .AsNoTracking()
                 .Include(q => q.QuoteItems)
                 .Where(i => i.WorkflowId == workflowId)
                 .OrderByDescending(i => i.CreatedAt)
@@ -40,6 +42,7 @@ namespace AwningsAPI.Services.QuoteService
         public async Task<QuoteDto> GetQuoteByIdAsync(int quoteId)
         {
             var quote = await _context.Quotes
+                .AsNoTracking()
                 .Include(q => q.QuoteItems)
                 .FirstOrDefaultAsync(i => i.QuoteId == quoteId);
 

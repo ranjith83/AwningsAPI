@@ -20,6 +20,7 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<IEnumerable<InvoiceDto>> GetAllInvoicesAsync()
         {
             var invoices = await _context.Invoices
+                .AsNoTracking()
                 .Include(i => i.InvoiceItems)
                 .Include(i => i.InvoicePayments)
                 .OrderByDescending(i => i.CreatedAt)
@@ -31,6 +32,7 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<IEnumerable<InvoiceDto>> GetInvoicesByWorkflowIdAsync(int workflowId)
         {
             var invoices = await _context.Invoices
+                .AsNoTracking()
                 .Include(i => i.InvoiceItems)
                 .Include(i => i.InvoicePayments)
                 .Where(i => i.WorkflowId == workflowId)
@@ -43,6 +45,7 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<IEnumerable<InvoiceDto>> GetInvoicesByCustomerIdAsync(int customerId)
         {
             var invoices = await _context.Invoices
+                .AsNoTracking()
                 .Include(i => i.InvoiceItems)
                 .Include(i => i.InvoicePayments)
                 .Where(i => i.CustomerId == customerId)
@@ -55,6 +58,7 @@ namespace AwningsAPI.Services.WorkflowService
         public async Task<InvoiceDto> GetInvoiceByIdAsync(int id)
         {
             var invoice = await _context.Invoices
+                .AsNoTracking()
                 .Include(i => i.InvoiceItems)
                 .Include(i => i.InvoicePayments)
                 .FirstOrDefaultAsync(i => i.Id == id);
