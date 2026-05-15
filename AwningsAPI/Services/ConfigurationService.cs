@@ -1,4 +1,5 @@
 ﻿using AwningsAPI.Database;
+using AwningsAPI.Dto;
 using AwningsAPI.Dto.Configuration;
 using AwningsAPI.Dto.Product;
 using AwningsAPI.Dto.Supplier;
@@ -93,29 +94,75 @@ namespace AwningsAPI.Services.ConfigurationService
         }
 
         // ══════════════════════════════════════════════════════════════════════
+        //  ARM TYPES
+        // ══════════════════════════════════════════════════════════════════════
+
+        public async Task<IEnumerable<ArmTypeDto>> GetAllArmTypesAsync()
+        {
+            var types = await _context.armsTypes.OrderBy(t => t.Description).ToListAsync();
+            return types.Select(t => new ArmTypeDto { ArmTypeId = t.ArmTypeId, Description = t.Description });
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
         //  BRACKETS
         // ══════════════════════════════════════════════════════════════════════
 
-        public async Task<IEnumerable<BracketDto>> GetAllBracketsAsync()
+        public async Task<PagedResult<BracketDto>> GetBracketsPagedAsync(
+            int? productId, string? bracketName, decimal? minPrice, decimal? maxPrice, int page, int pageSize)
         {
-            var brackets = await _context.Brackets
+            var query = _context.Brackets.AsQueryable();
+
+            if (productId.HasValue)
+                query = query.Where(b => b.ProductId == productId.Value);
+            if (!string.IsNullOrWhiteSpace(bracketName))
+                query = query.Where(b => b.BracketName.Contains(bracketName));
+            if (minPrice.HasValue)
+                query = query.Where(b => b.Price >= minPrice.Value);
+            if (maxPrice.HasValue)
+                query = query.Where(b => b.Price <= maxPrice.Value);
+
+            var totalCount = await query.CountAsync();
+
+            var paged = query
                 .OrderBy(b => b.ProductId).ThenBy(b => b.BracketName)
-                .ToListAsync();
-            return brackets.Select(MapBracketToDto);
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize);
+
+            var items = await (
+                from b in paged
+                join at in _context.armsTypes on b.ArmTypeId equals at.ArmTypeId into atGroup
+                from at in atGroup.DefaultIfEmpty()
+                select new { Bracket = b, ArmTypeDescription = at != null ? at.Description : null }
+            ).ToListAsync();
+
+            return new PagedResult<BracketDto>
+            {
+                Items = items.Select(x => MapBracketToDto(x.Bracket, x.ArmTypeDescription)),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
         }
 
         public async Task<IEnumerable<BracketDto>> GetBracketsByProductIdAsync(int productId)
         {
-            var brackets = await _context.Brackets
-                .Where(b => b.ProductId == productId).OrderBy(b => b.BracketName)
-                .ToListAsync();
-            return brackets.Select(MapBracketToDto);
+            var items = await (
+                from b in _context.Brackets.Where(b => b.ProductId == productId).OrderBy(b => b.BracketName)
+                join at in _context.armsTypes on b.ArmTypeId equals at.ArmTypeId into atGroup
+                from at in atGroup.DefaultIfEmpty()
+                select new { Bracket = b, ArmTypeDescription = at != null ? at.Description : null }
+            ).ToListAsync();
+            return items.Select(x => MapBracketToDto(x.Bracket, x.ArmTypeDescription));
         }
 
         public async Task<BracketDto> GetBracketByIdAsync(int id)
         {
             var bracket = await _context.Brackets.FindAsync(id);
-            return bracket != null ? MapBracketToDto(bracket) : null;
+            if (bracket == null) return null;
+            var desc = bracket.ArmTypeId.HasValue
+                ? (await _context.armsTypes.FindAsync(bracket.ArmTypeId.Value))?.Description
+                : null;
+            return MapBracketToDto(bracket, desc);
         }
 
         public async Task<BracketDto> CreateBracketAsync(CreateBracketDto createDto, string currentUser)
@@ -130,12 +177,16 @@ namespace AwningsAPI.Services.ConfigurationService
                 BracketName = createDto.BracketName.Trim(),
                 PartNumber = (createDto.PartNumber ?? string.Empty).Trim(),
                 Price = createDto.Price,
+                ArmTypeId = createDto.ArmTypeId,
                 DateCreated = DateTime.UtcNow,
                 CreatedBy = currentUser
             };
             _context.Brackets.Add(entity);
             await _context.SaveChangesAsync();
-            return MapBracketToDto(entity);
+            var desc = entity.ArmTypeId.HasValue
+                ? (await _context.armsTypes.FindAsync(entity.ArmTypeId.Value))?.Description
+                : null;
+            return MapBracketToDto(entity, desc);
         }
 
         public async Task<BracketDto> UpdateBracketAsync(int id, UpdateBracketDto updateDto, string currentUser)
@@ -151,8 +202,12 @@ namespace AwningsAPI.Services.ConfigurationService
             entity.BracketName = updateDto.BracketName.Trim();
             entity.PartNumber = (updateDto.PartNumber ?? string.Empty).Trim();
             entity.Price = updateDto.Price;
+            entity.ArmTypeId = updateDto.ArmTypeId;
             await _context.SaveChangesAsync();
-            return MapBracketToDto(entity);
+            var desc = entity.ArmTypeId.HasValue
+                ? (await _context.armsTypes.FindAsync(entity.ArmTypeId.Value))?.Description
+                : null;
+            return MapBracketToDto(entity, desc);
         }
 
         public async Task<bool> DeleteBracketAsync(int id)
@@ -841,16 +896,21 @@ namespace AwningsAPI.Services.ConfigurationService
             entity.IsDefault      = isDefault;
             entity.IsPriceIgnored = isPriceIgnored;
             await _context.SaveChangesAsync();
-            return MapBracketToDto(entity);
+            var desc = entity.ArmTypeId.HasValue
+                ? (await _context.armsTypes.FindAsync(entity.ArmTypeId.Value))?.Description
+                : null;
+            return MapBracketToDto(entity, desc);
         }
 
-        private static AwningsAPI.Dto.Product.BracketDto MapBracketToDto(Brackets b) => new()
+        private static AwningsAPI.Dto.Product.BracketDto MapBracketToDto(Brackets b, string? armTypeDescription = null) => new()
         {
             BracketId = b.BracketId,
             ProductId = b.ProductId,
             BracketName = b.BracketName,
             PartNumber = b.PartNumber ?? string.Empty,
             Price = b.Price,
+            ArmTypeId = b.ArmTypeId,
+            ArmTypeDescription = armTypeDescription,
             IsDefault = b.IsDefault,
             IsPriceIgnored = b.IsPriceIgnored,
             DateCreated = b.DateCreated,

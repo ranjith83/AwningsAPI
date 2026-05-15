@@ -2,6 +2,12 @@
 
 namespace AwningsAPI.Dto.Product
 {
+    public class ArmTypeDto
+    {
+        public int ArmTypeId { get; set; }
+        public string Description { get; set; }
+    }
+
     public class ArmDto
     {
         public int ArmId { get; set; }

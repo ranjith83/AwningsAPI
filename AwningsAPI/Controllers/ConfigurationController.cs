@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using AwningsAPI.Dto;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Dto.Configuration;
 using AwningsAPI.Dto.Product;
@@ -71,14 +72,31 @@ namespace AwiningsIreland_WebAPI.Controllers
         }
 
         // ══════════════════════════════════════════════════════════════════════
+        //  ARM TYPES  —  /api/configuration/arm-types
+        // ══════════════════════════════════════════════════════════════════════
+
+        [HttpGet("arm-types")]
+        [ProducesResponseType(typeof(IEnumerable<ArmTypeDto>), 200)]
+        public async Task<ActionResult<IEnumerable<ArmTypeDto>>> GetAllArmTypes()
+        {
+            return Ok(await _configurationService.GetAllArmTypesAsync());
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
         //  BRACKETS  —  /api/configuration/brackets
         // ══════════════════════════════════════════════════════════════════════
 
         [HttpGet("brackets")]
-        [ProducesResponseType(typeof(IEnumerable<BracketDto>), 200)]
-        public async Task<ActionResult<IEnumerable<BracketDto>>> GetAllBrackets()
+        [ProducesResponseType(typeof(PagedResult<BracketDto>), 200)]
+        public async Task<ActionResult<PagedResult<BracketDto>>> GetAllBrackets(
+            [FromQuery] int? productId,
+            [FromQuery] string? bracketName,
+            [FromQuery] decimal? minPrice,
+            [FromQuery] decimal? maxPrice,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
         {
-            return Ok(await _configurationService.GetAllBracketsAsync());
+            return Ok(await _configurationService.GetBracketsPagedAsync(productId, bracketName, minPrice, maxPrice, page, pageSize));
         }
 
         [HttpGet("brackets/product/{productId}")]

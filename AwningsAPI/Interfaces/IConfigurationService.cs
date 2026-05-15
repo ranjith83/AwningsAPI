@@ -1,4 +1,5 @@
-﻿using AwningsAPI.Dto.Configuration;
+﻿using AwningsAPI.Dto;
+using AwningsAPI.Dto.Configuration;
 using AwningsAPI.Dto.Product;
 using AwningsAPI.Dto.Supplier;
 
@@ -13,8 +14,11 @@ namespace AwningsAPI.Interfaces
         Task<SiteVisitValueDto> UpdateSiteVisitValueAsync(int id, UpdateSiteVisitValueDto updateDto, string currentUser);
         Task<bool> DeleteSiteVisitValueAsync(int id);
 
+        // ── Arm Types ─────────────────────────────────────────────────────────
+        Task<IEnumerable<ArmTypeDto>> GetAllArmTypesAsync();
+
         // ── Brackets  (BracketDto lives in AwningsAPI.Dto.Product) ──────────
-        Task<IEnumerable<BracketDto>> GetAllBracketsAsync();
+        Task<PagedResult<BracketDto>> GetBracketsPagedAsync(int? productId, string? bracketName, decimal? minPrice, decimal? maxPrice, int page, int pageSize);
         Task<IEnumerable<BracketDto>> GetBracketsByProductIdAsync(int productId);
         Task<BracketDto> GetBracketByIdAsync(int id);
         Task<BracketDto> CreateBracketAsync(CreateBracketDto createDto, string currentUser);
