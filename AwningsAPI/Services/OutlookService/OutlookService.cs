@@ -35,8 +35,6 @@ namespace AwningsAPI.Services.OutlookService
 
         public async Task<string> CreateShowroomInviteAsync(ShowroomInviteDto dto, string currentUser)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-
             try
             {
                 var startTime = ParseTimeSlot(dto.EventDate, dto.TimeSlot);
@@ -119,15 +117,12 @@ namespace AwningsAPI.Services.OutlookService
                     await SendShowroomInviteEmailAsync(dto);
                 }
 
-                await transaction.CommitAsync();
-
                 _logger.LogInformation($"Created showroom invite '{eventSubject}' for {dto.CustomerName} on {startTime}");
 
                 return createdEvent.Id;
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error creating showroom invite");
                 throw;
             }
@@ -303,8 +298,6 @@ namespace AwningsAPI.Services.OutlookService
 
         public async Task DeleteCalendarEventAsync(string eventId)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-
             try
             {
                 var organizerEmail = _configuration["AzureAd:OrganizerEmail"];
@@ -332,13 +325,10 @@ namespace AwningsAPI.Services.OutlookService
                     await _context.SaveChangesAsync();
                 }
 
-                await transaction.CommitAsync();
-
                 _logger.LogInformation("Deleted calendar event {EventId}", eventId);
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error deleting calendar event {EventId}", eventId);
                 throw;
             }
