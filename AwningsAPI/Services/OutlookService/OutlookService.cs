@@ -309,10 +309,17 @@ namespace AwningsAPI.Services.OutlookService
             {
                 var organizerEmail = _configuration["AzureAd:OrganizerEmail"];
 
-                // Delete from Outlook
-                await _graphClient.Users[organizerEmail]
-                    .Events[eventId]
-                    .DeleteAsync();
+                // Delete from Outlook — tolerate "not found" (already deleted or stale ID)
+                try
+                {
+                    await _graphClient.Users[organizerEmail]
+                        .Events[eventId]
+                        .DeleteAsync();
+                }
+                catch (ODataError odataEx) when (odataEx.ResponseStatusCode == 404)
+                {
+                    _logger.LogWarning("Calendar event {EventId} not found in Graph — skipping Graph delete, updating DB only", eventId);
+                }
 
                 // Update database record
                 var showroomInvite = await _context.ShowroomInvites
@@ -327,12 +334,12 @@ namespace AwningsAPI.Services.OutlookService
 
                 await transaction.CommitAsync();
 
-                _logger.LogInformation($"Deleted calendar event {eventId}");
+                _logger.LogInformation("Deleted calendar event {EventId}", eventId);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, $"Error deleting calendar event {eventId}");
+                _logger.LogError(ex, "Error deleting calendar event {EventId}", eventId);
                 throw;
             }
         }
