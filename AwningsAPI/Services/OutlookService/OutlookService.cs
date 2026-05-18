@@ -7,6 +7,7 @@ using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Primitives;
 using Microsoft.EntityFrameworkCore;
 
 namespace AwningsAPI.Services.OutlookService
@@ -18,6 +19,7 @@ namespace AwningsAPI.Services.OutlookService
         private readonly GraphServiceClient _graphClient;
         private readonly ILogger<OutlookService> _logger;
         private readonly IMemoryCache _cache;
+        private CancellationTokenSource _calendarCacheToken = new();
 
         public OutlookService(
             AppDbContext context,
@@ -117,6 +119,7 @@ namespace AwningsAPI.Services.OutlookService
                     await SendShowroomInviteEmailAsync(dto);
                 }
 
+                InvalidateCalendarCache();
                 _logger.LogInformation($"Created showroom invite '{eventSubject}' for {dto.CustomerName} on {startTime}");
 
                 return createdEvent.Id;
@@ -220,7 +223,7 @@ namespace AwningsAPI.Services.OutlookService
                 {
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
                     Size = 1
-                });
+                }.AddExpirationToken(new CancellationChangeToken(_calendarCacheToken.Token)));
 
                 return result;
             }
@@ -325,6 +328,7 @@ namespace AwningsAPI.Services.OutlookService
                     await _context.SaveChangesAsync();
                 }
 
+                InvalidateCalendarCache();
                 _logger.LogInformation("Deleted calendar event {EventId}", eventId);
             }
             catch (Exception ex)
@@ -376,6 +380,13 @@ namespace AwningsAPI.Services.OutlookService
                 _logger.LogError(ex, "Error sending showroom invite email");
                 throw;
             }
+        }
+
+        private void InvalidateCalendarCache()
+        {
+            var old = Interlocked.Exchange(ref _calendarCacheToken, new CancellationTokenSource());
+            old.Cancel();
+            old.Dispose();
         }
 
         private DateTime ParseTimeSlot(DateTime eventDate, string timeSlot)
