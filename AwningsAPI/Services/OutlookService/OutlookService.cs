@@ -4,6 +4,7 @@ using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Showroom;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
+using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
