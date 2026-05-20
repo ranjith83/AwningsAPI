@@ -2,6 +2,7 @@
 using AwningsAPI.Migrations;
 using AwningsAPI.Model.Audit;
 using AwningsAPI.Model.Auth;
+using AwningsAPI.Model.Common;
 using AwningsAPI.Model.Customers;
 using AwningsAPI.Model.Email;
 using AwningsAPI.Model.Products;
@@ -72,6 +73,7 @@ namespace AwningsAPI.Database
         public DbSet<WorkflowFollowUp> WorkflowFollowUps { get; set; }
 
         public DbSet<UserSignature> UserSignatures { get; set; }
+        public DbSet<OptionLookup> OptionLookups { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -2704,6 +2706,13 @@ namespace AwningsAPI.Database
                 new LightingCassette { LightingId = 2, Description = "Surcharge for LED Line RGB-WW Zigbee radio control - dimmable (without transmitter)", Price = 1386.00m, DateCreated = new DateTime(2026, 4, 7), CreatedBy = "System", ProductId = 4 },
                 new { LightingId = 3,Description = "Surcharge for LED Line RGB-WW Radio-controlled io - dimmable (without remote control)",  Price = 1555m,  DateCreated = new DateTime(2026, 4, 16), CreatedBy = "System", ProductId = 7 },
                 new { LightingId = 4, Description = "Surcharge for LED Line RGB-WW Zigbee radio control - dimmable (without transmitter)", Price = 1386m, DateCreated = new DateTime(2026, 4, 16), CreatedBy = "System", ProductId = 7 }
+            );
+
+            // OptionLookup seed data
+            modelBuilder.Entity<OptionLookup>().HasData(
+                new OptionLookup { Id = 1, Category = "WindSensor", Label = "No",              Value = "No",   Price = null,  DisplayOrder = 1, IsActive = true },
+                new OptionLookup { Id = 2, Category = "WindSensor", Label = "Yes - €250",      Value = "Yes",  Price = 250m,  DisplayOrder = 2, IsActive = true },
+                new OptionLookup { Id = 3, Category = "WindSensor", Label = "Free of charge",  Value = "Free", Price = 0m,    DisplayOrder = 3, IsActive = true }
             );
         }
     }

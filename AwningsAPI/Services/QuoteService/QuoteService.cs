@@ -67,6 +67,7 @@ namespace AwningsAPI.Services.QuoteService
                 Terms = createDto.Terms ?? string.Empty,
                 DiscountType = discountType,
                 DiscountValue = discountValue,
+                WindSensorOption = createDto.WindSensorOption,
                 IsFinal = false,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser
@@ -83,6 +84,12 @@ namespace AwningsAPI.Services.QuoteService
 
             _context.Quotes.Add(quote);
             await _context.SaveChangesAsync();
+            await _context.WorkflowStarts
+                .Where(w => w.WorkflowId == createDto.WorkflowId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(w => w.CreateQuote, true)
+                    .SetProperty(w => w.DateUpdated, DateTime.UtcNow)
+                    .SetProperty(w => w.UpdatedBy, currentUser));
 
             return await GetQuoteByIdAsync(quote.QuoteId);
         }
@@ -118,6 +125,7 @@ namespace AwningsAPI.Services.QuoteService
                 Terms = createDto.Terms ?? string.Empty,
                 DiscountType = discountType,
                 DiscountValue = discountValue,
+                WindSensorOption = createDto.WindSensorOption,
                 IsFinal = true,
                 FinalizedAt = DateTime.UtcNow,
                 DraftQuoteId = draft.QuoteId,
@@ -138,6 +146,12 @@ namespace AwningsAPI.Services.QuoteService
 
             _context.Quotes.Add(finalQuote);
             await _context.SaveChangesAsync();
+            await _context.WorkflowStarts
+                .Where(w => w.WorkflowId == draft.WorkflowId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(w => w.FinalQuote, true)
+                    .SetProperty(w => w.DateUpdated, DateTime.UtcNow)
+                    .SetProperty(w => w.UpdatedBy, currentUser));
 
             return await GetQuoteByIdAsync(finalQuote.QuoteId);
         }
@@ -178,6 +192,9 @@ namespace AwningsAPI.Services.QuoteService
 
             if (updateDto.DiscountValue.HasValue)
                 quote.DiscountValue = updateDto.DiscountValue.Value;
+
+            if (updateDto.WindSensorOption != null)
+                quote.WindSensorOption = updateDto.WindSensorOption;
 
             if (updateDto.QuoteItems != null && updateDto.QuoteItems.Any())
             {
@@ -328,6 +345,7 @@ namespace AwningsAPI.Services.QuoteService
                 IsFinal = quote.IsFinal,
                 FinalizedAt = quote.FinalizedAt,
                 DraftQuoteId = quote.DraftQuoteId,
+                WindSensorOption = quote.WindSensorOption,
                 QuoteItems = quote.QuoteItems?.Select(q => new QuoteItemDto
                 {
                     QuoteItemId = q.QuoteItemId,

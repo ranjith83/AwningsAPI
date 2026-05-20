@@ -2,6 +2,7 @@
 using AwningsAPI.Dto.Outlook;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Showroom;
+using AwningsAPI.Model.Workflow;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
@@ -112,6 +113,12 @@ namespace AwningsAPI.Services.OutlookService
 
                 _context.ShowroomInvites.Add(showroomInvite);
                 await _context.SaveChangesAsync();
+                await _context.WorkflowStarts
+                    .Where(w => w.WorkflowId == dto.WorkflowId)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(w => w.InviteShowRoom, true)
+                        .SetProperty(w => w.DateUpdated, DateTime.UtcNow)
+                        .SetProperty(w => w.UpdatedBy, currentUser));
 
                 // Send email if requested
                 if (dto.EmailClient)

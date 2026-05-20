@@ -23,6 +23,7 @@ namespace AwningsAPI.Dto.Workflow
         public bool IsFinal { get; set; }
         public DateTime? FinalizedAt { get; set; }
         public int? DraftQuoteId { get; set; }
+        public string? WindSensorOption { get; set; }
         public virtual ICollection<QuoteItemDto> QuoteItems { get; set; } = new List<QuoteItemDto>();
         public int CustomerId { get; set; }
     }
@@ -71,6 +72,9 @@ namespace AwningsAPI.Dto.Workflow
         /// </summary>
         public decimal DiscountValue { get; set; } = 0;
 
+        /// <summary>'No', 'Yes', or 'Free'</summary>
+        public string? WindSensorOption { get; set; }
+
         [Required]
         public List<CreateQuoteItemDto> QuoteItems { get; set; } = new List<CreateQuoteItemDto>();
     }
@@ -103,6 +107,7 @@ namespace AwningsAPI.Dto.Workflow
         /// <summary>Set to null or empty string to clear the discount.</summary>
         public string? DiscountType { get; set; }
         public decimal? DiscountValue { get; set; }
+        public string? WindSensorOption { get; set; }
         public List<UpdateQuoteItemDto> QuoteItems { get; set; }
     }
 
@@ -121,6 +126,7 @@ namespace AwningsAPI.Dto.Workflow
         public string Terms { get; set; }
         public string? DiscountType { get; set; }
         public decimal DiscountValue { get; set; } = 0;
+        public string? WindSensorOption { get; set; }
 
         [Required]
         public List<CreateQuoteItemDto> QuoteItems { get; set; } = new List<CreateQuoteItemDto>();

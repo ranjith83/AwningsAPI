@@ -2,6 +2,7 @@
 using AwningsAPI.Database;
 using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Interfaces;
+using AwningsAPI.Model.Workflow;
 using Microsoft.EntityFrameworkCore;
 
 namespace AwningsAPI.Services.WorkflowService
@@ -82,6 +83,7 @@ namespace AwningsAPI.Services.WorkflowService
                 CustomerId = createDto.CustomerId,
                 Notes = createDto.Notes,
                 Terms = createDto.Terms,
+                WindSensorOption = createDto.WindSensorOption,
                 Status = "Draft",
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser
@@ -118,6 +120,12 @@ namespace AwningsAPI.Services.WorkflowService
 
             _context.Invoices.Add(invoice);
             await _context.SaveChangesAsync();
+            await _context.WorkflowStarts
+                .Where(w => w.WorkflowId == createDto.WorkflowId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(w => w.InvoiceSent, true)
+                    .SetProperty(w => w.DateUpdated, DateTime.UtcNow)
+                    .SetProperty(w => w.UpdatedBy, currentUser));
 
             return await GetInvoiceByIdAsync(invoice.Id);
         }
@@ -146,6 +154,9 @@ namespace AwningsAPI.Services.WorkflowService
 
             if (updateDto.Terms != null)
                 invoice.Terms = updateDto.Terms;
+
+            if (updateDto.WindSensorOption != null)
+                invoice.WindSensorOption = updateDto.WindSensorOption;
 
             // Update invoice items if provided
             if (updateDto.InvoiceItems != null && updateDto.InvoiceItems.Any())
@@ -350,6 +361,7 @@ namespace AwningsAPI.Services.WorkflowService
                 Status = invoice.Status,
                 Notes = invoice.Notes,
                 Terms = invoice.Terms,
+                WindSensorOption = invoice.WindSensorOption,
                 CreatedAt = invoice.CreatedAt,
                 CreatedBy = invoice.CreatedBy,
                 InvoiceItems = invoice.InvoiceItems?.Select(i => new InvoiceItemDto

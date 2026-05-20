@@ -2,6 +2,7 @@
 using AwningsAPI.Interceptors;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Middleware;
+using AwningsAPI.Services;
 using AwningsAPI.Services.AuditLogService;
 using AwningsAPI.Services.Auth;
 using AwningsAPI.Services.ConfigurationService;
@@ -50,6 +51,7 @@ builder.Services.AddScoped<IOutlookService, OutlookService>();
 builder.Services.AddScoped<FollowUpService>();
 
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
+builder.Services.AddScoped<IOptionLookupService, OptionLookupService>();
 
 // Configure HttpClient
 builder.Services.AddHttpClient();
@@ -156,6 +158,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 
 app.UseCors("AllowAngularDev");
 app.UseResponseCompression();

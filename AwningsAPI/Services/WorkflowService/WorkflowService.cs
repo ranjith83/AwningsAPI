@@ -47,16 +47,6 @@ namespace AwningsAPI.Services.WorkflowService
             if (!workflows.Any())
                 return Enumerable.Empty<WorkflowDto>();
 
-            var workflowIds = workflows.Select(w => w.WorkflowId).ToList();
-
-            // Bulk-load which workflow IDs have real activity for each stage
-            var enquiryIds = await _context.InitialEnquiries.Where(e => workflowIds.Contains(e.WorkflowId)).Select(e => e.WorkflowId).Distinct().ToListAsync();
-            var quoteIds = await _context.Quotes.Where(q => workflowIds.Contains(q.WorkflowId)).Select(q => q.WorkflowId).Distinct().ToListAsync();
-            var finalQuoteIds = await _context.Quotes.Where(q => workflowIds.Contains(q.WorkflowId) && q.IsFinal).Select(q => q.WorkflowId).Distinct().ToListAsync();
-            var showroomIds = await _context.ShowroomInvites.Where(s => workflowIds.Contains(s.WorkflowId)).Select(s => s.WorkflowId).Distinct().ToListAsync();
-            var siteVisitIds = await _context.SiteVisits.Where(v => workflowIds.Contains(v.WorkflowId)).Select(v => v.WorkflowId).Distinct().ToListAsync();
-            var invoiceIds = await _context.Invoices.Where(i => workflowIds.Contains(i.WorkflowId)).Select(i => i.WorkflowId).Distinct().ToListAsync();
-
             return workflows.Select(w => new WorkflowDto
             {
                 WorkflowId = w.WorkflowId,
@@ -69,20 +59,15 @@ namespace AwningsAPI.Services.WorkflowService
                 SetupSiteVisit = w.SetupSiteVisit,
                 InvoiceSent = w.InvoiceSent,
                 FinalQuote = w.FinalQuote,
-                // Stage-completed flags
-                InitialEnquiryCompleted = enquiryIds.Contains(w.WorkflowId),
-                CreateQuotationCompleted = quoteIds.Contains(w.WorkflowId),
-                InviteShowRoomCompleted = showroomIds.Contains(w.WorkflowId),
-                SetupSiteVisitCompleted = siteVisitIds.Contains(w.WorkflowId),
-                InvoiceSentCompleted = invoiceIds.Contains(w.WorkflowId),
-                FinalQuoteCompleted = finalQuoteIds.Contains(w.WorkflowId),
-                // Deletion guard flag (any completed stage = has dependencies)
-                HasDependencies =
-                    enquiryIds.Contains(w.WorkflowId) ||
-                    quoteIds.Contains(w.WorkflowId) ||
-                    showroomIds.Contains(w.WorkflowId) ||
-                    siteVisitIds.Contains(w.WorkflowId) ||
-                    invoiceIds.Contains(w.WorkflowId),
+                // Stage-completed flags read directly from WorkflowStarts
+                InitialEnquiryCompleted = w.InitialEnquiry,
+                CreateQuotationCompleted = w.CreateQuote,
+                InviteShowRoomCompleted = w.InviteShowRoom,
+                SetupSiteVisitCompleted = w.SetupSiteVisit,
+                InvoiceSentCompleted = w.InvoiceSent,
+                FinalQuoteCompleted = w.FinalQuote,
+                // Deletion guard flag derived from stored stage flags
+                HasDependencies = w.InitialEnquiry || w.CreateQuote || w.InviteShowRoom || w.SetupSiteVisit || w.InvoiceSent,
                 DateAdded = w.DateCreated,
                 AddedBy = w.CreatedBy,
                 CompanyId = w.CompanyId,
@@ -157,6 +142,12 @@ namespace AwningsAPI.Services.WorkflowService
                     CreatedBy = currentUser
                 });
                 await _context.SaveChangesAsync();
+                await _context.WorkflowStarts
+                    .Where(w => w.WorkflowId == workflowId)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(w => w.InitialEnquiry, true)
+                        .SetProperty(w => w.DateUpdated, DateTime.UtcNow)
+                        .SetProperty(w => w.UpdatedBy, currentUser));
             }
             catch (Exception ex)
             {
@@ -279,6 +270,12 @@ namespace AwningsAPI.Services.WorkflowService
             };
             _context.InitialEnquiries.Add(enquiry);
             await _context.SaveChangesAsync();
+            await _context.WorkflowStarts
+                .Where(w => w.WorkflowId == dto.WorkflowId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(w => w.InitialEnquiry, true)
+                    .SetProperty(w => w.DateUpdated, DateTime.UtcNow)
+                    .SetProperty(w => w.UpdatedBy, currentUser));
             await _followUpService.DismissActiveForWorkflowAsync(dto.WorkflowId, currentUser);
             return enquiry;
         }

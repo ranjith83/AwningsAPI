@@ -56,6 +56,9 @@ namespace AwiningsIreland_WebAPI.Models
         [StringLength(100)]
         public string? UpdatedBy { get; set; }
 
+        [StringLength(20)]
+        public string? WindSensorOption { get; set; }
+
         // Navigation Properties
         public virtual ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();
 

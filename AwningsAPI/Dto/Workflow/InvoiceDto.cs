@@ -22,6 +22,7 @@ namespace AwningsAPI.Dto.Workflow
         public string Status { get; set; }
         public string Notes { get; set; }
         public string Terms { get; set; }
+        public string? WindSensorOption { get; set; }
         public DateTime CreatedAt { get; set; }
         public string CreatedBy { get; set; }
         public List<InvoiceItemDto> InvoiceItems { get; set; } = new List<InvoiceItemDto>();
@@ -74,6 +75,7 @@ namespace AwningsAPI.Dto.Workflow
 
         public string Notes { get; set; }
         public string Terms { get; set; }
+        public string? WindSensorOption { get; set; }
 
         [Required]
         public List<CreateInvoiceItemDto> InvoiceItems { get; set; } = new List<CreateInvoiceItemDto>();
@@ -106,6 +108,7 @@ namespace AwningsAPI.Dto.Workflow
         public string Status { get; set; }
         public string Notes { get; set; }
         public string Terms { get; set; }
+        public string? WindSensorOption { get; set; }
         public List<UpdateInvoiceItemDto> InvoiceItems { get; set; }
     }
 

@@ -74,6 +74,9 @@ namespace AwningsAPI.Model.Workflow
 
         [ForeignKey("DraftQuoteId")]
         public virtual Quote DraftQuote { get; set; }
+
+        [StringLength(20)]
+        public string? WindSensorOption { get; set; }
     }
 
     public class QuoteItem

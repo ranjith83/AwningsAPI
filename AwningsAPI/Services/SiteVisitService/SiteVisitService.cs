@@ -2,6 +2,7 @@
 using AwningsAPI.Dto.SiteVisit;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.SiteVisit;
+using AwningsAPI.Model.Workflow;
 using Microsoft.EntityFrameworkCore;
 
 namespace AwningsAPI.Services.SiteVisitService
@@ -183,6 +184,12 @@ namespace AwningsAPI.Services.SiteVisitService
 
             _context.SiteVisits.Add(siteVisit);
             await _context.SaveChangesAsync();
+            await _context.WorkflowStarts
+                .Where(w => w.WorkflowId == dto.WorkflowId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(w => w.SetupSiteVisit, true)
+                    .SetProperty(w => w.DateUpdated, DateTime.UtcNow)
+                    .SetProperty(w => w.UpdatedBy, currentUser));
 
             return siteVisit;
         }
