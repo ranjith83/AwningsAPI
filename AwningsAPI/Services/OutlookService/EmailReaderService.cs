@@ -170,6 +170,7 @@ namespace AwningsAPI.Services.Email
                             ContentType = fileAttachment.ContentType ?? "application/octet-stream",
                             Size = fileAttachment.Size ?? 0,
                             IsInline = fileAttachment.IsInline ?? false,
+                            ContentId = fileAttachment.ContentId,
                             Base64Content = Convert.ToBase64String(fileAttachment.ContentBytes ?? Array.Empty<byte>())
                         };
 

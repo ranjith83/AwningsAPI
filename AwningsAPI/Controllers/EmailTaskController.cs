@@ -603,6 +603,8 @@ namespace AwningsAPI.Controllers
             if (task == null)
                 return NotFound(new { error = "Task not found" });
 
+            var html = task.EmailBody ?? string.Empty;
+
             if (task.IncomingEmailId.HasValue)
             {
                 var bodyBlobUrl = await _context.IncomingEmails
@@ -618,7 +620,7 @@ namespace AwningsAPI.Controllers
                         try
                         {
                             var download = await blobClient.DownloadContentAsync();
-                            return Content(download.Value.Content.ToString(), "text/html; charset=utf-8");
+                            html = download.Value.Content.ToString();
                         }
                         catch (Exception ex)
                         {
@@ -626,9 +628,29 @@ namespace AwningsAPI.Controllers
                         }
                     }
                 }
+
+                // Replace cid: references with data URIs so inline images render in the browser.
+                // Browsers can't resolve cid: outside of a MIME multipart context.
+                if (!string.IsNullOrEmpty(html) && html.Contains("cid:", StringComparison.OrdinalIgnoreCase))
+                {
+                    var inlineAttachments = await _context.EmailAttachments
+                        .Where(a => a.IncomingEmailId == task.IncomingEmailId.Value
+                                 && a.IsInline
+                                 && a.ContentId != null
+                                 && a.Base64Content != null)
+                        .ToListAsync();
+
+                    foreach (var att in inlineAttachments)
+                    {
+                        // ContentId may be stored with surrounding angle brackets — strip them
+                        var cid = att.ContentId!.Trim('<', '>');
+                        var dataUri = $"data:{att.ContentType};base64,{att.Base64Content}";
+                        html = html.Replace($"cid:{cid}", dataUri, StringComparison.OrdinalIgnoreCase);
+                    }
+                }
             }
 
-            return Content(task.EmailBody ?? string.Empty, "text/html; charset=utf-8");
+            return Content(html, "text/html; charset=utf-8");
         }
 
         #endregion
