@@ -158,11 +158,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-}
+// Migrations are applied by the CI pipeline (ci-dev.yml / ci-prod.yml)
+// using 'dotnet ef database update' before deployment.
+// using (var scope = app.Services.CreateScope())
+// {
+//     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+//     db.Database.Migrate();
+// }
 
 app.UseCors("AllowAngularDev");
 app.UseResponseCompression();
