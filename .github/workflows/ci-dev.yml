@@ -69,15 +69,18 @@ jobs:
       - name: Install EF Core tools
         run: dotnet tool install --global dotnet-ef
 
-      - name: Open SQL firewall for runner
+      - name: Open VM NSG port 1433 for runner
         run: |
           RUNNER_IP=$(curl -s https://api.ipify.org)
-          az sql server firewall-rule create \
+          az network nsg rule create \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --server ${{ secrets.AZURE_SQL_SERVER }} \
-            --name github-runner \
-            --start-ip-address $RUNNER_IP \
-            --end-ip-address $RUNNER_IP
+            --nsg-name ${{ secrets.AZURE_VM_NSG_NAME }} \
+            --name github-runner-sql \
+            --priority 100 \
+            --source-address-prefixes $RUNNER_IP \
+            --destination-port-ranges 1433 \
+            --access Allow \
+            --protocol Tcp
 
       - name: Record current migration
         id: pre-migrate
@@ -85,7 +88,7 @@ jobs:
           LAST=$(dotnet ef migrations list \
             --project AwningsAPI/AwningsAPI.csproj \
             --no-build \
-            --connection "${{ secrets.SQL_CONNECTION_STRING }}" \
+            --connection "${{ secrets.DEV_SQL_CONNECTION_STRING }}" \
             2>/dev/null | grep -v "(Pending)" | tail -1 | awk '{print $1}')
           echo "last_migration=${LAST:-0}" >> $GITHUB_OUTPUT
 
@@ -95,7 +98,7 @@ jobs:
           dotnet ef database update \
             --project AwningsAPI/AwningsAPI.csproj \
             --no-build \
-            --connection "${{ secrets.SQL_CONNECTION_STRING }}"
+            --connection "${{ secrets.DEV_SQL_CONNECTION_STRING }}"
 
       - name: Rollback migration on failure
         if: failure() && steps.migrate.outcome == 'failure'
@@ -103,16 +106,15 @@ jobs:
           dotnet ef database update ${{ steps.pre-migrate.outputs.last_migration }} \
             --project AwningsAPI/AwningsAPI.csproj \
             --no-build \
-            --connection "${{ secrets.SQL_CONNECTION_STRING }}"
+            --connection "${{ secrets.DEV_SQL_CONNECTION_STRING }}"
 
-      - name: Remove SQL firewall rule
+      - name: Remove VM NSG rule
         if: always()
         run: |
-          az sql server firewall-rule delete \
+          az network nsg rule delete \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --server ${{ secrets.AZURE_SQL_SERVER }} \
-            --name github-runner \
-            --yes
+            --nsg-name ${{ secrets.AZURE_VM_NSG_NAME }} \
+            --name github-runner-sql
 
       - name: Deploy image to Dev Container App
         uses: azure/container-apps-deploy-action@v2
