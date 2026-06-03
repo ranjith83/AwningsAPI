@@ -75,21 +75,28 @@ jobs:
           NSG_NAME: ${{ secrets.AZURE_VM_NSG_NAME }}
         run: |
           RUNNER_IP=$(curl -s https://api.ipify.org)
-          az network nsg rule delete \
-            --resource-group "$RESOURCE_GROUP" \
-            --nsg-name "$NSG_NAME" \
-            --name github-runner-sql 2>/dev/null || true
-          az network nsg rule create \
-            --resource-group "$RESOURCE_GROUP" \
-            --nsg-name "$NSG_NAME" \
-            --name github-runner-sql \
-            --priority 100 \
-            --source-address-prefixes "$RUNNER_IP" \
-            --source-port-ranges '*' \
-            --destination-address-prefixes '*' \
-            --destination-port-ranges 1433 \
-            --access Allow \
-            --protocol Tcp
+          if az network nsg rule show \
+              --resource-group "$RESOURCE_GROUP" \
+              --nsg-name "$NSG_NAME" \
+              --name github-runner-sql &>/dev/null; then
+            az network nsg rule update \
+              --resource-group "$RESOURCE_GROUP" \
+              --nsg-name "$NSG_NAME" \
+              --name github-runner-sql \
+              --source-address-prefixes "$RUNNER_IP"
+          else
+            az network nsg rule create \
+              --resource-group "$RESOURCE_GROUP" \
+              --nsg-name "$NSG_NAME" \
+              --name github-runner-sql \
+              --priority 100 \
+              --source-address-prefixes "$RUNNER_IP" \
+              --source-port-ranges '*' \
+              --destination-address-prefixes '*' \
+              --destination-port-ranges 1433 \
+              --access Allow \
+              --protocol Tcp
+          fi
 
       - name: Record current migration
         id: pre-migrate
