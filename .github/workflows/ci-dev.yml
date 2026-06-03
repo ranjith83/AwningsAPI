@@ -72,6 +72,9 @@ jobs:
       - name: Restore NuGet packages
         run: dotnet restore AwningsAPI/AwningsAPI.csproj
 
+      - name: Build project
+        run: dotnet build AwningsAPI/AwningsAPI.csproj --no-restore
+
       - name: Open VM NSG port 1433 for runner
         env:
           RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
