@@ -74,6 +74,8 @@ jobs:
           RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
           NSG_NAME: ${{ secrets.AZURE_VM_NSG_NAME }}
         run: |
+          RESOURCE_GROUP=$(echo "$RESOURCE_GROUP" | tr -d '[:space:]')
+          NSG_NAME=$(echo "$NSG_NAME" | tr -d '[:space:]')
           RUNNER_IP=$(curl -s https://api.ipify.org)
           if az network nsg rule show \
               --resource-group "$RESOURCE_GROUP" \
@@ -130,6 +132,8 @@ jobs:
           RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
           NSG_NAME: ${{ secrets.AZURE_VM_NSG_NAME }}
         run: |
+          RESOURCE_GROUP=$(echo "$RESOURCE_GROUP" | tr -d '[:space:]')
+          NSG_NAME=$(echo "$NSG_NAME" | tr -d '[:space:]')
           az network nsg rule delete \
             --resource-group "$RESOURCE_GROUP" \
             --nsg-name "$NSG_NAME" \
