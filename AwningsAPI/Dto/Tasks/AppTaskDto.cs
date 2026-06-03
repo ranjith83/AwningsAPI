@@ -280,6 +280,14 @@ namespace AwningsAPI.Dto.Tasks
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Category update DTO
+    // ─────────────────────────────────────────────────────────────────────────
+    public class UpdateCategoryDto
+    {
+        public string Category { get; set; } = string.Empty;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Assignment DTO — unchanged
     // ─────────────────────────────────────────────────────────────────────────
     public class AssignTaskDto

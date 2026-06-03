@@ -19,6 +19,7 @@ namespace AwningsAPI.Interfaces
         // Status Management
         Task<AppTaskDto> UpdateTaskStatusAsync(int taskId, UpdateTaskStatusDto statusDto, string currentUser);
         Task<AppTaskDto> CompleteTaskAsync(int taskId, string completionNotes, string currentUser);
+        Task<AppTaskDto> UpdateCategoryAsync(int taskId, UpdateCategoryDto dto, string currentUser);
 
         // Assignment
         Task<AppTaskDto> AssignTaskAsync(int taskId, AssignTaskDto assignDto, string currentUser);

@@ -317,6 +317,45 @@ namespace AwningsAPI.Services.Tasks
             return await UpdateTaskStatusAsync(taskId, statusDto, currentUser);
         }
 
+        private static readonly HashSet<string> ValidTaskCategories = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "New Invoice", "New Quote", "New Customer", "Site Visit",
+            "Inquiry", "Complaint", "Payment", "General"
+        };
+
+        public async Task<AppTaskDto> UpdateCategoryAsync(int taskId, UpdateCategoryDto dto, string currentUser)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Category))
+                throw new ArgumentException("Category is required.");
+
+            if (!ValidTaskCategories.Contains(dto.Category))
+                throw new ArgumentOutOfRangeException(nameof(dto.Category),
+                    $"Unknown category '{dto.Category}'. Valid values: {string.Join(", ", ValidTaskCategories)}");
+
+            var task = await _context.Tasks.FindAsync(taskId);
+            if (task == null)
+                return null;
+
+            var oldCategory = task.Category;
+            task.Category    = dto.Category;
+            task.DateUpdated = DateTime.UtcNow;
+            task.UpdatedBy   = currentUser;
+
+            await _context.SaveChangesAsync();
+
+            await AddHistoryEntry(
+                taskId:    taskId,
+                action:    "CategoryChanged",
+                oldValue:  oldCategory,
+                newValue:  dto.Category,
+                details:   $"Category changed from '{oldCategory}' to '{dto.Category}'",
+                createdBy: currentUser,
+                subject:   task.Subject,
+                category:  dto.Category);
+
+            return await GetTaskByIdAsync(taskId);
+        }
+
         #endregion
 
         #region Assignment

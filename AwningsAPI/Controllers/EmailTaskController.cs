@@ -503,6 +503,38 @@ namespace AwningsAPI.Controllers
         }
         #endregion
 
+        #region PATCH Endpoints
+
+        /// <summary>
+        /// Update the category of a task.
+        /// PATCH /api/EmailTask/{taskId}/category
+        /// </summary>
+        [HttpPatch("{taskId}/category")]
+        public async Task<ActionResult<AppTaskDto>> UpdateCategory(int taskId, [FromBody] UpdateCategoryDto dto)
+        {
+            try
+            {
+                var currentUser = GetCurrentUserName();
+                var task = await _taskService.UpdateCategoryAsync(taskId, dto, currentUser);
+
+                if (task == null)
+                    return NotFound(new { error = "Task not found" });
+
+                return Ok(task);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating category for task {TaskId}", taskId);
+                return StatusCode(500, new { error = "An error occurred while updating the category", details = ex.Message });
+            }
+        }
+
+        #endregion
+
         #region DELETE Endpoints
 
         /// <summary>
