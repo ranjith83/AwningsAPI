@@ -69,6 +69,9 @@ jobs:
       - name: Install EF Core tools
         run: dotnet tool install --global dotnet-ef
 
+      - name: Restore NuGet packages
+        run: dotnet restore AwningsAPI/AwningsAPI.csproj
+
       - name: Open VM NSG port 1433 for runner
         env:
           RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
