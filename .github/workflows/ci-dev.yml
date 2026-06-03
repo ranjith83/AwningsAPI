@@ -75,6 +75,10 @@ jobs:
           NSG_NAME: ${{ secrets.AZURE_VM_NSG_NAME }}
         run: |
           RUNNER_IP=$(curl -s https://api.ipify.org)
+          az network nsg rule delete \
+            --resource-group "$RESOURCE_GROUP" \
+            --nsg-name "$NSG_NAME" \
+            --name github-runner-sql 2>/dev/null || true
           az network nsg rule create \
             --resource-group "$RESOURCE_GROUP" \
             --nsg-name "$NSG_NAME" \
@@ -122,8 +126,7 @@ jobs:
           az network nsg rule delete \
             --resource-group "$RESOURCE_GROUP" \
             --nsg-name "$NSG_NAME" \
-            --name github-runner-sql \
-            --yes
+            --name github-runner-sql
 
       - name: Deploy image to Dev Container App
         uses: azure/container-apps-deploy-action@v2
