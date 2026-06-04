@@ -104,17 +104,21 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/awningsapi:dev-${{ github.sha }}
 
       - name: Setup .NET 9
+        if: steps.check-migrations.outputs.has_migrations == 'true'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.x"
 
       - name: Install EF Core tools
+        if: steps.check-migrations.outputs.has_migrations == 'true'
         run: dotnet tool install --global dotnet-ef
 
       - name: Restore NuGet packages
+        if: steps.check-migrations.outputs.has_migrations == 'true'
         run: dotnet restore AwningsAPI/AwningsAPI.csproj
 
       - name: Build project
+        if: steps.check-migrations.outputs.has_migrations == 'true'
         run: dotnet build AwningsAPI/AwningsAPI.csproj --no-restore
 
       - name: Wait for NSG rule to propagate
