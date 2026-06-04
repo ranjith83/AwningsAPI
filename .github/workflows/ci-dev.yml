@@ -82,7 +82,8 @@ jobs:
         run: |
           RESOURCE_GROUP=$(echo "$RESOURCE_GROUP" | tr -d '[:space:]')
           NSG_NAME=$(echo "$NSG_NAME" | tr -d '[:space:]')
-          RUNNER_IP=$(ip route get 20.117.119.61 | awk '{print $7; exit}')
+          RUNNER_IP=$(curl -s https://api.ipify.org)
+          echo "Runner IP: $RUNNER_IP"
           if az network nsg rule show \
               --resource-group "$RESOURCE_GROUP" \
               --nsg-name "$NSG_NAME" \
@@ -105,6 +106,8 @@ jobs:
               --access Allow \
               --protocol Tcp
           fi
+          echo "Waiting 90s for NSG rule to propagate..."
+          sleep 90
 
       - name: Record current migration
         id: pre-migrate
