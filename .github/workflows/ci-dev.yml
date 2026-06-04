@@ -82,7 +82,7 @@ jobs:
         run: |
           RESOURCE_GROUP=$(echo "$RESOURCE_GROUP" | tr -d '[:space:]')
           NSG_NAME=$(echo "$NSG_NAME" | tr -d '[:space:]')
-          RUNNER_IP=$(curl -s https://api.ipify.org)
+          RUNNER_IP=$(ip route get 20.117.119.61 | awk '{print $7; exit}')
           if az network nsg rule show \
               --resource-group "$RESOURCE_GROUP" \
               --nsg-name "$NSG_NAME" \
