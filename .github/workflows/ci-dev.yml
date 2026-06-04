@@ -39,43 +39,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 2
 
-      - name: Build and push Docker image (dev)
-        uses: docker/build-push-action@v5
-        with:
-          context: ${{ github.workspace }}/AwningsAPI
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/awningsapi:dev
-            ghcr.io/${{ github.repository_owner }}/awningsapi:dev-${{ github.sha }}
+      - name: Check for migration changes
+        id: check-migrations
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'AwningsAPI/Migrations/*.cs' | grep -v 'Designer' | grep -v 'Snapshot' | wc -l)
+          echo "Migration files changed: $CHANGED"
+          echo "has_migrations=$( [ "$CHANGED" -gt 0 ] && echo 'true' || echo 'false' )" >> $GITHUB_OUTPUT
 
       - name: Log in to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Setup .NET 9
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "9.0.x"
-
-      - name: Install EF Core tools
-        run: dotnet tool install --global dotnet-ef
-
-      - name: Restore NuGet packages
-        run: dotnet restore AwningsAPI/AwningsAPI.csproj
-
-      - name: Build project
-        run: dotnet build AwningsAPI/AwningsAPI.csproj --no-restore
-
       - name: Open VM NSG port 1433 for runner
+        if: steps.check-migrations.outputs.has_migrations == 'true'
         env:
           RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
           NSG_NAME: ${{ secrets.AZURE_VM_NSG_NAME }}
@@ -106,11 +86,44 @@ jobs:
               --access Allow \
               --protocol Tcp
           fi
-          echo "Waiting 90s for NSG rule to propagate..."
-          sleep 90
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image (dev)
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ github.workspace }}/AwningsAPI
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/awningsapi:dev
+            ghcr.io/${{ github.repository_owner }}/awningsapi:dev-${{ github.sha }}
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Restore NuGet packages
+        run: dotnet restore AwningsAPI/AwningsAPI.csproj
+
+      - name: Build project
+        run: dotnet build AwningsAPI/AwningsAPI.csproj --no-restore
+
+      - name: Wait for NSG rule to propagate
+        if: steps.check-migrations.outputs.has_migrations == 'true'
+        run: sleep 30
 
       - name: Record current migration
         id: pre-migrate
+        if: steps.check-migrations.outputs.has_migrations == 'true'
         run: |
           LAST=$(dotnet ef migrations list \
             --project AwningsAPI/AwningsAPI.csproj \
@@ -121,6 +134,7 @@ jobs:
 
       - name: Run database migrations
         id: migrate
+        if: steps.check-migrations.outputs.has_migrations == 'true'
         run: |
           dotnet ef database update \
             --project AwningsAPI/AwningsAPI.csproj \
@@ -128,7 +142,7 @@ jobs:
             --connection "${{ secrets.DEV_SQL_CONNECTION_STRING }}"
 
       - name: Rollback migration on failure
-        if: failure() && steps.migrate.outcome == 'failure'
+        if: steps.check-migrations.outputs.has_migrations == 'true' && failure() && steps.migrate.outcome == 'failure'
         run: |
           dotnet ef database update ${{ steps.pre-migrate.outputs.last_migration }} \
             --project AwningsAPI/AwningsAPI.csproj \
@@ -136,7 +150,7 @@ jobs:
             --connection "${{ secrets.DEV_SQL_CONNECTION_STRING }}"
 
       - name: Remove VM NSG rule
-        if: always()
+        if: always() && steps.check-migrations.outputs.has_migrations == 'true'
         env:
           RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
           NSG_NAME: ${{ secrets.AZURE_VM_NSG_NAME }}
