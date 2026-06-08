@@ -138,7 +138,7 @@ Rules:
 
         var requestBody = new
         {
-            model = "claude-3-5-sonnet-20241022",
+            model = _configuration["Claude:Model"] ?? "claude-haiku-4-5",
             max_tokens = 1024,
             messages = new[] { new { role = "user", content = prompt } }
         };
