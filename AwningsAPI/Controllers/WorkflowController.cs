@@ -1,10 +1,12 @@
-﻿using AwningsAPI.Dto.Auth;
+﻿using AwningsAPI.Database;
+using AwningsAPI.Dto.Auth;
 using AwningsAPI.Dto.Product;
 using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AwningsAPI.Controllers
 {
@@ -13,11 +15,22 @@ namespace AwningsAPI.Controllers
     public class WorkflowController : ControllerBase
     {
         private readonly IWorkflowService _workflowService;
+        private readonly IEmailAutoReplyService _autoReplyService;
+        private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
         private readonly ILogger<WorkflowController> _logger;
 
-        public WorkflowController(IWorkflowService workflowService, ILogger<WorkflowController> logger)
+        public WorkflowController(
+            IWorkflowService workflowService,
+            IEmailAutoReplyService autoReplyService,
+            AppDbContext context,
+            IConfiguration configuration,
+            ILogger<WorkflowController> logger)
         {
             _workflowService = workflowService;
+            _autoReplyService = autoReplyService;
+            _context = context;
+            _configuration = configuration;
             _logger = logger;
         }
 
@@ -101,6 +114,8 @@ namespace AwningsAPI.Controllers
                 Signature = c.Signature,
                 TaskId = c.TaskId,
                 IncomingEmailId = c.IncomingEmailId,
+                AutoReplyDraftId = c.AutoReplyDraftId,
+                AutoReplyContent = c.AutoReplyContent,
                 DateCreated = c.DateCreated,
                 CreatedBy = c.CreatedBy
             }).ToList();
@@ -132,6 +147,28 @@ namespace AwningsAPI.Controllers
                 return NotFound(new { message = $"Enquiry {enquiryId} not found." });
             _logger.LogInformation("InitialEnquiry {EnquiryId} soft-deleted by {User}", enquiryId, CurrentUser);
             return Ok(new { message = "Enquiry deleted." });
+        }
+
+        [Authorize]
+        [HttpPost("SendAutoReplyDraft/{enquiryId:int}")]
+        public async Task<IActionResult> SendAutoReplyDraft(int enquiryId)
+        {
+            var enquiry = await _context.InitialEnquiries.FindAsync(enquiryId);
+            if (enquiry == null)
+                return NotFound(new { message = "Enquiry not found." });
+
+            if (string.IsNullOrEmpty(enquiry.AutoReplyDraftId))
+                return BadRequest(new { message = "No auto-reply draft exists for this enquiry." });
+
+            var mailbox = _configuration["AzureAd:OrganizerEmail"] ?? "";
+            await _autoReplyService.SendDraftAsync(enquiry.AutoReplyDraftId, mailbox);
+
+            // Clear the draft ID so the UI no longer shows the unsent banner
+            enquiry.AutoReplyDraftId = null;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Auto-reply draft sent for enquiry {EnquiryId} by {User}", enquiryId, CurrentUser);
+            return Ok(new { message = "Auto-reply sent successfully." });
         }
 
         // ════════════════════════════════════════════════════════════════════

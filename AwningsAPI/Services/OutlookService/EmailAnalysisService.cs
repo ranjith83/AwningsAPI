@@ -1,4 +1,6 @@
-﻿using AwningsAPI.Database;
+﻿using Anthropic;
+using Anthropic.Models.Messages;
+using AwningsAPI.Database;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Email;
 using Microsoft.EntityFrameworkCore;
@@ -20,17 +22,73 @@ namespace AwningsAPI.Services.Email
         private readonly ILogger<EmailAnalysisService> _logger;
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly AnthropicClient _anthropicClient;
+
+        // Stable system prompt — cached via prompt caching so it is not re-processed on every email
+        private const string CategorizationSystemPrompt = @"You are an expert email categorization system for an awnings/pergola company.
+
+Categorize the email into ONE of these categories:
+
+**Categories:**
+1. **initial_enquiry** - New customer enquiries about products, pricing, or general information
+   - Looking for awnings, pergolas, canopies, shade solutions
+   - Asking about products, models, prices
+   - Includes dimensions or specific requirements
+
+2. **site_visit_meeting** - Requests for site visits, measurements, or meetings
+   - Keywords: site visit, site survey, visual inspection, meeting, appointment
+   - Scheduling requests
+
+3. **invoice_due** - Payment reminders or invoice notifications
+   - Keywords: invoice due, payment due, overdue, payment reminder
+
+4. **quote_creation** - Specific quote requests
+   - Direct quote requests with specifications
+
+5. **showroom_booking** - Showroom visit requests
+   - Want to see samples, visit showroom
+
+6. **complaint** - Customer complaints or issues
+   - Problems with products or service
+
+7. **general_inquiry** - Everything else
+
+Respond ONLY with valid JSON in this exact format:
+{
+  ""category"": ""initial_enquiry"",
+  ""confidence"": 0.85,
+  ""priority"": ""Normal"",
+  ""sentiment"": ""Neutral"",
+  ""reasoning"": ""Brief explanation (1 sentence)"",
+  ""extractedData"": {
+    ""productType"": ""pergola"",
+    ""dimensions"": ""3x3m"",
+    ""urgency"": ""normal""
+  }
+}
+
+Rules:
+- category must be one of: initial_enquiry, site_visit_meeting, invoice_due, quote_creation, showroom_booking, complaint, general_inquiry
+- confidence: 0.0 to 1.0
+- priority: ""Low"", ""Normal"", ""High"", or ""Urgent""
+- sentiment: ""Positive"", ""Neutral"", ""Negative"", or ""Urgent""
+- reasoning: Brief explanation (1 sentence)
+- extractedData: Any relevant structured data found
+
+Respond ONLY with the JSON object, no other text.";
 
         public EmailAnalysisService(
             AppDbContext context,
             ILogger<EmailAnalysisService> logger,
             IConfiguration configuration,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            AnthropicClient anthropicClient)
         {
             _context = context;
             _logger = logger;
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
+            _anthropicClient = anthropicClient;
         }
 
         #region IEmailAnalysisService Implementation
@@ -144,8 +202,7 @@ namespace AwningsAPI.Services.Email
         {
             try
             {
-                // Get AI provider settings
-                var aiProvider = _configuration["AI:Provider"] ?? "Claude"; // Claude or OpenAI
+                var aiProvider = _configuration["AI:Provider"] ?? "Claude";
                 var apiKey = _configuration[$"{aiProvider}:ApiKey"];
 
                 if (string.IsNullOrEmpty(apiKey))
@@ -154,21 +211,18 @@ namespace AwningsAPI.Services.Email
                     return FallbackToDeterministicCategorization(subject, body);
                 }
 
-                // Build AI prompt
-                var prompt = BuildCategorizationPrompt(subject, body, fromEmail);
-
-                AIAnalysisResult aiResult;
-
                 if (aiProvider == "Claude")
                 {
-                    aiResult = await CallClaudeAPIAsync(prompt, apiKey);
+                    // For Claude: system message holds the stable prompt (cached);
+                    // user message contains only the variable email content.
+                    var emailContent = $"Subject: {subject}\nFrom: {fromEmail}\nBody: {body}";
+                    return await CallClaudeAPIAsync(emailContent);
                 }
-                else // OpenAI
+                else
                 {
-                    aiResult = await CallOpenAIAPIAsync(prompt, apiKey);
+                    var fullPrompt = BuildCategorizationPrompt(subject, body, fromEmail);
+                    return await CallOpenAIAPIAsync(fullPrompt, apiKey);
                 }
-
-                return aiResult;
             }
             catch (Exception ex)
             {
@@ -243,35 +297,31 @@ Body: {body}
 Respond ONLY with the JSON object, no other text.";
         }
 
-        private async Task<AIAnalysisResult> CallClaudeAPIAsync(string prompt, string apiKey)
+        private async Task<AIAnalysisResult> CallClaudeAPIAsync(string emailContent)
         {
-            var client = _httpClientFactory.CreateClient();
-            client.DefaultRequestHeaders.Add("x-api-key", apiKey);
-            client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
-
-            var requestBody = new
+            var parameters = new MessageCreateParams
             {
-                model = "claude-3-5-sonnet-20241022",
-                max_tokens = 1024,
-                messages = new[]
+                Model = _configuration["Claude:Model"] ?? "claude-haiku-4-5",
+                MaxTokens = 512,
+                System = new List<TextBlockParam>
                 {
-                    new { role = "user", content = prompt }
-                }
+                    new()
+                    {
+                        Text = CategorizationSystemPrompt,
+                        CacheControl = new CacheControlEphemeral(),
+                    }
+                },
+                Messages = [new() { Role = Role.User, Content = emailContent }]
             };
 
-            var json = JsonSerializer.Serialize(requestBody);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await _anthropicClient.Messages.Create(parameters);
 
-            var response = await client.PostAsync("https://api.anthropic.com/v1/messages", content);
-            response.EnsureSuccessStatusCode();
+            var aiResponseText = response.Content
+                .Select(b => b.Value)
+                .OfType<TextBlock>()
+                .FirstOrDefault()?.Text
+                ?? throw new InvalidOperationException("No text content in Claude response");
 
-            var responseJson = await response.Content.ReadAsStringAsync();
-            var claudeResponse = JsonSerializer.Deserialize<ClaudeResponse>(responseJson);
-
-            // Extract JSON from Claude's response
-            var aiResponseText = claudeResponse.content[0].text;
-
-            // Parse the JSON response
             return ParseAIResponse(aiResponseText);
         }
 
@@ -282,7 +332,7 @@ Respond ONLY with the JSON object, no other text.";
 
             var requestBody = new
             {
-                model = "gpt-4o",
+                model = _configuration["OpenAI:Model"] ?? "gpt-4o",
                 messages = new[]
                 {
                     new { role = "system", content = "You are an email categorization expert. Respond only with valid JSON." },
@@ -605,16 +655,6 @@ Respond ONLY with the JSON object, no other text.";
             public string Sentiment { get; set; }
             public string Reasoning { get; set; }
             public Dictionary<string, object> ExtractedData { get; set; } = new();
-        }
-
-        private class ClaudeResponse
-        {
-            public Content[] content { get; set; }
-        }
-
-        private class Content
-        {
-            public string text { get; set; }
         }
 
         private class OpenAIResponse

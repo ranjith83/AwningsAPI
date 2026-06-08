@@ -1,4 +1,5 @@
-﻿using AwningsAPI.Database;
+﻿using Anthropic;
+using AwningsAPI.Database;
 using AwningsAPI.Interceptors;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Middleware;
@@ -52,9 +53,17 @@ builder.Services.AddScoped<FollowUpService>();
 
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
 builder.Services.AddScoped<IOptionLookupService, OptionLookupService>();
+builder.Services.AddScoped<IEmailAutoReplyService, EmailAutoReplyService>();
 
 // Configure HttpClient
 builder.Services.AddHttpClient();
+
+// Anthropic SDK client for Claude AI
+builder.Services.AddSingleton<AnthropicClient>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    return new AnthropicClient { ApiKey = configuration["Claude:ApiKey"] ?? "" };
+});
 
 
 // Register Microsoft Graph Service Client as Singleton

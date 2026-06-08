@@ -270,12 +270,17 @@ namespace AwningsAPI.Services.WorkflowService
             };
             _context.InitialEnquiries.Add(enquiry);
             await _context.SaveChangesAsync();
-            await _context.WorkflowStarts
-                .Where(w => w.WorkflowId == dto.WorkflowId)
-                .ExecuteUpdateAsync(s => s
-                    .SetProperty(w => w.InitialEnquiry, true)
-                    .SetProperty(w => w.DateUpdated, DateTime.UtcNow)
-                    .SetProperty(w => w.UpdatedBy, currentUser));
+
+            var workflow = await _context.WorkflowStarts
+                .FirstOrDefaultAsync(w => w.WorkflowId == dto.WorkflowId);
+            if (workflow != null)
+            {
+                workflow.InitialEnquiry = true;
+                workflow.DateUpdated = DateTime.UtcNow;
+                workflow.UpdatedBy = currentUser;
+                await _context.SaveChangesAsync();
+            }
+
             await _followUpService.DismissActiveForWorkflowAsync(dto.WorkflowId, currentUser);
             return enquiry;
         }

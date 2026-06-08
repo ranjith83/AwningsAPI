@@ -37,6 +37,15 @@ namespace AwningsAPI.Model.Workflow
         /// </summary>
         public int? TaskId { get; set; }
 
+        /// <summary>
+        /// Microsoft Graph message ID of the auto-reply draft saved to Drafts folder.
+        /// NULL when no auto-reply was generated (e.g. manual enquiries).
+        /// </summary>
+        public string? AutoReplyDraftId { get; set; }
+
+        /// <summary>Plain-text body of the generated auto-reply draft.</summary>
+        public string? AutoReplyContent { get; set; }
+
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }
         public string? DeletedBy { get; set; }

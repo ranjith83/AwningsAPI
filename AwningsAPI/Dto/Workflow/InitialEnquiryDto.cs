@@ -37,6 +37,13 @@
         /// </summary>
         public int? IncomingEmailId { get; set; }
 
+        // ── Auto-reply draft (populated by EmailAutoReplyService) ─────────────
+        /// <summary>Microsoft Graph draft message ID saved to the Drafts folder.</summary>
+        public string? AutoReplyDraftId { get; set; }
+
+        /// <summary>Plain-text body of the generated auto-reply draft.</summary>
+        public string? AutoReplyContent { get; set; }
+
         // ── Read-only audit fields (returned by GET, ignored by POST/PUT) ─────
         public DateTime? DateCreated { get; set; }
         public string? CreatedBy { get; set; }

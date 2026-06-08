@@ -4,6 +4,7 @@ using AwningsAPI.Services.WorkflowService;
 using AwningsAPI.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AwningsAPI.Tests.Unit;
@@ -14,9 +15,10 @@ public class WorkflowServiceTests
 
     private static (WorkflowService svc, AwningsAPI.Database.AppDbContext ctx) Build(string? db = null)
     {
-        var ctx     = DbContextFactory.Create(db);
+        var ctx      = DbContextFactory.Create(db);
         var followUp = new FollowUpService(ctx, NullLogger<FollowUpService>.Instance);
-        var svc     = new WorkflowService(ctx, followUp);
+        var cache    = new MemoryCache(new MemoryCacheOptions());
+        var svc      = new WorkflowService(ctx, followUp, cache);
         return (svc, ctx);
     }
 
