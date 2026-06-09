@@ -29,7 +29,6 @@ namespace AwningsAPI.Services.Email
     {
         private readonly IEmailReaderService _emailReaderService;
         private readonly IEmailAnalysisService _emailAnalysisService;
-        private readonly IEmailAutoReplyService _emailAutoReplyService;
         private readonly ICustomerService _customerService;
         private readonly IWorkflowService _workflowService;
         private readonly IAuditLogService _auditLogService;
@@ -42,7 +41,6 @@ namespace AwningsAPI.Services.Email
         public EmailProcessorService(
             IEmailReaderService emailReaderService,
             IEmailAnalysisService emailAnalysisService,
-            IEmailAutoReplyService emailAutoReplyService,
             ICustomerService customerService,
             IWorkflowService workflowService,
             IAuditLogService auditLogService,
@@ -54,7 +52,6 @@ namespace AwningsAPI.Services.Email
         {
             _emailReaderService = emailReaderService;
             _emailAnalysisService = emailAnalysisService;
-            _emailAutoReplyService = emailAutoReplyService;
             _customerService = customerService;
             _workflowService = workflowService;
             _auditLogService = auditLogService;
@@ -344,8 +341,8 @@ namespace AwningsAPI.Services.Email
                 _logger.LogInformation(
                     $"✅ Initial enquiry created: ID={enquiry.EnquiryId} in workflow {existingWorkflow.WorkflowId}");
 
-                // ── 4. Generate auto-reply draft via Claude + Graph ────────────────────
-                await GenerateAutoReplyAndNotifyAsync(email, enquiry, existingWorkflow.WorkflowId, existingCustomer.Name);
+                // ── 4. Create notification (auto-reply is generated on demand by the user) ──
+                await CreateEnquiryNotificationAsync(enquiry.EnquiryId, existingWorkflow.WorkflowId, existingCustomer.Name, email.FromEmail, email.Subject);
 
                 // Store IDs in ExtractedData so the task created afterwards is pre-linked
                 email.ExtractedData = JsonConvert.SerializeObject(new Dictionary<string, object>
@@ -354,7 +351,6 @@ namespace AwningsAPI.Services.Email
                     ["customerName"] = existingCustomer.Name,
                     ["workflowId"] = existingWorkflow.WorkflowId,
                     ["enquiryId"] = enquiry.EnquiryId,
-                    ["autoReplyDraftId"] = enquiry.AutoReplyDraftId ?? "",
                     ["aiExtractedData"] = analysisResult.ExtractedData
                 });
             }
@@ -364,44 +360,17 @@ namespace AwningsAPI.Services.Email
             }
         }
 
-        /// <summary>
-        /// Generates a Claude auto-reply draft, saves it to the enquiry, and creates a notification.
-        /// </summary>
-        private async Task GenerateAutoReplyAndNotifyAsync(
-            IncomingEmail email,
-            InitialEnquiry enquiry,
-            int workflowId,
-            string customerName)
+        private async Task CreateEnquiryNotificationAsync(int enquiryId, int workflowId, string customerName, string fromEmail, string subject)
         {
-            var mailboxEmail = _configuration["AzureAd:OrganizerEmail"] ?? "";
-
-            try
-            {
-                var (draftId, content) = await _emailAutoReplyService
-                    .GenerateAndSaveDraftAsync(email, mailboxEmail);
-
-                enquiry.AutoReplyDraftId = draftId;
-                enquiry.AutoReplyContent = content;
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation(
-                    "Auto-reply draft {DraftId} saved for enquiry {EnquiryId}", draftId, enquiry.EnquiryId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to generate auto-reply draft for enquiry {EnquiryId}", enquiry.EnquiryId);
-            }
-
-            // Always create the notification even if draft generation failed
             try
             {
                 var notification = new Notification
                 {
                     Type = "new_enquiry",
                     Title = "New Initial Enquiry",
-                    Message = $"New enquiry from {customerName} ({email.FromEmail}): {email.Subject}",
+                    Message = $"New enquiry from {customerName} ({fromEmail}): {subject}",
                     EntityType = "InitialEnquiry",
-                    EntityId = enquiry.EnquiryId,
+                    EntityId = enquiryId,
                     WorkflowId = workflowId,
                     IsRead = false,
                     CreatedAt = DateTime.UtcNow
@@ -410,12 +379,11 @@ namespace AwningsAPI.Services.Email
                 _context.Notifications.Add(notification);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation(
-                    "Notification created for enquiry {EnquiryId}", enquiry.EnquiryId);
+                _logger.LogInformation("Notification created for enquiry {EnquiryId}", enquiryId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create notification for enquiry {EnquiryId}", enquiry.EnquiryId);
+                _logger.LogError(ex, "Failed to create notification for enquiry {EnquiryId}", enquiryId);
             }
         }
 

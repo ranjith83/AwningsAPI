@@ -1,5 +1,6 @@
 using Anthropic;
 using Anthropic.Models.Messages;
+using AwningsAPI.Database;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Email;
 using Microsoft.Graph;
@@ -17,6 +18,7 @@ namespace AwningsAPI.Services.OutlookService
         private readonly GraphServiceClient _graphClient;
         private readonly ILogger<EmailAutoReplyService> _logger;
         private readonly IConfiguration _configuration;
+        private readonly AppDbContext _context;
 
         // Stable system prompt — cached so it is not reprocessed on every call
         private const string AutoReplySystemPrompt =
@@ -35,12 +37,14 @@ namespace AwningsAPI.Services.OutlookService
             AnthropicClient anthropicClient,
             GraphServiceClient graphClient,
             ILogger<EmailAutoReplyService> logger,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            AppDbContext context)
         {
             _anthropicClient = anthropicClient;
             _graphClient = graphClient;
             _logger = logger;
             _configuration = configuration;
+            _context = context;
         }
 
         public async Task<(string DraftId, string Content)> GenerateAndSaveDraftAsync(
@@ -50,6 +54,28 @@ namespace AwningsAPI.Services.OutlookService
             var replyContent = await GenerateReplyAsync(email);
             var draftId = await CreateGraphDraftAsync(email, replyContent, mailboxEmail);
             return (draftId, replyContent);
+        }
+
+        public async Task<(string DraftId, string Content)> GenerateAutoReplyForEnquiryAsync(int enquiryId)
+        {
+            var enquiry = await _context.InitialEnquiries.FindAsync(enquiryId)
+                ?? throw new KeyNotFoundException($"Enquiry {enquiryId} not found.");
+
+            if (enquiry.IncomingEmailId == null)
+                throw new InvalidOperationException("This enquiry has no linked email to reply to.");
+
+            var email = await _context.IncomingEmails.FindAsync(enquiry.IncomingEmailId.Value)
+                ?? throw new KeyNotFoundException("Linked email not found.");
+
+            var mailbox = _configuration["AzureAd:OrganizerEmail"] ?? "";
+            var (draftId, content) = await GenerateAndSaveDraftAsync(email, mailbox);
+
+            enquiry.AutoReplyDraftId = draftId;
+            enquiry.AutoReplyContent = content;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Auto-reply draft generated for enquiry {EnquiryId}", enquiryId);
+            return (draftId, content);
         }
 
         // ── Claude reply generation ───────────────────────────────────────────

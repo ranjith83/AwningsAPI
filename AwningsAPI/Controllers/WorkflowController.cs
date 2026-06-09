@@ -171,6 +171,20 @@ namespace AwningsAPI.Controllers
             return Ok(new { message = "Auto-reply sent successfully." });
         }
 
+        [Authorize]
+        [HttpPost("GenerateAutoReply/{enquiryId:int}")]
+        public async Task<IActionResult> GenerateAutoReply(int enquiryId)
+        {
+            try
+            {
+                var (draftId, content) = await _autoReplyService.GenerateAutoReplyForEnquiryAsync(enquiryId);
+                _logger.LogInformation("Auto-reply draft generated for enquiry {EnquiryId} by {User}", enquiryId, CurrentUser);
+                return Ok(new { draftId, content });
+            }
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+            catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
         // ════════════════════════════════════════════════════════════════════
         // PRODUCT / PRICING
         // ════════════════════════════════════════════════════════════════════
