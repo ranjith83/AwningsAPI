@@ -290,7 +290,6 @@ namespace AwningsAPI.Controllers
             return Ok(options);
         }
 
-         
         [HttpGet("GeWallSealingProfilerPriceForProduct")]
         public async Task<decimal> GeWallSealingProfilerPriceForProduct(int ProductId, int widthcm) =>
             await _workflowService.GeWallSealingProfilerPriceForProductAsync(ProductId, widthcm);
