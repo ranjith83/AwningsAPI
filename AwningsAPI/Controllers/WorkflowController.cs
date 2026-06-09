@@ -289,6 +289,7 @@ namespace AwningsAPI.Controllers
             var options = await _workflowService.GetShadePlusOptionsAsync(ProductId, widthcm);
             return Ok(options);
         }
+
          
         [HttpGet("GeWallSealingProfilerPriceForProduct")]
         public async Task<decimal> GeWallSealingProfilerPriceForProduct(int ProductId, int widthcm) =>
