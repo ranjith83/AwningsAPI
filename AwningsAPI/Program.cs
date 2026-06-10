@@ -1,5 +1,6 @@
 ﻿using Anthropic;
 using AwningsAPI.Database;
+using AwningsAPI.Hubs;
 using AwningsAPI.Interceptors;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Middleware;
@@ -116,8 +117,21 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secretKey!)),
         ClockSkew = TimeSpan.Zero
     };
+    // SignalR WebSocket connections pass the JWT via query string
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Query["access_token"];
+            if (!string.IsNullOrEmpty(token) &&
+                context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                context.Token = token;
+            return Task.CompletedTask;
+        }
+    };
 });
 
+builder.Services.AddSignalR();
 builder.Services.AddAuthorization();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -190,6 +204,7 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHealthChecks("/health");
 
 /*

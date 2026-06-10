@@ -48,8 +48,11 @@ Categorize the email into ONE of these categories:
 5. **showroom_booking** - Showroom visit requests
    - Want to see samples, visit showroom
 
-6. **complaint** - Customer complaints or issues
-   - Problems with products or service
+6. **complaint** - Customer complaints, issues, or follow-ups on an existing problem
+   - Problems with products or service (faulty, damaged, broken, defective)
+   - Warranty or replacement part claims (e.g. replacement frames/parts)
+   - Requests for purchase receipts, invoices, or order confirmations needed to resolve an issue
+   - Replies continuing an existing complaint/warranty thread (e.g. supplier or customer following up on a prior issue)
 
 7. **general_inquiry** - Everything else
 
@@ -261,9 +264,13 @@ Analyze this email and categorize it into ONE of these categories:
    - Want to see samples, visit showroom
    - Example: ""Can I visit your showroom to see samples?""
 
-6. **complaint** - Customer complaints or issues
-   - Problems with products or service
+6. **complaint** - Customer complaints, issues, or follow-ups on an existing problem
+   - Problems with products or service (faulty, damaged, broken, defective)
+   - Warranty or replacement part claims (e.g. replacement frames/parts)
+   - Requests for purchase receipts, invoices, or order confirmations needed to resolve an issue
+   - Replies continuing an existing complaint/warranty thread (e.g. supplier or customer following up on a prior issue)
    - Example: ""The awning is not working properly""
+   - Example: ""We need the purchase receipt/invoice to process the warranty claim""
 
 7. **general_inquiry** - Everything else
 

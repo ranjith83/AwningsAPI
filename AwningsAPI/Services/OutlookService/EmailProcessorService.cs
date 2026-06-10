@@ -2,12 +2,14 @@
 using AwningsAPI.Dto.Audit;
 using AwningsAPI.Dto.Customers;
 using AwningsAPI.Dto.Workflow;
+using AwningsAPI.Hubs;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Common;
 using AwningsAPI.Model.Email;
 using AwningsAPI.Model.Customers;
 using AwningsAPI.Model.Workflow;
 using AwningsAPI.Services.Tasks;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -37,6 +39,7 @@ namespace AwningsAPI.Services.Email
         private readonly IConfiguration _configuration;
         private readonly ILogger<EmailProcessorService> _logger;
         private readonly HttpClient _httpClient;
+        private readonly IHubContext<NotificationHub> _hub;
 
         public EmailProcessorService(
             IEmailReaderService emailReaderService,
@@ -48,7 +51,8 @@ namespace AwningsAPI.Services.Email
             AppDbContext context,
             IConfiguration configuration,
             ILogger<EmailProcessorService> logger,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            IHubContext<NotificationHub> hub)
         {
             _emailReaderService = emailReaderService;
             _emailAnalysisService = emailAnalysisService;
@@ -60,6 +64,7 @@ namespace AwningsAPI.Services.Email
             _configuration = configuration;
             _logger = logger;
             _httpClient = httpClient;
+            _hub = hub;
         }
 
         #region Email Monitoring & Processing
@@ -378,6 +383,21 @@ namespace AwningsAPI.Services.Email
 
                 _context.Notifications.Add(notification);
                 await _context.SaveChangesAsync();
+
+                var unreadCount = await _context.Notifications.CountAsync(n => !n.IsRead);
+                await _hub.Clients.All.SendAsync("ReceiveNotification", new
+                {
+                    notification.Id,
+                    notification.Type,
+                    notification.Title,
+                    notification.Message,
+                    notification.EntityType,
+                    notification.EntityId,
+                    notification.WorkflowId,
+                    notification.IsRead,
+                    notification.CreatedAt,
+                    count = unreadCount
+                });
 
                 _logger.LogInformation("Notification created for enquiry {EnquiryId}", enquiryId);
             }

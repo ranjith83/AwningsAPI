@@ -100,34 +100,65 @@ public class EmailAnalysisService : IEmailAnalysisService
     private string BuildPrompt(string subject, string body, string fromEmail) => $@"You are an expert email categorization system for an awnings/pergola company.
 
 Analyze this email and categorize it into ONE of these categories:
-1. enquiry - New customer enquiries about products, pricing, or general information
-2. site_visit - Requests for site visits, measurements, or meetings
-3. invoice - Payment reminders or invoice notifications
-4. quote - Specific quote requests with specifications
-5. showroom - Showroom visit requests
-6. complaint - Customer complaints or issues
-7. general - Everything else
 
-Email:
+**Categories:**
+1. **enquiry** - New customer enquiries about products, pricing, or general information
+   - Looking for awnings, pergolas, canopies, shade solutions
+   - Asking about products, models, prices
+   - Includes dimensions or specific requirements
+   - Example: ""Looking for 3x3m pergola for patio""
+
+2. **site_visit** - Requests for site visits, measurements, or meetings
+   - Keywords: site visit, site survey, visual inspection, meeting, appointment
+   - Scheduling requests
+   - Example: ""Can we schedule a site visit next Tuesday?""
+
+3. **invoice** - Payment reminders or invoice notifications
+   - Keywords: invoice due, payment due, overdue, payment reminder
+   - Example: ""Invoice #INV-001 due on 15/02/2024""
+
+4. **quote** - Specific quote requests
+   - Direct quote requests with specifications
+   - Example: ""Please provide quote for 5.2m awning""
+
+5. **showroom** - Showroom visit requests
+   - Want to see samples, visit showroom
+   - Example: ""Can I visit your showroom to see samples?""
+
+6. **complaint** - Customer complaints, issues, or follow-ups on an existing problem
+   - Problems with products or service (faulty, damaged, broken, defective)
+   - Warranty or replacement part claims (e.g. replacement frames/parts, damaged parasols/awnings)
+   - Requests for purchase receipts, invoices, or order confirmations needed to resolve an issue
+   - Replies continuing an existing complaint/warranty thread (e.g. supplier or customer following up on a prior issue)
+   - Example: ""The awning is not working properly""
+   - Example: ""We need the purchase receipt/invoice to process the warranty claim""
+
+7. **general** - Everything else
+
+**Email to analyze:**
 Subject: {subject}
 From: {fromEmail}
 Body: {body}
 
-Respond ONLY with valid JSON:
+**Respond ONLY with valid JSON in this exact format:**
 {{
   ""category"": ""enquiry"",
   ""confidence"": 0.85,
   ""priority"": ""Normal"",
   ""sentiment"": ""Neutral"",
-  ""reasoning"": ""Brief explanation"",
+  ""reasoning"": ""Brief explanation (1 sentence)"",
   ""extractedData"": {{}}
 }}
 
-Rules:
-- category must be one of the 7 listed
+**Rules:**
+- category must be one of: enquiry, site_visit, invoice, quote, showroom, complaint, general
 - confidence: 0.0 to 1.0
 - priority: ""Low"", ""Normal"", ""High"", or ""Urgent""
-- sentiment: ""Positive"", ""Neutral"", ""Negative"", or ""Urgent""";
+- sentiment: ""Positive"", ""Neutral"", ""Negative"", or ""Urgent""
+- reasoning: Brief explanation (1 sentence)
+- extractedData: Any relevant structured data found
+
+Respond ONLY with the JSON object, no other text.";
 
     private async Task<AIAnalysisResult> CallClaudeAsync(string prompt, string apiKey)
     {

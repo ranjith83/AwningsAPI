@@ -1212,11 +1212,9 @@ namespace AwningsAPI.Controllers
         /// </summary>
         private BlobClient? CreateBlobClient(string blobUrl)
         {
-            // Parse the blob name from the stored URL: strip /<container>/ prefix
-            var uri = new Uri(blobUrl);
-            var uriPath = uri.AbsolutePath.TrimStart('/');
-            var slashIndex = uriPath.IndexOf('/');
-            var blobName = slashIndex >= 0 ? uriPath[(slashIndex + 1)..] : uriPath;
+            // BlobUriBuilder handles both production (https://account.blob.core.windows.net/...)
+            // and Azurite dev (http://127.0.0.1:10000/devstoreaccount1/...) URLs correctly.
+            var blobName = new BlobUriBuilder(new Uri(blobUrl)).BlobName;
             var containerName = _configuration["BlobStorage:ContainerName"] ?? "awnings-emails";
 
             // Local dev: Azurite connection string (UseDevelopmentStorage=true)
