@@ -74,27 +74,16 @@ public class EmailAnalysisService : IEmailAnalysisService
 
     private async Task<AIAnalysisResult> AnalyzeEmailWithAIAsync(string subject, string body, string fromEmail)
     {
-        try
-        {
-            var aiProvider = _configuration["AI:Provider"] ?? "Claude";
-            var apiKey = _configuration[$"{aiProvider}:ApiKey"];
+        var aiProvider = _configuration["AI:Provider"] ?? "Claude";
+        var apiKey = _configuration[$"{aiProvider}:ApiKey"];
 
-            if (string.IsNullOrEmpty(apiKey))
-            {
-                _logger.LogWarning("AI API key not configured, falling back to rules-based categorization");
-                return FallbackCategorization(subject, body);
-            }
+        if (string.IsNullOrEmpty(apiKey))
+            throw new InvalidOperationException($"{aiProvider}:ApiKey is not configured");
 
-            var prompt = BuildPrompt(subject, body, fromEmail);
-            return aiProvider == "Claude"
-                ? await CallClaudeAsync(prompt, apiKey)
-                : await CallOpenAIAsync(prompt, apiKey);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error calling AI provider, falling back to rules-based");
-            return FallbackCategorization(subject, body);
-        }
+        var prompt = BuildPrompt(subject, body, fromEmail);
+        return string.Equals(aiProvider, "Claude", StringComparison.OrdinalIgnoreCase)
+            ? await CallClaudeAsync(prompt, apiKey)
+            : await CallOpenAIAsync(prompt, apiKey);
     }
 
     private string BuildPrompt(string subject, string body, string fromEmail) => $@"You are an expert email categorization system for an awnings/pergola company.
@@ -232,23 +221,6 @@ Respond ONLY with the JSON object, no other text.";
             result.Category = "general";
 
         return result;
-    }
-
-    private AIAnalysisResult FallbackCategorization(string subject, string body)
-    {
-        var combined = $"{subject} {body}".ToLower();
-
-        if (combined.Contains("site visit") || combined.Contains("site survey"))
-            return new AIAnalysisResult { Category = "site_visit", Confidence = 0.75, Priority = "High", Sentiment = "Neutral", Reasoning = "Contains site visit keywords (fallback)", ExtractedData = new() };
-
-        if (combined.Contains("invoice") || combined.Contains("payment due"))
-            return new AIAnalysisResult { Category = "invoice", Confidence = 0.75, Priority = "High", Sentiment = "Neutral", Reasoning = "Contains invoice/payment keywords (fallback)", ExtractedData = new() };
-
-        var enquiryKeywords = new[] { "enquiry", "looking for", "interested in", "awning", "pergola", "shade" };
-        if (enquiryKeywords.Count(k => combined.Contains(k)) >= 2)
-            return new AIAnalysisResult { Category = "enquiry", Confidence = 0.70, Priority = "Normal", Sentiment = "Neutral", Reasoning = "Contains enquiry keywords (fallback)", ExtractedData = new() };
-
-        return new AIAnalysisResult { Category = "general", Confidence = 0.60, Priority = "Normal", Sentiment = "Neutral", Reasoning = "Default categorization (fallback)", ExtractedData = new() };
     }
 
     private bool IsJunkEmail(string fromEmail, string subject, string body)
