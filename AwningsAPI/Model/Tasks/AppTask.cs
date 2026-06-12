@@ -156,6 +156,14 @@ namespace AwningsAPI.Model.Tasks
         [Column(TypeName = "nvarchar(MAX)")]
         public string? AIReasoning { get; set; }
 
+        // ── Auto-response ─────────────────────────────────────────────────────
+        /// <summary>True when this task represents a customer email awaiting a reply.</summary>
+        public bool NeedsReply { get; set; }
+
+        /// <summary>AI-generated draft reply for staff to review and send.</summary>
+        [Column(TypeName = "nvarchar(MAX)")]
+        public string? DraftReply { get; set; }
+
         // ── Audit ─────────────────────────────────────────────────────────────
         public DateTime DateCreated { get; set; } = DateTime.UtcNow;
 

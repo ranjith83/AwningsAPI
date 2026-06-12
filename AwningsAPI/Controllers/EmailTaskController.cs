@@ -1027,6 +1027,15 @@ namespace AwningsAPI.Controllers
                     attachments: attachments,
                     currentUser: GetCurrentUserName());
 
+                var task = await _context.Tasks.FindAsync(taskId);
+                if (task != null && task.NeedsReply)
+                {
+                    task.NeedsReply = false;
+                    task.DateUpdated = DateTime.UtcNow;
+                    task.UpdatedBy = GetCurrentUserName();
+                    await _context.SaveChangesAsync();
+                }
+
                 return Ok(new { message = "Email sent successfully" });
             }
             catch (KeyNotFoundException ex)

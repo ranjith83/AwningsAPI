@@ -13,6 +13,7 @@ public class EmailProcessorService : IEmailProcessorService
     private readonly IEmailReaderService _emailReaderService;
     private readonly IEmailAnalysisService _analysisService;
     private readonly IBlobEmailStorageService _blobService;
+    private readonly IEmailAutoReplyService _autoReplyService;
     private readonly ILogger<EmailProcessorService> _logger;
 
     public EmailProcessorService(
@@ -20,12 +21,14 @@ public class EmailProcessorService : IEmailProcessorService
         IEmailReaderService emailReaderService,
         IEmailAnalysisService analysisService,
         IBlobEmailStorageService blobService,
+        IEmailAutoReplyService autoReplyService,
         ILogger<EmailProcessorService> logger)
     {
         _context = context;
         _emailReaderService = emailReaderService;
         _analysisService = analysisService;
         _blobService = blobService;
+        _autoReplyService = autoReplyService;
         _logger = logger;
     }
 
@@ -39,9 +42,9 @@ public class EmailProcessorService : IEmailProcessorService
             email = await FetchAndSaveEmailAsync(messageId, mailboxEmail);
             if (email == null) return;
 
-            await AnalyzeEmailAsync(email);
+            var analysis = await AnalyzeEmailAsync(email);
 
-            var task = await CreateTaskAsync(email);
+            var task = await CreateTaskAsync(email, analysis);
             await AutoLinkCustomerAndWorkflowAsync(task, email.FromEmail);
             if (IsInitialEnquiry(email))
                 await CreateInitialEnquiryAsync(task, email);
@@ -163,7 +166,7 @@ public class EmailProcessorService : IEmailProcessorService
 
     #region Step 2 — AI Analysis
 
-    private async Task AnalyzeEmailAsync(IncomingEmail email)
+    private async Task<EmailAnalysisResult> AnalyzeEmailAsync(IncomingEmail email)
     {
         email.ProcessingStatus = "Processing";
         await _context.SaveChangesAsync();
@@ -175,15 +178,17 @@ public class EmailProcessorService : IEmailProcessorService
         email.ExtractedData = JsonConvert.SerializeObject(analysis.ExtractedData);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("AI analysis complete — Category: {Category}, Confidence: {Confidence:P0}",
-            analysis.Category, analysis.Confidence);
+        _logger.LogInformation("AI analysis complete — Category: {Category}, Confidence: {Confidence:P0}, NeedsReply: {NeedsReply}",
+            analysis.Category, analysis.Confidence, analysis.NeedsReply);
+
+        return analysis;
     }
 
     #endregion
 
     #region Step 3 — Task Creation
 
-    private async Task<AppTask> CreateTaskAsync(IncomingEmail email)
+    private async Task<AppTask> CreateTaskAsync(IncomingEmail email, EmailAnalysisResult analysis)
     {
         var existingTask = await _context.Tasks.FirstOrDefaultAsync(t => t.IncomingEmailId == email.Id);
         if (existingTask != null)
@@ -211,6 +216,7 @@ public class EmailProcessorService : IEmailProcessorService
             HasAttachments = email.HasAttachments,
             ExtractedData = email.ExtractedData,
             AIConfidence = email.CategoryConfidence,
+            NeedsReply = analysis.NeedsReply,
             DueDate = CalculateDueDate(priority),
             DateAdded = DateTime.UtcNow,
             DateCreated = DateTime.UtcNow,
@@ -227,8 +233,20 @@ public class EmailProcessorService : IEmailProcessorService
         if (email.HasAttachments && email.Attachments.Any())
             await CopyAttachmentsToTaskAsync(task.TaskId, email.Attachments);
 
-        _logger.LogInformation("Task {TaskId} created — Category: {Category}, Priority: {Priority}",
-            task.TaskId, displayCategory, priority);
+        if (analysis.NeedsReply)
+        {
+            try
+            {
+                await _autoReplyService.GenerateDraftReplyAsync(task.TaskId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to generate draft reply for task {TaskId}", task.TaskId);
+            }
+        }
+
+        _logger.LogInformation("Task {TaskId} created — Category: {Category}, Priority: {Priority}, NeedsReply: {NeedsReply}",
+            task.TaskId, displayCategory, priority, analysis.NeedsReply);
 
         return task;
     }

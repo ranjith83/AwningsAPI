@@ -13,5 +13,6 @@ public class EmailAnalysisResult
     public Dictionary<string, string> CustomerInfo { get; set; } = new();
     public bool IsSpam { get; set; }
     public string Sentiment { get; set; } = "Neutral";
+    public bool NeedsReply { get; set; }
     public List<string> Warnings { get; set; } = new();
 }

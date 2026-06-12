@@ -413,6 +413,19 @@ Respond ONLY with the JSON object, no other text.";
             var combined = $"{subject} {body}".ToLower();
 
             // Fallback to rules-based categorization
+            var complaintKeywords = new[] { "complaint", "complain", "damaged", "damage", "broken",
+                "faulty", "defective", "not working", "doesn't work", "warranty", "replacement", "fault" };
+            if (complaintKeywords.Any(k => combined.Contains(k)))
+                return new AIAnalysisResult
+                {
+                    Category = "complaint",
+                    Confidence = 0.70,
+                    Priority = "Urgent",
+                    Sentiment = "Negative",
+                    Reasoning = "Contains complaint/warranty keywords (fallback detection)",
+                    ExtractedData = new Dictionary<string, object>()
+                };
+
             if (combined.Contains("site visit") || combined.Contains("site survey") || combined.Contains("visual"))
                 return new AIAnalysisResult
                 {

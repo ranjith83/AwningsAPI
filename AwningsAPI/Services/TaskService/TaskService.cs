@@ -93,6 +93,7 @@ namespace AwningsAPI.Services.Tasks
                 CompletedDate = task.CompletedDate,
                 CompletionNotes = task.CompletionNotes,
                 AIConfidence = task.AIConfidence,
+                NeedsReply = task.NeedsReply,
                 DateCreated = task.DateCreated,
                 DateUpdated = task.DateUpdated,
                 CreatedBy = task.CreatedBy,
@@ -213,6 +214,12 @@ namespace AwningsAPI.Services.Tasks
             {
                 task.SelectedAction = updateDto.SelectedAction;
                 changes.Add($"Action: {updateDto.SelectedAction}");
+            }
+
+            if (updateDto.DraftReply != null && task.DraftReply != updateDto.DraftReply)
+            {
+                task.DraftReply = updateDto.DraftReply;
+                changes.Add("Draft reply updated");
             }
 
             if (updateDto.CustomerId.HasValue) task.CustomerId = updateDto.CustomerId;
@@ -562,6 +569,9 @@ namespace AwningsAPI.Services.Tasks
 
             if (filterDto.ExcludeCategories != null && filterDto.ExcludeCategories.Count > 0)
                 query = query.Where(t => !filterDto.ExcludeCategories.Contains(t.Category));
+
+            if (filterDto.NeedsReply.HasValue)
+                query = query.Where(t => t.NeedsReply == filterDto.NeedsReply.Value);
 
             if (!string.IsNullOrEmpty(filterDto.TaskType))
                 query = query.Where(t => t.TaskType == filterDto.TaskType);
@@ -1398,6 +1408,8 @@ namespace AwningsAPI.Services.Tasks
                 ExtractedData = task.ExtractedData,
                 AIConfidence = task.AIConfidence,
                 AIReasoning = task.AIReasoning,
+                NeedsReply = task.NeedsReply,
+                DraftReply = task.DraftReply,
                 DateCreated = task.DateCreated,
                 DateUpdated = task.DateUpdated,
                 CreatedBy = task.CreatedBy,

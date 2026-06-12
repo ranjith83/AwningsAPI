@@ -33,6 +33,7 @@ var host = new HostBuilder()
         services.AddScoped<IEmailProcessorService, EmailProcessorService>();
         services.AddScoped<IEmailWatchService, EmailWatchService>();
         services.AddSingleton<IBlobEmailStorageService, BlobEmailStorageService>();
+        services.AddScoped<IEmailAutoReplyService, EmailAutoReplyService>();
 
         services.AddHttpClient();
         services.AddApplicationInsightsTelemetryWorkerService();

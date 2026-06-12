@@ -103,6 +103,11 @@ public class AppTask
     [Column(TypeName = "nvarchar(MAX)")]
     public string? AIReasoning { get; set; }
 
+    public bool NeedsReply { get; set; }
+
+    [Column(TypeName = "nvarchar(MAX)")]
+    public string? DraftReply { get; set; }
+
     public DateTime DateCreated { get; set; } = DateTime.UtcNow;
 
     public DateTime? DateUpdated { get; set; }

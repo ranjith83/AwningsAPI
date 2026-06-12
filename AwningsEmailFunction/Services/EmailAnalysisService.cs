@@ -67,6 +67,7 @@ public class EmailAnalysisService : IEmailAnalysisService
         result.CompanyNumber = ExtractCompanyNumber(body) ?? "";
         result.RequiredActions = DetermineRequiredActions(aiAnalysis.Category);
         result.IsSpam = false;
+        result.NeedsReply = aiAnalysis.NeedsReply;
 
         _logger.LogInformation("AI ANALYSIS: Category={Category}, Confidence={Confidence:F2}", aiAnalysis.Category, aiAnalysis.Confidence);
         return result;
@@ -129,12 +130,17 @@ Subject: {subject}
 From: {fromEmail}
 Body: {body}
 
+**Also determine whether this email needs a reply sent back to the customer:**
+- needsReply = true if the customer is asking a question, requesting information, a quote, a site visit, or a showroom appointment, or has raised a complaint/issue that requires acknowledgement
+- needsReply = false if the email is an automated notification, an invoice/payment reminder, a thank-you/confirmation, or a message that closes out a conversation and doesn't expect a response (e.g. ""Thanks, that's all I needed"")
+
 **Respond ONLY with valid JSON in this exact format:**
 {{
   ""category"": ""enquiry"",
   ""confidence"": 0.85,
   ""priority"": ""Normal"",
   ""sentiment"": ""Neutral"",
+  ""needsReply"": true,
   ""reasoning"": ""Brief explanation (1 sentence)"",
   ""extractedData"": {{}}
 }}
@@ -144,6 +150,7 @@ Body: {body}
 - confidence: 0.0 to 1.0
 - priority: ""Low"", ""Normal"", ""High"", or ""Urgent""
 - sentiment: ""Positive"", ""Neutral"", ""Negative"", or ""Urgent""
+- needsReply: true or false, per the guidance above
 - reasoning: Brief explanation (1 sentence)
 - extractedData: Any relevant structured data found
 
@@ -316,6 +323,7 @@ Respond ONLY with the JSON object, no other text.";
         public double Confidence { get; set; }
         public string Priority { get; set; } = "Normal";
         public string Sentiment { get; set; } = "Neutral";
+        public bool NeedsReply { get; set; }
         public string Reasoning { get; set; } = string.Empty;
         public Dictionary<string, object> ExtractedData { get; set; } = new();
     }

@@ -76,6 +76,10 @@ namespace AwningsAPI.Dto.Tasks
         public double? AIConfidence { get; set; }
         public string? AIReasoning { get; set; }
 
+        // ── Auto-response ─────────────────────────────────────────────────────
+        public bool NeedsReply { get; set; }
+        public string? DraftReply { get; set; }
+
         // ── Audit ─────────────────────────────────────────────────────────────
         public DateTime DateCreated { get; set; }
         public DateTime? DateUpdated { get; set; }
@@ -132,6 +136,7 @@ namespace AwningsAPI.Dto.Tasks
         public DateTime? CompletedDate { get; set; }
         public string? CompletionNotes { get; set; }
         public double? AIConfidence { get; set; }
+        public bool NeedsReply { get; set; }
         public DateTime DateCreated { get; set; }
         public DateTime? DateUpdated { get; set; }
         public string? CreatedBy { get; set; }
@@ -267,6 +272,7 @@ namespace AwningsAPI.Dto.Tasks
         public int? WorkflowId { get; set; }
         public string? CompanyNumber { get; set; }
         public string? Title { get; set; }  // allow title edits on manual tasks
+        public string? DraftReply { get; set; }  // allow staff to edit the AI-generated draft reply
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -332,6 +338,9 @@ namespace AwningsAPI.Dto.Tasks
         public string? Category { get; set; }
         public List<string>? Categories { get; set; }
         public List<string>? ExcludeCategories { get; set; }
+
+        // ── Auto-response filter ──────────────────────────────────────────────
+        public bool? NeedsReply { get; set; }
 
         // ── Other filters — unchanged ─────────────────────────────────────────
         public string? TaskType { get; set; }

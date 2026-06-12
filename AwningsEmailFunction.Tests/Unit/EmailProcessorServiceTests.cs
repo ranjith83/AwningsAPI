@@ -8,12 +8,14 @@ public class EmailProcessorServiceTests
         EmailFunctionDbContext ctx,
         IEmailReaderService? reader = null,
         IEmailAnalysisService? analysis = null,
-        IBlobEmailStorageService? blob = null)
+        IBlobEmailStorageService? blob = null,
+        IEmailAutoReplyService? autoReply = null)
     {
-        reader   ??= new Mock<IEmailReaderService>().Object;
-        analysis ??= new Mock<IEmailAnalysisService>().Object;
-        blob     ??= new Mock<IBlobEmailStorageService>().Object;
-        return new EmailProcessorService(ctx, reader, analysis, blob,
+        reader    ??= new Mock<IEmailReaderService>().Object;
+        analysis  ??= new Mock<IEmailAnalysisService>().Object;
+        blob      ??= new Mock<IBlobEmailStorageService>().Object;
+        autoReply ??= new Mock<IEmailAutoReplyService>().Object;
+        return new EmailProcessorService(ctx, reader, analysis, blob, autoReply,
             NullLogger<EmailProcessorService>.Instance);
     }
 
@@ -28,10 +30,11 @@ public class EmailProcessorServiceTests
         ReceivedDateTime = DateTime.UtcNow,
     };
 
-    private static EmailAnalysisResult MakeAnalysis(string category = "enquiry") => new()
+    private static EmailAnalysisResult MakeAnalysis(string category = "enquiry", bool needsReply = false) => new()
     {
         Category   = category,
         Confidence = 0.95,
+        NeedsReply = needsReply,
     };
 
     // ── New email ─────────────────────────────────────────────────────────────
@@ -184,6 +187,50 @@ public class EmailProcessorServiceTests
         var task = ctx.Tasks.First();
         task.WorkflowId.Should().Be(10);
         task.Status.Should().Be("Completed");
+    }
+
+    // ── NeedsReply → draft reply generated ────────────────────────────────────
+
+    [Fact]
+    public async Task ProcessIncomingEmail_NeedsReply_GeneratesDraftReply()
+    {
+        using var ctx       = EmailFunctionDbContextFactory.Create();
+        var mockReader      = new Mock<IEmailReaderService>();
+        var mockAnalysis    = new Mock<IEmailAnalysisService>();
+        var mockAutoReply   = new Mock<IEmailAutoReplyService>();
+
+        mockReader.Setup(r => r.GetCompleteEmailAsync(It.IsAny<string>(), "msg-needsreply"))
+                  .ReturnsAsync(MakeFetchedEmail("msg-needsreply"));
+        mockAnalysis.Setup(a => a.AnalyzeEmailAsync(It.IsAny<IncomingEmail>()))
+                    .ReturnsAsync(MakeAnalysis("enquiry", needsReply: true));
+
+        var svc = Build(ctx, mockReader.Object, mockAnalysis.Object, autoReply: mockAutoReply.Object);
+        await svc.ProcessIncomingEmailAsync("msg-needsreply", "inbox@test.com");
+
+        var task = ctx.Tasks.First();
+        task.NeedsReply.Should().BeTrue();
+        mockAutoReply.Verify(a => a.GenerateDraftReplyAsync(task.TaskId), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessIncomingEmail_DoesNotNeedReply_SkipsDraftGeneration()
+    {
+        using var ctx       = EmailFunctionDbContextFactory.Create();
+        var mockReader      = new Mock<IEmailReaderService>();
+        var mockAnalysis    = new Mock<IEmailAnalysisService>();
+        var mockAutoReply   = new Mock<IEmailAutoReplyService>();
+
+        mockReader.Setup(r => r.GetCompleteEmailAsync(It.IsAny<string>(), "msg-noreply"))
+                  .ReturnsAsync(MakeFetchedEmail("msg-noreply"));
+        mockAnalysis.Setup(a => a.AnalyzeEmailAsync(It.IsAny<IncomingEmail>()))
+                    .ReturnsAsync(MakeAnalysis("invoice", needsReply: false));
+
+        var svc = Build(ctx, mockReader.Object, mockAnalysis.Object, autoReply: mockAutoReply.Object);
+        await svc.ProcessIncomingEmailAsync("msg-noreply", "inbox@test.com");
+
+        var task = ctx.Tasks.First();
+        task.NeedsReply.Should().BeFalse();
+        mockAutoReply.Verify(a => a.GenerateDraftReplyAsync(It.IsAny<int>()), Times.Never);
     }
 
     // ── Reader throws → email marked Failed ───────────────────────────────────
