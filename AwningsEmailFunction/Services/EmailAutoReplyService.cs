@@ -3,6 +3,7 @@ using AwningsEmailFunction.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 
@@ -156,10 +157,24 @@ public class EmailAutoReplyService : IEmailAutoReplyService
             "https://api.anthropic.com/v1/messages",
             new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json"));
 
-        response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Claude API returned {StatusCode} when generating draft reply: {Body}", (int)response.StatusCode, json);
+            throw new InvalidOperationException($"Claude API request failed with status {(int)response.StatusCode}: {json}");
+        }
+
         var claudeResponse = JsonSerializer.Deserialize<ClaudeResponse>(json);
-        return claudeResponse!.content[0].text.Trim();
+        var text = claudeResponse?.content?.FirstOrDefault()?.text;
+
+        if (string.IsNullOrEmpty(text))
+        {
+            _logger.LogError("Claude API returned no text content when generating draft reply: {Body}", json);
+            throw new InvalidOperationException("Claude API returned no text content");
+        }
+
+        return text.Trim();
     }
 
     private class ClaudeResponse
