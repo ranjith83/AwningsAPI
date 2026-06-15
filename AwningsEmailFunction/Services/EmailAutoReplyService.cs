@@ -51,6 +51,11 @@ public class EmailAutoReplyService : IEmailAutoReplyService
             "- Reassure them that the team is looking into the matter and will follow up with a resolution as soon as possible\n" +
             "- If helpful, ask them to provide any additional details (e.g. order/invoice number, photos) that would help resolve the issue faster",
 
+        ["order_status"] =
+            "- Thank them for getting in touch about their order\n" +
+            "- Let them know the team is checking the status/delivery schedule of their order and will come back to them with an update within 1-2 business days\n" +
+            "- Invite them to call the office if the matter is urgent or if they can provide an order/invoice number to help locate their order faster",
+
         ["general"] =
             "- Thank them for their message and briefly acknowledge what they have asked about\n" +
             "- Let them know a team member will review their message and follow up with the relevant information as soon as possible\n" +

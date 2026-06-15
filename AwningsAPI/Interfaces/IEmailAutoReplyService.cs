@@ -23,5 +23,11 @@ namespace AwningsAPI.Interfaces
         /// Sends an existing Outlook draft message via Microsoft Graph.
         /// </summary>
         Task SendDraftAsync(string draftId, string mailboxEmail);
+
+        /// <summary>
+        /// Generates a category-aware draft reply for a task using Claude and
+        /// saves it to the task's DraftReply field. Used for tasks flagged NeedsReply.
+        /// </summary>
+        Task<string> GenerateDraftReplyForTaskAsync(int taskId);
     }
 }

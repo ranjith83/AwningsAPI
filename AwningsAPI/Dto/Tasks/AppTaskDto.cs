@@ -144,6 +144,24 @@ namespace AwningsAPI.Dto.Tasks
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Needs-reply DTO — returned by GET /api/EmailTask/needs-reply
+    // Lightweight view of tasks awaiting a reply, including the AI-generated
+    // draft so staff can review/edit it before sending.
+    // ─────────────────────────────────────────────────────────────────────────
+    public class NeedsReplyTaskDto
+    {
+        public int TaskId { get; set; }
+        public int? IncomingEmailId { get; set; }
+        public string? Subject { get; set; }
+        public string? FromName { get; set; }
+        public string? FromEmail { get; set; }
+        public string? Category { get; set; }
+        public string Status { get; set; } = "New";
+        public DateTime DateAdded { get; set; }
+        public string? DraftReply { get; set; }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Comment DTO — unchanged
     // ─────────────────────────────────────────────────────────────────────────
     public class TaskCommentDto

@@ -429,6 +429,7 @@ public class EmailProcessorService : IEmailProcessorService
         "quote" => "Quote",
         "showroom" => "Showroom",
         "complaint" => "Complaint",
+        "order_status" => "Order Status",
         _ => category ?? "General"
     };
 

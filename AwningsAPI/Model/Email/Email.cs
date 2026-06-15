@@ -106,6 +106,7 @@ namespace AwningsAPI.Model.Email
         public Dictionary<string, string> CustomerInfo { get; set; }
         public bool IsSpam { get; set; }
         public string Sentiment { get; set; }
+        public bool NeedsReply { get; set; }
         public List<string> Warnings { get; set; }
     }
 
@@ -119,6 +120,7 @@ namespace AwningsAPI.Model.Email
         public const string GeneralInquiry = "general_inquiry";
         public const string ProductInquiry = "product_inquiry";
         public const string Complaint = "complaint";
+        public const string OrderStatus = "order_status";
         public const string Unknown = "unknown";
     }
 

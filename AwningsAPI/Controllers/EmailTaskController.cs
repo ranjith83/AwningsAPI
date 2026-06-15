@@ -94,6 +94,87 @@ namespace AwningsAPI.Controllers
         }
 
         /// <summary>
+        /// Get tasks that need an auto-response, including the AI-generated draft reply
+        /// so staff can review/edit it before sending.
+        ///
+        /// GET /api/EmailTask/auto-response
+        /// GET /api/EmailTask/auto-response?page=1&pageSize=20
+        /// </summary>
+        [HttpGet("auto-response")]
+        public async Task<ActionResult> GetTasksNeedingReply(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                var query = _context.Tasks
+                    .Where(t => t.NeedsReply)
+                    .OrderByDescending(t => t.DateAdded);
+
+                var totalCount = await query.CountAsync();
+
+                var tasks = await query
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(t => new NeedsReplyTaskDto
+                    {
+                        TaskId = t.TaskId,
+                        IncomingEmailId = t.IncomingEmailId,
+                        Subject = t.Subject,
+                        FromName = t.FromName,
+                        FromEmail = t.FromEmail,
+                        Category = t.Category,
+                        Status = t.Status,
+                        DateAdded = t.DateAdded,
+                        DraftReply = t.DraftReply
+                    })
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    page,
+                    pageSize,
+                    totalCount,
+                    totalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+                    tasks
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving tasks needing reply");
+                return StatusCode(500, new { error = "An error occurred while retrieving tasks needing reply", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get full details for a single auto-response task, including the
+        /// AI-generated draft reply and email body, for the review screen
+        /// shown when a task is clicked from the auto-response list.
+        ///
+        /// GET /api/EmailTask/auto-response/{taskId}
+        /// </summary>
+        [HttpGet("auto-response/{taskId}")]
+        public async Task<ActionResult<AppTaskDto>> GetAutoResponseTaskById(int taskId)
+        {
+            try
+            {
+                var task = await _taskService.GetTaskByIdAsync(taskId);
+
+                if (task == null)
+                {
+                    return NotFound(new { error = "Task not found" });
+                }
+
+                return Ok(task);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving auto-response task {taskId}");
+                return StatusCode(500, new { error = "An error occurred while retrieving the task", details = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Get a specific task by ID with all related data
         /// </summary>
         [HttpGet("{taskId}")]

@@ -54,7 +54,12 @@ Categorize the email into ONE of these categories:
    - Requests for purchase receipts, invoices, or order confirmations needed to resolve an issue
    - Replies continuing an existing complaint/warranty thread (e.g. supplier or customer following up on a prior issue)
 
-7. **general_inquiry** - Everything else
+7. **order_status** - Existing customer asking about the status, progress, or delivery/arrival date of an order they've already placed
+   - Keywords: order status, delivery date, arrival date, when will it arrive, dispatch, ready for collection, installation date, ETA
+   - NOT a new enquiry about products/pricing — the customer already has an order in progress
+   - Example: ""I was wondering if you can give me a date for our awning arrival?""
+
+8. **general_inquiry** - Everything else
 
 Respond ONLY with valid JSON in this exact format:
 {
@@ -71,7 +76,7 @@ Respond ONLY with valid JSON in this exact format:
 }
 
 Rules:
-- category must be one of: initial_enquiry, site_visit_meeting, invoice_due, quote_creation, showroom_booking, complaint, general_inquiry
+- category must be one of: initial_enquiry, site_visit_meeting, invoice_due, quote_creation, showroom_booking, complaint, order_status, general_inquiry
 - confidence: 0.0 to 1.0
 - priority: ""Low"", ""Normal"", ""High"", or ""Urgent""
 - sentiment: ""Positive"", ""Neutral"", ""Negative"", or ""Urgent""
@@ -170,6 +175,7 @@ Respond ONLY with the JSON object, no other text.";
                 result.RequiredActions = DetermineRequiredActions(aiAnalysis.Category);
                 result.IsSpam = false;
                 result.Sentiment = aiAnalysis.Sentiment;
+                result.NeedsReply = string.Equals(aiAnalysis.Category, "order_status", StringComparison.OrdinalIgnoreCase);
 
                 _logger.LogInformation($"AI ANALYSIS: Category={aiAnalysis.Category}, Confidence={aiAnalysis.Confidence:F2}");
 
@@ -272,7 +278,12 @@ Analyze this email and categorize it into ONE of these categories:
    - Example: ""The awning is not working properly""
    - Example: ""We need the purchase receipt/invoice to process the warranty claim""
 
-7. **general_inquiry** - Everything else
+7. **order_status** - Existing customer asking about the status, progress, or delivery/arrival date of an order they've already placed
+   - Keywords: order status, delivery date, arrival date, when will it arrive, dispatch, ready for collection, installation date, ETA
+   - NOT a new enquiry about products/pricing — the customer already has an order in progress
+   - Example: ""I was wondering if you can give me a date for our awning arrival?""
+
+8. **general_inquiry** - Everything else
 
 **Email to analyze:**
 Subject: {subject}
@@ -294,7 +305,7 @@ Body: {body}
 }}
 
 **Rules:**
-- category must be one of: initial_enquiry, site_visit_meeting, invoice_due, quote_creation, showroom_booking, complaint, general_inquiry
+- category must be one of: initial_enquiry, site_visit_meeting, invoice_due, quote_creation, showroom_booking, complaint, order_status, general_inquiry
 - confidence: 0.0 to 1.0
 - priority: ""Low"", ""Normal"", ""High"", or ""Urgent""
 - sentiment: ""Positive"", ""Neutral"", ""Negative"", or ""Urgent""
@@ -391,7 +402,7 @@ Respond ONLY with the JSON object, no other text.";
 
                 // Validate category
                 var validCategories = new[] { "initial_enquiry", "site_visit_meeting", "invoice_due",
-                    "quote_creation", "showroom_booking", "complaint", "general_inquiry" };
+                    "quote_creation", "showroom_booking", "complaint", "order_status", "general_inquiry" };
 
                 if (!validCategories.Contains(result.Category))
                 {
@@ -445,6 +456,19 @@ Respond ONLY with the JSON object, no other text.";
                     Priority = "High",
                     Sentiment = "Neutral",
                     Reasoning = "Contains invoice/payment keywords (fallback detection)",
+                    ExtractedData = new Dictionary<string, object>()
+                };
+
+            var orderStatusKeywords = new[] { "order status", "delivery date", "arrival", "when will",
+                "dispatch", "eta", "ready for collection", "installation date", "track my order", "status of my order" };
+            if (orderStatusKeywords.Any(k => combined.Contains(k)))
+                return new AIAnalysisResult
+                {
+                    Category = "order_status",
+                    Confidence = 0.70,
+                    Priority = "Normal",
+                    Sentiment = "Neutral",
+                    Reasoning = "Contains order status/delivery keywords (fallback detection)",
                     ExtractedData = new Dictionary<string, object>()
                 };
 
@@ -647,6 +671,7 @@ Respond ONLY with the JSON object, no other text.";
                 "quote_creation" => "quote_creation",
                 "showroom_booking" => "showroom_booking",
                 "complaint" => "complaint",
+                "order_status" => "order_status",
                 _ => "general_inquiry"
             };
         }
@@ -658,6 +683,7 @@ Respond ONLY with the JSON object, no other text.";
                 "initial_enquiry" => new List<string> { "check_customer", "create_workflow", "create_enquiry", "create_task" },
                 "site_visit_meeting" => new List<string> { "create_audit_log", "create_task" },
                 "invoice_due" => new List<string> { "create_audit_log", "create_task" },
+                "order_status" => new List<string> { "create_task" },
                 "junk" => new List<string> { "mark_as_junk" },
                 _ => new List<string> { "create_task" }
             };

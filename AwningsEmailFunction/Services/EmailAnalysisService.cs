@@ -123,7 +123,12 @@ Analyze this email and categorize it into ONE of these categories:
    - Example: ""The awning is not working properly""
    - Example: ""We need the purchase receipt/invoice to process the warranty claim""
 
-7. **general** - Everything else
+7. **order_status** - Existing customer asking about the status, progress, or delivery/arrival date of an order they've already placed
+   - Keywords: order status, delivery date, arrival date, when will it arrive, dispatch, ready for collection, installation date, ETA
+   - NOT a new enquiry about products/pricing — the customer already has an order in progress
+   - Example: ""I was wondering if you can give me a date for our awning arrival?""
+
+8. **general** - Everything else
 
 **Email to analyze:**
 Subject: {subject}
@@ -131,7 +136,7 @@ From: {fromEmail}
 Body: {body}
 
 **Also determine whether this email needs a reply sent back to the customer:**
-- needsReply = true if the customer is asking a question, requesting information, a quote, a site visit, or a showroom appointment, or has raised a complaint/issue that requires acknowledgement
+- needsReply = true if the customer is asking a question, requesting information, a quote, a site visit, a showroom appointment, or an update on an existing order, or has raised a complaint/issue that requires acknowledgement
 - needsReply = false if the email is an automated notification, an invoice/payment reminder, a thank-you/confirmation, or a message that closes out a conversation and doesn't expect a response (e.g. ""Thanks, that's all I needed"")
 
 **Respond ONLY with valid JSON in this exact format:**
@@ -146,7 +151,7 @@ Body: {body}
 }}
 
 **Rules:**
-- category must be one of: enquiry, site_visit, invoice, quote, showroom, complaint, general
+- category must be one of: enquiry, site_visit, invoice, quote, showroom, complaint, order_status, general
 - confidence: 0.0 to 1.0
 - priority: ""Low"", ""Normal"", ""High"", or ""Urgent""
 - sentiment: ""Positive"", ""Neutral"", ""Negative"", or ""Urgent""
@@ -222,7 +227,7 @@ Respond ONLY with the JSON object, no other text.";
         var result = JsonSerializer.Deserialize<AIAnalysisResult>(clean, options)!;
 
         var validCategories = new[] { "enquiry", "site_visit", "invoice",
-            "quote", "showroom", "complaint", "general" };
+            "quote", "showroom", "complaint", "order_status", "general" };
 
         if (!validCategories.Contains(result.Category))
             result.Category = "general";
@@ -305,6 +310,7 @@ Respond ONLY with the JSON object, no other text.";
         "quote" => "quote",
         "showroom" => "showroom",
         "complaint" => "complaint",
+        "order_status" => "order_status",
         _ => "general"
     };
 
@@ -313,6 +319,7 @@ Respond ONLY with the JSON object, no other text.";
         "enquiry" => new List<string> { "check_customer", "create_workflow", "create_task" },
         "site_visit" => new List<string> { "create_task" },
         "invoice" => new List<string> { "create_task" },
+        "order_status" => new List<string> { "create_task" },
         "junk" => new List<string> { "mark_as_junk" },
         _ => new List<string> { "create_task" }
     };

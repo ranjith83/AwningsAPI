@@ -14,11 +14,13 @@ namespace AwningsAPI.Services.Tasks
     {
         private readonly AppDbContext _context;
         private readonly Microsoft.Extensions.Logging.ILogger<TaskService> _logger;
+        private readonly IEmailAutoReplyService _autoReplyService;
 
-        public TaskService(AppDbContext context, Microsoft.Extensions.Logging.ILogger<TaskService> logger)
+        public TaskService(AppDbContext context, Microsoft.Extensions.Logging.ILogger<TaskService> logger, IEmailAutoReplyService autoReplyService)
         {
             _context = context;
             _logger = logger;
+            _autoReplyService = autoReplyService;
         }
 
         #region Basic CRUD Operations
@@ -989,9 +991,22 @@ namespace AwningsAPI.Services.Tasks
                 dbTask.ExtractedData = email.ExtractedData;
                 dbTask.AIConfidence = email.CategoryConfidence;
                 dbTask.HasAttachments = email.HasAttachments;
+                dbTask.NeedsReply = string.Equals(email.Category, "order_status", StringComparison.OrdinalIgnoreCase);
                 if (isJunk) dbTask.Status = "Junk";
 
                 await _context.SaveChangesAsync();
+
+                if (dbTask.NeedsReply)
+                {
+                    try
+                    {
+                        await _autoReplyService.GenerateDraftReplyForTaskAsync(dbTask.TaskId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to generate draft reply for task {TaskId}", dbTask.TaskId);
+                    }
+                }
             }
 
             _logger.LogInformation($"Task created successfully: TaskId={task.TaskId}, Category={category}");
@@ -1487,6 +1502,7 @@ namespace AwningsAPI.Services.Tasks
                 "complaint" => "Complaint",
                 "general_inquiry" => "Inquiry",
                 "payment" => "Payment",
+                "order_status" => "Order Status",
                 _ => category ?? "Inquiry"
             };
         }
