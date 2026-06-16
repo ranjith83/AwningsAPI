@@ -16,6 +16,7 @@ using AwningsAPI.Services.SiteVisitService;
 using AwningsAPI.Services.Suppliers;
 using AwningsAPI.Services.Tasks;
 using AwningsAPI.Services.WorkflowService;
+using AwningsAPI.Services.LeadImport;
 using Azure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -94,6 +95,7 @@ builder.Services.AddScoped<IGraphSubscriptionService, GraphSubscriptionService>(
 //builder.Services.AddHostedService<EmailWatcherBackgroundService>();
 // Task Service
 builder.Services.AddScoped<ITaskService, TaskService>();
+builder.Services.AddScoped<ILeadImportService, LeadImportService>();
 
 // JWT Authentication Configuration
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
