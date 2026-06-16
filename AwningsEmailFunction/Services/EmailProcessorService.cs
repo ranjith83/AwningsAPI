@@ -200,6 +200,9 @@ public class EmailProcessorService : IEmailProcessorService
         var priority = DeterminePriority(email.Importance, email.Category);
         var displayCategory = MapCategoryToDisplay(email.Category);
 
+        var isJunk = analysis.IsSpam ||
+            string.Equals(email.Category, "junk", StringComparison.OrdinalIgnoreCase);
+
         var task = new AppTask
         {
             SourceType = "Email",
@@ -216,7 +219,7 @@ public class EmailProcessorService : IEmailProcessorService
             HasAttachments = email.HasAttachments,
             ExtractedData = email.ExtractedData,
             AIConfidence = email.CategoryConfidence,
-            NeedsReply = analysis.NeedsReply,
+            NeedsReply = !isJunk,
             DueDate = CalculateDueDate(priority),
             DateAdded = DateTime.UtcNow,
             DateCreated = DateTime.UtcNow,
@@ -233,7 +236,7 @@ public class EmailProcessorService : IEmailProcessorService
         if (email.HasAttachments && email.Attachments.Any())
             await CopyAttachmentsToTaskAsync(task.TaskId, email.Attachments);
 
-        if (analysis.NeedsReply)
+        if (!isJunk)
         {
             try
             {

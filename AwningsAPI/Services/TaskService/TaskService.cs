@@ -991,12 +991,12 @@ namespace AwningsAPI.Services.Tasks
                 dbTask.ExtractedData = email.ExtractedData;
                 dbTask.AIConfidence = email.CategoryConfidence;
                 dbTask.HasAttachments = email.HasAttachments;
-                dbTask.NeedsReply = string.Equals(email.Category, "order_status", StringComparison.OrdinalIgnoreCase);
+                dbTask.NeedsReply = !isJunk;
                 if (isJunk) dbTask.Status = "Junk";
 
                 await _context.SaveChangesAsync();
 
-                if (dbTask.NeedsReply)
+                if (!isJunk)
                 {
                     try
                     {
