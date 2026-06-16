@@ -55,7 +55,8 @@ public class BlobEmailStorageService : IBlobEmailStorageService
         var uri = new Uri(blobUrl);
         var path = uri.AbsolutePath.TrimStart('/');
         var slashIndex = path.IndexOf('/');
-        var blobName = slashIndex >= 0 ? path[(slashIndex + 1)..] : path;
+        // AbsolutePath keeps percent-encoding; decode so the blob name matches what was uploaded.
+        var blobName = Uri.UnescapeDataString(slashIndex >= 0 ? path[(slashIndex + 1)..] : path);
 
         var blobClient = new BlobClient(_connectionString, _containerName, blobName);
         var response = await blobClient.DownloadContentAsync();
