@@ -111,7 +111,8 @@ namespace AwningsAPI.Services.OutlookService
             var task = await _context.Tasks.FindAsync(taskId)
                 ?? throw new KeyNotFoundException($"Task {taskId} not found.");
 
-            var bodyContent = await GetTaskEmailBodyAsync(task);
+            var rawBody = await GetTaskEmailBodyAsync(task);
+            var bodyContent = SanitiseBody(rawBody);
 
             var userMessage =
                 $"Customer name: {task.FromName}\n" +
@@ -167,6 +168,18 @@ namespace AwningsAPI.Services.OutlookService
 
             var email = await _context.IncomingEmails.FindAsync(task.IncomingEmailId.Value);
             return email?.BodyContent ?? email?.BodyPreview;
+        }
+
+        private static string SanitiseBody(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "(no message body)";
+
+            var text = System.Text.RegularExpressions.Regex.Replace(raw, "<[^>]+>", " ");
+            text = System.Net.WebUtility.HtmlDecode(text);
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+
+            const int maxChars = 3000;
+            return text.Length <= maxChars ? text : text[..maxChars] + "…";
         }
 
         // ── Claude reply generation ───────────────────────────────────────────

@@ -244,7 +244,8 @@ public class EmailProcessorService : IEmailProcessorService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to generate draft reply for task {TaskId}", task.TaskId);
+                _logger.LogError(ex, "Failed to generate draft reply for task {TaskId}: [{ExType}] {ExMessage}",
+                    task.TaskId, ex.GetType().Name, ex.Message);
             }
         }
 

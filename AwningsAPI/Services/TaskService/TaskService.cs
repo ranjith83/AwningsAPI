@@ -1004,7 +1004,8 @@ namespace AwningsAPI.Services.Tasks
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Failed to generate draft reply for task {TaskId}", dbTask.TaskId);
+                        _logger.LogError(ex, "Failed to generate draft reply for task {TaskId}: [{ExType}] {ExMessage}",
+                        dbTask.TaskId, ex.GetType().Name, ex.Message);
                     }
                 }
             }

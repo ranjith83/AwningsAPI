@@ -86,11 +86,12 @@ public class EmailAutoReplyService : IEmailAutoReplyService
             return;
         }
 
-        var bodyContent = await GetEmailBodyAsync(task);
-
         var apiKey = _configuration["Claude:ApiKey"];
         if (string.IsNullOrEmpty(apiKey))
             throw new InvalidOperationException("Claude:ApiKey is not configured");
+
+        var rawBody = await GetEmailBodyAsync(task);
+        var bodyContent = SanitiseBody(rawBody);
 
         var systemPrompt = BuildSystemPrompt(task.TaskType);
         var userMessage =
@@ -106,6 +107,23 @@ public class EmailAutoReplyService : IEmailAutoReplyService
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Draft reply generated for task {TaskId} (category: {Category})", taskId, task.TaskType);
+    }
+
+    // Strip HTML tags and collapse whitespace so Claude gets clean plain text.
+    // Truncate to 3 000 chars — enough context for a reply, avoids oversized requests.
+    private static string SanitiseBody(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "(no message body)";
+
+        // Remove HTML tags
+        var text = System.Text.RegularExpressions.Regex.Replace(raw, "<[^>]+>", " ");
+        // Decode common HTML entities
+        text = System.Net.WebUtility.HtmlDecode(text);
+        // Collapse whitespace
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+
+        const int maxChars = 3000;
+        return text.Length <= maxChars ? text : text[..maxChars] + "…";
     }
 
     private async Task<string?> GetEmailBodyAsync(Models.AppTask task)
