@@ -4,7 +4,8 @@ namespace AwningsAPI.Dto.ImportLeads
     {
         public int TotalEmails { get; set; }
         public int Created { get; set; }
-        public int Skipped { get; set; }
+        public int Skipped { get; set; }   // Customer already exists
+        public int Ignored { get; set; }   // No matching product found
         public int Failed { get; set; }
         public List<ImportLeadsItemDto> Results { get; set; } = new();
     }
