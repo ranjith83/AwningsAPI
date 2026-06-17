@@ -257,6 +257,8 @@ namespace AwningsAPI.Services.ImportLeads
                     item.Status = "Failed";
                     item.Error = ex.Message;
                     result.Failed++;
+                    // Clear any partially-tracked entities so the next email starts clean.
+                    _context.ChangeTracker.Clear();
                     try
                     {
                         AddAuditLog(0, message.Subject, AuditAction.CREATE, currentUser,
@@ -289,37 +291,42 @@ namespace AwningsAPI.Services.ImportLeads
                     ? BuildEnquiryEmailHtml(customer.Name ?? customer.Email ?? "", product.Description)
                     : BuildNoProductEmailHtml(customer.Name ?? customer.Email ?? ""));
 
-            var workflow = new WorkflowStart
+            // WorkflowStart.ProductId is a non-nullable FK — only create the workflow when
+            // a matched product is available; no-product leads get the email only.
+            if (product != null)
             {
-                WorkflowName = "Lead Enquiry",
-                Description = extracted.Notes ?? "Lead imported from email",
-                CustomerId = customer.CustomerId,
-                CompanyId = customer.CustomerId,
-                SupplierId = product?.SupplierId ?? 1,
-                ProductTypeId = product?.ProductTypeId ?? 1,
-                ProductId = product?.ProductId ?? 1,
-                InitialEnquiry = true,
-                CreateQuote = false,
-                InviteShowRoom = false,
-                SetupSiteVisit = false,
-                InvoiceSent = false,
-                FinalQuote = false,
-                DateCreated = DateTime.UtcNow,
-                CreatedBy = currentUser
-            };
-            _context.WorkflowStarts.Add(workflow);
-            await _context.SaveChangesAsync();
+                var workflow = new WorkflowStart
+                {
+                    WorkflowName = "Lead Enquiry",
+                    Description = extracted.Notes ?? "Lead imported from email",
+                    CustomerId = customer.CustomerId,
+                    CompanyId = customer.CustomerId,
+                    SupplierId = product.SupplierId,
+                    ProductTypeId = product.ProductTypeId,
+                    ProductId = product.ProductId,
+                    InitialEnquiry = true,
+                    CreateQuote = false,
+                    InviteShowRoom = false,
+                    SetupSiteVisit = false,
+                    InvoiceSent = false,
+                    FinalQuote = false,
+                    DateCreated = DateTime.UtcNow,
+                    CreatedBy = currentUser
+                };
+                _context.WorkflowStarts.Add(workflow);
+                await _context.SaveChangesAsync();
 
-            _context.InitialEnquiries.Add(new InitialEnquiry
-            {
-                WorkflowId = workflow.WorkflowId,
-                Comments = extracted.Notes ?? "Imported from email leads folder",
-                Email = customer.Email ?? "",
-                AutoReplyContent = emailBody,
-                DateCreated = DateTime.UtcNow,
-                CreatedBy = currentUser
-            });
-            await _context.SaveChangesAsync();
+                _context.InitialEnquiries.Add(new InitialEnquiry
+                {
+                    WorkflowId = workflow.WorkflowId,
+                    Comments = extracted.Notes ?? "Imported from email leads folder",
+                    Email = customer.Email ?? "",
+                    AutoReplyContent = emailBody,
+                    DateCreated = DateTime.UtcNow,
+                    CreatedBy = currentUser
+                });
+                await _context.SaveChangesAsync();
+            }
 
             var recipientEmail = customer.Email ?? "";
             if (string.IsNullOrWhiteSpace(recipientEmail)) return;
