@@ -64,7 +64,11 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<AnthropicClient>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
-    return new AnthropicClient { ApiKey = configuration["Claude:ApiKey"] ?? "" };
+    var apiKey = configuration["Claude:ApiKey"];
+    if (string.IsNullOrWhiteSpace(apiKey))
+        throw new InvalidOperationException(
+            "Claude:ApiKey is not configured. Set the 'Claude__ApiKey' environment variable in Azure Container Apps.");
+    return new AnthropicClient { ApiKey = apiKey };
 });
 
 
