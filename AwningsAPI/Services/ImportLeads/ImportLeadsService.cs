@@ -142,7 +142,8 @@ namespace AwningsAPI.Services.ImportLeads
                         : message.From?.EmailAddress?.Address ?? "";
 
                     // Skip emails that contain nothing beyond an email address
-                    if (!HasUsefulContent(extracted))
+                    var senderName = message.From?.EmailAddress?.Name;
+                    if (!HasUsefulContent(extracted, senderName))
                     {
                         item.Status = "Ignored";
                         item.Note = "Email contains no useful information";
@@ -189,51 +190,36 @@ namespace AwningsAPI.Services.ImportLeads
                     }
                     else if (product == null)
                     {
+                        // ── No matched product — always create customer ─────────────────
+                        var dto = BuildCustomerDto(extracted, message);
+                        var customer = await _customerService.SaveCompanyWithContact(dto, currentUser);
+                        item.Status = "Created";
+                        item.CustomerName = customer.Name;
+                        item.CustomerId = customer.CustomerId;
+                        result.Created++;
+                        targetFolderId = processedFolderId;
+
                         var hasAttachment = message.HasAttachments ?? false;
                         var hasMeasurements = HasMeasurements(extracted.Notes, body);
 
                         if (hasAttachment && hasMeasurements)
                         {
-                            // ── No product BUT measurements + photo — create customer, request quote ─
-                            var dto = BuildCustomerDto(extracted, message);
-                            var customer = await _customerService.SaveCompanyWithContact(dto, currentUser);
-                            item.Status = "Created";
-                            item.CustomerName = customer.Name;
-                            item.CustomerId = customer.CustomerId;
                             item.Note = "Measurements and photo provided — quote pending";
-                            result.Created++;
-                            targetFolderId = processedFolderId;
-                            AddAuditLog(customer.CustomerId, customer.Name, AuditAction.CREATE, currentUser,
-                                "Lead imported — measurements and photo provided, quote pending");
-                            await _context.SaveChangesAsync();
                             _logger.LogInformation("Customer created (measurements+photo): '{Name}' ID={Id}",
                                 customer.Name, customer.CustomerId);
-
-                            var recipientEmail = customer.Email ?? leadEmail;
-                            if (!string.IsNullOrWhiteSpace(recipientEmail))
-                            {
-                                try { await SendQuoteOrShowroomEmailAsync(recipientEmail, customer.Name); }
-                                catch (Exception ex) { _logger.LogWarning(ex, "Quote/showroom email failed for {Email}", recipientEmail); }
-                            }
+                            var quoteEmailBody = BuildQuoteOrShowroomEmailHtml(customer.Name ?? "");
+                            try { await SendInitialEnquiryEmailAsync(customer, extracted, null, currentUser, quoteEmailBody); }
+                            catch (Exception ex) { _logger.LogWarning(ex, "Quote email failed for customer {Id}", customer.CustomerId); }
                         }
                         else
                         {
-                            // ── No product, no measurements — notify customer, do not create ─────
-                            item.Status = "Ignored";
                             item.Note = modelName == null
                                 ? "No product interest found in email"
                                 : $"Product '{modelName}' not found in catalogue";
-                            result.Ignored++;
-                            targetFolderId = processedFolderId;
-                            AddAuditLog(0, leadEmail, "IGNORED", currentUser, item.Note);
-                            await _context.SaveChangesAsync();
-                            _logger.LogInformation("Lead ignored ({Note}) — {Email}", item.Note, leadEmail);
-
-                            if (!string.IsNullOrWhiteSpace(leadEmail))
-                            {
-                                try { await SendNoProductEmailAsync(leadEmail, extracted.FullName ?? extracted.FirstName ?? leadEmail); }
-                                catch (Exception ex) { _logger.LogWarning(ex, "No-product email failed for {Email}", leadEmail); }
-                            }
+                            _logger.LogInformation("Customer created (no product): '{Name}' ID={Id} — {Note}",
+                                customer.Name, customer.CustomerId, item.Note);
+                            try { await SendInitialEnquiryEmailAsync(customer, extracted, null, currentUser); }
+                            catch (Exception ex) { _logger.LogWarning(ex, "No-product email failed for customer {Id}", customer.CustomerId); }
                         }
                     }
                     else
@@ -246,9 +232,6 @@ namespace AwningsAPI.Services.ImportLeads
                         item.CustomerId = customer.CustomerId;
                         result.Created++;
                         targetFolderId = processedFolderId;
-                        AddAuditLog(customer.CustomerId, customer.Name, AuditAction.CREATE, currentUser,
-                            $"Lead imported from email — product: {product.Description}");
-                        await _context.SaveChangesAsync();
                         _logger.LogInformation("Customer created: '{Name}' ID={Id} — product: {Product}",
                             customer.Name, customer.CustomerId, product.Description);
 
@@ -298,9 +281,13 @@ namespace AwningsAPI.Services.ImportLeads
         #region Welcome Email
 
         private async Task SendInitialEnquiryEmailAsync(
-            Customer customer, ExtractedLeadData extracted, Product product, string currentUser)
+            Customer customer, ExtractedLeadData extracted, Product? product, string currentUser,
+            string? overrideEmailBody = null)
         {
-            var emailBody = BuildEnquiryEmailHtml(customer.Name ?? customer.Email ?? "", product.Description);
+            var emailBody = overrideEmailBody
+                ?? (product != null
+                    ? BuildEnquiryEmailHtml(customer.Name ?? customer.Email ?? "", product.Description)
+                    : BuildNoProductEmailHtml(customer.Name ?? customer.Email ?? ""));
 
             var workflow = new WorkflowStart
             {
@@ -337,7 +324,6 @@ namespace AwningsAPI.Services.ImportLeads
             var recipientEmail = customer.Email ?? "";
             if (string.IsNullOrWhiteSpace(recipientEmail)) return;
 
-            // SendDirectEmailAsync handles IsProd redirection and brochure attachment internally
             await _emailReaderService.SendDirectEmailAsync(
                 toEmail: recipientEmail,
                 toName: customer.Name,
@@ -372,10 +358,11 @@ namespace AwningsAPI.Services.ImportLeads
             return null;
         }
 
-        private static bool HasUsefulContent(ExtractedLeadData d) =>
+        private static bool HasUsefulContent(ExtractedLeadData d, string? senderName) =>
             !string.IsNullOrWhiteSpace(d.FirstName) ||
             !string.IsNullOrWhiteSpace(d.LastName) ||
             !string.IsNullOrWhiteSpace(d.FullName) ||
+            !string.IsNullOrWhiteSpace(senderName) ||
             !string.IsNullOrWhiteSpace(d.Phone) ||
             !string.IsNullOrWhiteSpace(d.Mobile) ||
             !string.IsNullOrWhiteSpace(d.Address1) ||
@@ -390,15 +377,6 @@ namespace AwningsAPI.Services.ImportLeads
                    text.Contains("dimension") || text.Contains("size");
         }
 
-        private Task SendQuoteOrShowroomEmailAsync(string toEmail, string? toName) =>
-            _emailReaderService.SendDirectEmailAsync(
-                toEmail: toEmail,
-                toName: toName,
-                subject: "Thank you for your enquiry - Awnings of Ireland",
-                body: BuildQuoteOrShowroomEmailHtml(toName ?? toEmail),
-                attachBrochure: false,
-                productIds: null);
-
         private static string BuildQuoteOrShowroomEmailHtml(string name) => $@"
 <html>
 <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 650px; margin: 0 auto; padding: 20px;'>
@@ -410,15 +388,6 @@ namespace AwningsAPI.Services.ImportLeads
   <p>Best regards,<br><strong>Awnings of Ireland</strong></p>
 </body>
 </html>";
-
-        private Task SendNoProductEmailAsync(string toEmail, string toName) =>
-            _emailReaderService.SendDirectEmailAsync(
-                toEmail: toEmail,
-                toName: toName,
-                subject: "Thank you for your enquiry - Awnings of Ireland",
-                body: BuildNoProductEmailHtml(toName),
-                attachBrochure: false,
-                productIds: null);
 
         private static string BuildNoProductEmailHtml(string name) => $@"
 <html>
