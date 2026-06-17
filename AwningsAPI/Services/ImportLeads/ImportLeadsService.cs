@@ -206,23 +206,34 @@ namespace AwningsAPI.Services.ImportLeads
             var hasAttachment = message.HasAttachments ?? false;
             var hasMeasurements = HasMeasurements(extracted.Notes, body);
 
-            using var tx = await _context.Database.BeginTransactionAsync();
+            // SqlServerRetryingExecutionStrategy requires all operations inside CreateExecutionStrategy
+            // so that the whole unit can be retried atomically on transient failures.
+            Customer? customer = null;
+            string emailBody = string.Empty;
+            int? incomingEmailId = null;
 
-            var customer = await _customerService.SaveCompanyWithContact(dto, currentUser);
+            var strategy = _context.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                _context.ChangeTracker.Clear(); // start clean on each attempt
+                using var tx = await _context.Database.BeginTransactionAsync();
+
+                customer = await _customerService.SaveCompanyWithContact(dto, currentUser);
+                emailBody = BuildLeadEmailBody(customer, product, hasAttachment && hasMeasurements);
+                incomingEmailId = await SaveIncomingEmailAsync(message, customer, currentUser);
+                await CreateWorkflowAndEnquiryAsync(customer, extracted, product, emailBody, incomingEmailId, currentUser);
+
+                if (incomingEmailId.HasValue)
+                    await _taskService.CreateTaskFromEmailAsync(incomingEmailId.Value, currentUser);
+
+                await tx.CommitAsync();
+            });
+
             item.Status = "Created";
-            item.CustomerName = customer.Name;
+            item.CustomerName = customer!.Name;
             item.CustomerId = customer.CustomerId;
             item.Note = DetermineItemNote(product, modelName, hasAttachment, hasMeasurements);
             result.Created++;
-
-            var emailBody = BuildLeadEmailBody(customer, product, hasAttachment && hasMeasurements);
-            var incomingEmailId = await SaveIncomingEmailAsync(message, customer, currentUser);
-            await CreateWorkflowAndEnquiryAsync(customer, extracted, product, emailBody, incomingEmailId, currentUser);
-
-            if (incomingEmailId.HasValue)
-                await _taskService.CreateTaskFromEmailAsync(incomingEmailId.Value, currentUser);
-
-            await tx.CommitAsync();
 
             _logger.LogInformation("Customer created: '{Name}' ID={Id} — product: {Product}",
                 customer.Name, customer.CustomerId, product?.Description ?? "none");
