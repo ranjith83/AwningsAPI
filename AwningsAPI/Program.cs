@@ -16,7 +16,7 @@ using AwningsAPI.Services.SiteVisitService;
 using AwningsAPI.Services.Suppliers;
 using AwningsAPI.Services.Tasks;
 using AwningsAPI.Services.WorkflowService;
-using AwningsAPI.Services.LeadImport;
+using AwningsAPI.Services.ImportLeads;
 using Azure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -95,7 +95,7 @@ builder.Services.AddScoped<IGraphSubscriptionService, GraphSubscriptionService>(
 //builder.Services.AddHostedService<EmailWatcherBackgroundService>();
 // Task Service
 builder.Services.AddScoped<ITaskService, TaskService>();
-builder.Services.AddScoped<ILeadImportService, LeadImportService>();
+builder.Services.AddScoped<IImportLeadsService, ImportLeadsService>();
 
 // JWT Authentication Configuration
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -164,6 +164,31 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new() { Title = "Awnings Of Ireland API", Version = "v1" });
+
+    var jwtScheme = new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Enter your JWT token (without 'Bearer ' prefix)"
+    };
+    options.AddSecurityDefinition("Bearer", jwtScheme);
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()

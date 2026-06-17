@@ -2,8 +2,10 @@ using Anthropic;
 using Anthropic.Models.Messages;
 using AwningsAPI.Database;
 using AwningsAPI.Dto.Customers;
-using AwningsAPI.Dto.LeadImport;
+using AwningsAPI.Dto.ImportLeads;
 using AwningsAPI.Interfaces;
+using AwningsAPI.Model.Customers;
+using AwningsAPI.Model.Workflow;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
@@ -11,18 +13,20 @@ using System.Text.Json;
 using GraphMessage = Microsoft.Graph.Models.Message;
 using GraphMailFolder = Microsoft.Graph.Models.MailFolder;
 
-namespace AwningsAPI.Services.LeadImport
+namespace AwningsAPI.Services.ImportLeads
 {
-    public class LeadImportService : ILeadImportService
+    public class ImportLeadsService : IImportLeadsService
     {
         private readonly GraphServiceClient _graphClient;
         private readonly ICustomerService _customerService;
         private readonly AppDbContext _context;
         private readonly AnthropicClient _anthropicClient;
         private readonly IConfiguration _configuration;
-        private readonly ILogger<LeadImportService> _logger;
+        private readonly IEmailReaderService _emailReaderService;
+        private readonly ILogger<ImportLeadsService> _logger;
 
         private const string ProcessedFolderName = "Processed";
+        private const string ExistingCustomersFolderName = "Existing Customers";
 
         private const string ExtractionSystemPrompt =
             "You are a data extraction assistant for Awnings of Ireland. " +
@@ -60,23 +64,25 @@ namespace AwningsAPI.Services.LeadImport
             "  \"notes\": \"\"\n" +
             "}";
 
-        public LeadImportService(
+        public ImportLeadsService(
             GraphServiceClient graphClient,
             ICustomerService customerService,
             AppDbContext context,
             AnthropicClient anthropicClient,
             IConfiguration configuration,
-            ILogger<LeadImportService> logger)
+            IEmailReaderService emailReaderService,
+            ILogger<ImportLeadsService> logger)
         {
             _graphClient = graphClient;
             _customerService = customerService;
             _context = context;
             _anthropicClient = anthropicClient;
             _configuration = configuration;
+            _emailReaderService = emailReaderService;
             _logger = logger;
         }
 
-        public async Task<LeadImportResultDto> ProcessLeadsFolderAsync(string folderName, string currentUser)
+        public async Task<ImportLeadsResultDto> ProcessLeadsFolderAsync(string folderName, string currentUser)
         {
             var mailbox = _configuration["AzureAd:MonitoredMailbox"]
                 ?? _configuration["AzureAd:OrganizerEmail"]
@@ -86,8 +92,9 @@ namespace AwningsAPI.Services.LeadImport
             var sourceFolderId = await FindChildFolderIdAsync(mailbox, "inbox", folderName)
                 ?? throw new InvalidOperationException($"Folder '{folderName}' not found under Inbox.");
 
-            // Ensure a "Processed" subfolder exists inside the source folder
+            // Ensure subfolders exist inside the source folder
             var processedFolderId = await GetOrCreateChildFolderAsync(mailbox, sourceFolderId, ProcessedFolderName);
+            var existingCustomersFolderId = await GetOrCreateChildFolderAsync(mailbox, sourceFolderId, ExistingCustomersFolderName);
 
             // Fetch all messages from the source folder (max 200)
             var messagesResponse = await _graphClient.Users[mailbox]
@@ -103,14 +110,14 @@ namespace AwningsAPI.Services.LeadImport
                 });
 
             var messages = messagesResponse?.Value ?? new List<GraphMessage>();
-            var result = new LeadImportResultDto { TotalEmails = messages.Count };
+            var result = new ImportLeadsResultDto { TotalEmails = messages.Count };
 
             _logger.LogInformation("Lead import started — {Count} email(s) found in '{Folder}'",
                 messages.Count, folderName);
 
             foreach (var message in messages)
             {
-                var item = new LeadImportItemDto
+                var item = new ImportLeadsItemDto
                 {
                     Subject = message.Subject ?? "(no subject)",
                     FromEmail = message.From?.EmailAddress?.Address ?? "",
@@ -144,6 +151,7 @@ namespace AwningsAPI.Services.LeadImport
                     // Carry the enquiry notes through to the result regardless of outcome
                     item.EnquiryNotes = extracted.Notes;
 
+                    string targetFolderId;
                     if (existing != null)
                     {
                         item.Status = "Skipped";
@@ -151,7 +159,9 @@ namespace AwningsAPI.Services.LeadImport
                         item.CustomerId = existing.CustomerId;
                         item.Note = "Customer already exists";
                         result.Skipped++;
-                        _logger.LogInformation("Skipped duplicate: '{Name}' ({Email})", existing.Name, leadEmail);
+                        targetFolderId = existingCustomersFolderId;
+                        _logger.LogInformation("Existing customer: '{Name}' ({Email}) — copying to '{Folder}'",
+                            existing.Name, leadEmail, ExistingCustomersFolderName);
                     }
                     else
                     {
@@ -161,17 +171,28 @@ namespace AwningsAPI.Services.LeadImport
                         item.CustomerName = customer.Name;
                         item.CustomerId = customer.CustomerId;
                         result.Created++;
+                        targetFolderId = processedFolderId;
                         _logger.LogInformation("Customer created: '{Name}' ID={Id} from '{Subject}'",
                             customer.Name, customer.CustomerId, message.Subject);
+
+                        try
+                        {
+                            await SendInitialEnquiryEmailAsync(customer, extracted, currentUser);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Welcome email failed for customer {CustomerId}: {ExMessage}",
+                                customer.CustomerId, ex.Message);
+                        }
                     }
 
-                    // Copy to Processed subfolder (original stays in source folder)
+                    // Copy to appropriate subfolder (original stays in source folder)
                     await _graphClient.Users[mailbox]
                         .Messages[message.Id]
                         .Copy
                         .PostAsync(new Microsoft.Graph.Users.Item.Messages.Item.Copy.CopyPostRequestBody
                         {
-                            DestinationId = processedFolderId
+                            DestinationId = targetFolderId
                         });
                 }
                 catch (Exception ex)
@@ -192,6 +213,108 @@ namespace AwningsAPI.Services.LeadImport
 
             return result;
         }
+
+        #region Welcome Email
+
+        private async Task SendInitialEnquiryEmailAsync(
+            Customer customer, ExtractedLeadData extracted, string currentUser)
+        {
+            var model = ExtractModelFromNotes(extracted.Notes);
+            var emailBody = BuildEnquiryEmailHtml(customer.Name ?? customer.Email ?? "", model);
+
+            // Match product by name from extracted notes; fall back to first product
+            var product = string.IsNullOrWhiteSpace(model) ? null
+                : await _context.Products.AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Description.Contains(model));
+            product ??= await _context.Products.AsNoTracking()
+                .OrderBy(p => p.ProductId).FirstOrDefaultAsync();
+
+            var workflow = new WorkflowStart
+            {
+                WorkflowName = "Lead Enquiry",
+                Description = extracted.Notes ?? "Lead imported from email",
+                CustomerId = customer.CustomerId,
+                CompanyId = customer.CustomerId,
+                SupplierId = product?.SupplierId ?? 1,
+                ProductTypeId = product?.ProductTypeId ?? 1,
+                ProductId = product?.ProductId ?? 1,
+                InitialEnquiry = true,
+                CreateQuote = false,
+                InviteShowRoom = false,
+                SetupSiteVisit = false,
+                InvoiceSent = false,
+                FinalQuote = false,
+                DateCreated = DateTime.UtcNow,
+                CreatedBy = currentUser
+            };
+            _context.WorkflowStarts.Add(workflow);
+            await _context.SaveChangesAsync();
+
+            _context.InitialEnquiries.Add(new InitialEnquiry
+            {
+                WorkflowId = workflow.WorkflowId,
+                Comments = extracted.Notes ?? "Imported from email leads folder",
+                Email = customer.Email ?? "",
+                AutoReplyContent = emailBody,
+                DateCreated = DateTime.UtcNow,
+                CreatedBy = currentUser
+            });
+            await _context.SaveChangesAsync();
+
+            var recipientEmail = customer.Email ?? "";
+            if (string.IsNullOrWhiteSpace(recipientEmail)) return;
+
+            // SendDirectEmailAsync handles IsProd redirection and brochure attachment internally
+            await _emailReaderService.SendDirectEmailAsync(
+                toEmail: recipientEmail,
+                toName: customer.Name,
+                subject: "Thank you for your enquiry - Awnings of Ireland",
+                body: emailBody,
+                attachBrochure: product != null,
+                productIds: product != null ? new List<int> { product.ProductId } : null);
+
+            _logger.LogInformation(
+                "Welcome email sent to {Email} for customer {CustomerId}, brochure product {ProductId}",
+                recipientEmail, customer.CustomerId, product?.ProductId);
+        }
+
+        private static string ExtractModelFromNotes(string? notes)
+        {
+            if (string.IsNullOrWhiteSpace(notes)) return "our awning";
+
+            foreach (var line in notes.Split('\n', '\r', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var lower = line.ToLowerInvariant();
+                if (lower.Contains("model") || lower.Contains("markilux") || lower.Contains("product interest"))
+                {
+                    var colonIdx = line.IndexOf(':');
+                    if (colonIdx >= 0 && colonIdx < line.Length - 1)
+                    {
+                        var val = line[(colonIdx + 1)..].Trim();
+                        if (!string.IsNullOrWhiteSpace(val) && val.Length < 100)
+                            return val;
+                    }
+                }
+            }
+            return "our awning";
+        }
+
+        private static string BuildEnquiryEmailHtml(string customerName, string model) => $@"
+<html>
+<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 650px; margin: 0 auto; padding: 20px;'>
+  <p>Dear {customerName},</p>
+  <p>Thank you for reaching out to us at Awnings of Ireland.</p>
+  <p>Please find attached a quote for the {model}. Additionally, I've included some information about the {model} and attached a brochure for your reference.</p>
+  <p>These awnings are manufactured in Germany. The aluminium powder-coated cassette is designed to withstand rain without any risk of rust.</p>
+  <p>The awning can endure winds of up to 40 km/h when fully extended. With our self-cleaning fabric, your new awning will require minimal maintenance.</p>
+  <p>You can choose from a range of RAL colours for the frame, as well as over 250 fabric options. The awning also features an integrated drainage system to keep you dry and shaded underneath.</p>
+  <p>Please note that all quotations are subject to a site visit. If you're ready to schedule a site survey, feel free to contact me.</p>
+  <p>Alternatively, we have a showroom located in Sandyford, and I would be happy to assist you with our full range of products if you would like to visit.</p>
+  <p>Best regards,<br><strong>Awnings of Ireland</strong></p>
+</body>
+</html>";
+
+        #endregion
 
         #region AI Extraction
 

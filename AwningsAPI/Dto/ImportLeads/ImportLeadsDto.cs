@@ -1,15 +1,15 @@
-namespace AwningsAPI.Dto.LeadImport
+namespace AwningsAPI.Dto.ImportLeads
 {
-    public class LeadImportResultDto
+    public class ImportLeadsResultDto
     {
         public int TotalEmails { get; set; }
         public int Created { get; set; }
         public int Skipped { get; set; }
         public int Failed { get; set; }
-        public List<LeadImportItemDto> Results { get; set; } = new();
+        public List<ImportLeadsItemDto> Results { get; set; } = new();
     }
 
-    public class LeadImportItemDto
+    public class ImportLeadsItemDto
     {
         public string Subject { get; set; } = "";
         public string FromEmail { get; set; } = "";

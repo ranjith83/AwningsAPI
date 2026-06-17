@@ -1,4 +1,4 @@
-using AwningsAPI.Dto.LeadImport;
+using AwningsAPI.Dto.ImportLeads;
 using AwningsAPI.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,26 +6,27 @@ using Microsoft.AspNetCore.Mvc;
 namespace AwningsAPI.Controllers
 {
     [ApiController]
-    [Route("api/lead-import")]
+    [Route("api/import-leads")]
     [Authorize]
-    public class LeadImportController : ControllerBase
+    public class ImportLeadsController : ControllerBase
     {
-        private readonly ILeadImportService _leadImportService;
-        private readonly ILogger<LeadImportController> _logger;
+        private readonly IImportLeadsService _service;
+        private readonly ILogger<ImportLeadsController> _logger;
 
-        public LeadImportController(ILeadImportService leadImportService, ILogger<LeadImportController> logger)
+        public ImportLeadsController(IImportLeadsService service, ILogger<ImportLeadsController> logger)
         {
-            _leadImportService = leadImportService;
+            _service = service;
             _logger = logger;
         }
 
         /// <summary>
         /// On-demand: reads every email in the specified Inbox sub-folder, creates any new
-        /// customers found, and moves each processed email into a "Processed" sub-folder.
+        /// customers found, sends a welcome email, and copies each processed email into a
+        /// "Processed" sub-folder.
         /// </summary>
         /// <param name="folder">Inbox sub-folder to read (default: "New Leads June")</param>
         [HttpPost("process")]
-        public async Task<ActionResult<LeadImportResultDto>> ProcessLeads(
+        public async Task<ActionResult<ImportLeadsResultDto>> ProcessLeads(
             [FromQuery] string folder = "New Leads June")
         {
             try
@@ -34,7 +35,7 @@ namespace AwningsAPI.Controllers
                 _logger.LogInformation("Lead import triggered by {User} for folder '{Folder}'",
                     currentUser, folder);
 
-                var result = await _leadImportService.ProcessLeadsFolderAsync(folder, currentUser);
+                var result = await _service.ProcessLeadsFolderAsync(folder, currentUser);
                 return Ok(result);
             }
             catch (InvalidOperationException ex)
