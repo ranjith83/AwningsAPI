@@ -3,9 +3,11 @@ using Anthropic.Models.Messages;
 using AwningsAPI.Database;
 using AwningsAPI.Dto.Customers;
 using AwningsAPI.Dto.ImportLeads;
+using AwningsAPI.Dto.Workflow;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Audit;
 using AwningsAPI.Model.Customers;
+using AwningsAPI.Model.Email;
 using AwningsAPI.Model.Suppliers;
 using AwningsAPI.Model.Workflow;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +27,7 @@ namespace AwningsAPI.Services.ImportLeads
         private readonly AnthropicClient _anthropicClient;
         private readonly IConfiguration _configuration;
         private readonly IEmailReaderService _emailReaderService;
+        private readonly ITaskService _taskService;
         private readonly ILogger<ImportLeadsService> _logger;
 
         private const string ProcessedFolderName = "Processed";
@@ -73,6 +76,7 @@ namespace AwningsAPI.Services.ImportLeads
             AnthropicClient anthropicClient,
             IConfiguration configuration,
             IEmailReaderService emailReaderService,
+            ITaskService taskService,
             ILogger<ImportLeadsService> logger)
         {
             _graphClient = graphClient;
@@ -81,39 +85,20 @@ namespace AwningsAPI.Services.ImportLeads
             _anthropicClient = anthropicClient;
             _configuration = configuration;
             _emailReaderService = emailReaderService;
+            _taskService = taskService;
             _logger = logger;
         }
 
+        // ── Entry point ──────────────────────────────────────────────────────────
+
         public async Task<ImportLeadsResultDto> ProcessLeadsFolderAsync(string folderName, string currentUser)
         {
-            var mailbox = _configuration["AzureAd:MonitoredMailbox"]
-                ?? _configuration["AzureAd:OrganizerEmail"]
-                ?? throw new InvalidOperationException("Monitored mailbox not configured");
+            var mailbox = GetMailbox();
+            var (sourceFolderId, processedFolderId, existingCustomersFolderId) =
+                await SetupFoldersAsync(mailbox, folderName);
+            var messages = await FetchMessagesAsync(mailbox, sourceFolderId);
 
-            // Find the named folder under Inbox
-            var sourceFolderId = await FindChildFolderIdAsync(mailbox, "inbox", folderName)
-                ?? throw new InvalidOperationException($"Folder '{folderName}' not found under Inbox.");
-
-            // Ensure subfolders exist inside the source folder
-            var processedFolderId = await GetOrCreateChildFolderAsync(mailbox, sourceFolderId, ProcessedFolderName);
-            var existingCustomersFolderId = await GetOrCreateChildFolderAsync(mailbox, sourceFolderId, ExistingCustomersFolderName);
-
-            // Fetch all messages from the source folder (max 200)
-            var messagesResponse = await _graphClient.Users[mailbox]
-                .MailFolders[sourceFolderId]
-                .Messages
-                .GetAsync(req =>
-                {
-                    req.QueryParameters.Select = new[]
-                    {
-                        "id", "subject", "from", "body", "bodyPreview", "receivedDateTime", "hasAttachments"
-                    };
-                    req.QueryParameters.Top = 200;
-                });
-
-            var messages = messagesResponse?.Value ?? new List<GraphMessage>();
             var result = new ImportLeadsResultDto { TotalEmails = messages.Count };
-
             _logger.LogInformation("Lead import started — {Count} email(s) found in '{Folder}'",
                 messages.Count, folderName);
 
@@ -128,146 +113,15 @@ namespace AwningsAPI.Services.ImportLeads
 
                 try
                 {
-                    // AI-extract customer fields from email body
-                    var body = message.Body?.Content ?? message.BodyPreview ?? "";
-                    var extracted = await ExtractCustomerDetailsAsync(
-                        message.Subject,
-                        body,
-                        message.From?.EmailAddress?.Address,
-                        message.From?.EmailAddress?.Name);
+                    var targetFolderId = await ProcessMessageAsync(
+                        message, item, result, processedFolderId, existingCustomersFolderId, currentUser);
 
-                    // Email to use for duplicate detection (extracted > sender)
-                    var leadEmail = !string.IsNullOrWhiteSpace(extracted.Email)
-                        ? extracted.Email.Trim()
-                        : message.From?.EmailAddress?.Address ?? "";
-
-                    // Skip emails that contain nothing beyond an email address
-                    var senderName = message.From?.EmailAddress?.Name;
-                    if (!HasUsefulContent(extracted, senderName))
-                    {
-                        item.Status = "Ignored";
-                        item.Note = "Email contains no useful information";
-                        result.Ignored++;
-                        AddAuditLog(0, leadEmail, "IGNORED", currentUser, "Email contains no useful information beyond email address");
-                        await _context.SaveChangesAsync();
-                        _logger.LogInformation("Skipping content-empty email from {Email}", leadEmail);
-                        result.Results.Add(item);
-                        continue;
-                    }
-
-                    // Duplicate check
-                    var existing = string.IsNullOrWhiteSpace(leadEmail)
-                        ? null
-                        : await _context.Customers
-                            .Include(c => c.CustomerContacts)
-                            .FirstOrDefaultAsync(c =>
-                                (c.Email != null && c.Email.ToLower() == leadEmail.ToLower()) ||
-                                c.CustomerContacts.Any(cc => cc.Email != null && cc.Email.ToLower() == leadEmail.ToLower()));
-
-                    // Carry the enquiry notes through to the result regardless of outcome
-                    item.EnquiryNotes = extracted.Notes;
-
-                    // Resolve product from extracted notes (no fallback — null = no match)
-                    var modelName = ExtractModelFromNotes(extracted.Notes);
-                    var product = modelName == null ? null
-                        : await _context.Products.AsNoTracking()
-                            .FirstOrDefaultAsync(p => p.Description.Contains(modelName));
-
-                    string targetFolderId;
-                    if (existing != null)
-                    {
-                        // ── Existing customer ───────────────────────────────────────────
-                        item.Status = "Skipped";
-                        item.CustomerName = existing.Name;
-                        item.CustomerId = existing.CustomerId;
-                        item.Note = "Customer already exists";
-                        result.Skipped++;
-                        targetFolderId = existingCustomersFolderId;
-                        AddAuditLog(existing.CustomerId, existing.Name, "SKIPPED", currentUser,
-                            $"Lead import: customer already exists ({leadEmail})");
-                        await _context.SaveChangesAsync();
-                        _logger.LogInformation("Existing customer: '{Name}' ({Email})", existing.Name, leadEmail);
-                    }
-                    else if (product == null)
-                    {
-                        // ── No matched product — always create customer ─────────────────
-                        var dto = BuildCustomerDto(extracted, message);
-                        var customer = await _customerService.SaveCompanyWithContact(dto, currentUser);
-                        item.Status = "Created";
-                        item.CustomerName = customer.Name;
-                        item.CustomerId = customer.CustomerId;
-                        result.Created++;
-                        targetFolderId = processedFolderId;
-
-                        var hasAttachment = message.HasAttachments ?? false;
-                        var hasMeasurements = HasMeasurements(extracted.Notes, body);
-
-                        if (hasAttachment && hasMeasurements)
-                        {
-                            item.Note = "Measurements and photo provided — quote pending";
-                            _logger.LogInformation("Customer created (measurements+photo): '{Name}' ID={Id}",
-                                customer.Name, customer.CustomerId);
-                            var quoteEmailBody = BuildQuoteOrShowroomEmailHtml(customer.Name ?? "");
-                            try { await SendInitialEnquiryEmailAsync(customer, extracted, null, currentUser, quoteEmailBody); }
-                            catch (Exception ex) { _logger.LogWarning(ex, "Quote email failed for customer {Id}", customer.CustomerId); }
-                        }
-                        else
-                        {
-                            item.Note = modelName == null
-                                ? "No product interest found in email"
-                                : $"Product '{modelName}' not found in catalogue";
-                            _logger.LogInformation("Customer created (no product): '{Name}' ID={Id} — {Note}",
-                                customer.Name, customer.CustomerId, item.Note);
-                            try { await SendInitialEnquiryEmailAsync(customer, extracted, null, currentUser); }
-                            catch (Exception ex) { _logger.LogWarning(ex, "No-product email failed for customer {Id}", customer.CustomerId); }
-                        }
-                    }
-                    else
-                    {
-                        // ── New customer with matched product ───────────────────────────
-                        var dto = BuildCustomerDto(extracted, message);
-                        var customer = await _customerService.SaveCompanyWithContact(dto, currentUser);
-                        item.Status = "Created";
-                        item.CustomerName = customer.Name;
-                        item.CustomerId = customer.CustomerId;
-                        result.Created++;
-                        targetFolderId = processedFolderId;
-                        _logger.LogInformation("Customer created: '{Name}' ID={Id} — product: {Product}",
-                            customer.Name, customer.CustomerId, product.Description);
-
-                        try { await SendInitialEnquiryEmailAsync(customer, extracted, product, currentUser); }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Welcome email failed for customer {CustomerId}: {ExMessage}",
-                                customer.CustomerId, ex.Message);
-                        }
-                    }
-
-                    // Copy to appropriate subfolder (original stays in source folder)
-                    await _graphClient.Users[mailbox]
-                        .Messages[message.Id]
-                        .Copy
-                        .PostAsync(new Microsoft.Graph.Users.Item.Messages.Item.Copy.CopyPostRequestBody
-                        {
-                            DestinationId = targetFolderId
-                        });
+                    if (targetFolderId != null)
+                        await CopyToFolderAsync(mailbox, message.Id!, targetFolderId);
                 }
                 catch (Exception ex)
                 {
-                    item.Status = "Failed";
-                    item.Error = ex.Message;
-                    result.Failed++;
-                    // Clear any partially-tracked entities so the next email starts clean.
-                    _context.ChangeTracker.Clear();
-                    try
-                    {
-                        AddAuditLog(0, message.Subject, AuditAction.CREATE, currentUser,
-                            $"Lead import failed: [{ex.GetType().Name}] {ex.Message}");
-                        await _context.SaveChangesAsync();
-                    }
-                    catch { /* don't let audit failure mask the original error */ }
-                    _logger.LogError(ex, "Failed to process lead from '{Subject}': [{ExType}] {ExMessage}",
-                        message.Subject, ex.GetType().Name, ex.Message);
+                    await HandleFailureAsync(message, item, result, ex, currentUser);
                 }
 
                 result.Results.Add(item);
@@ -280,109 +134,366 @@ namespace AwningsAPI.Services.ImportLeads
             return result;
         }
 
-        #region Welcome Email
+        // ── Per-message routing ──────────────────────────────────────────────────
 
-        private async Task SendInitialEnquiryEmailAsync(
-            Customer customer, ExtractedLeadData extracted, Product? product, string currentUser,
-            string? overrideEmailBody = null)
+        // Returns the target subfolder ID to copy to, or null for ignored emails (no copy).
+        private async Task<string?> ProcessMessageAsync(
+            GraphMessage message, ImportLeadsItemDto item, ImportLeadsResultDto result,
+            string processedFolderId, string existingCustomersFolderId, string currentUser)
         {
-            var emailBody = overrideEmailBody
-                ?? (product != null
-                    ? BuildEnquiryEmailHtml(customer.Name ?? customer.Email ?? "", product.Description)
-                    : BuildNoProductEmailHtml(customer.Name ?? customer.Email ?? ""));
+            var body = message.Body?.Content ?? message.BodyPreview ?? "";
+            var extracted = await ExtractCustomerDetailsAsync(
+                message.Subject, body,
+                message.From?.EmailAddress?.Address,
+                message.From?.EmailAddress?.Name);
 
-            // WorkflowStart.ProductId is a non-nullable FK — only create the workflow when
-            // a matched product is available; no-product leads get the email only.
-            if (product != null)
-            {
-                var workflow = new WorkflowStart
-                {
-                    WorkflowName = "Lead Enquiry",
-                    Description = extracted.Notes ?? "Lead imported from email",
-                    CustomerId = customer.CustomerId,
-                    CompanyId = customer.CustomerId,
-                    SupplierId = product.SupplierId,
-                    ProductTypeId = product.ProductTypeId,
-                    ProductId = product.ProductId,
-                    InitialEnquiry = true,
-                    CreateQuote = false,
-                    InviteShowRoom = false,
-                    SetupSiteVisit = false,
-                    InvoiceSent = false,
-                    FinalQuote = false,
-                    DateCreated = DateTime.UtcNow,
-                    CreatedBy = currentUser
-                };
-                _context.WorkflowStarts.Add(workflow);
-                await _context.SaveChangesAsync();
+            var leadEmail = !string.IsNullOrWhiteSpace(extracted.Email)
+                ? extracted.Email.Trim()
+                : message.From?.EmailAddress?.Address ?? "";
 
-                _context.InitialEnquiries.Add(new InitialEnquiry
-                {
-                    WorkflowId = workflow.WorkflowId,
-                    Comments = extracted.Notes ?? "Imported from email leads folder",
-                    Email = customer.Email ?? "",
-                    AutoReplyContent = emailBody,
-                    DateCreated = DateTime.UtcNow,
-                    CreatedBy = currentUser
-                });
-                await _context.SaveChangesAsync();
-            }
+            item.EnquiryNotes = extracted.Notes;
 
-            var recipientEmail = customer.Email ?? "";
-            if (string.IsNullOrWhiteSpace(recipientEmail)) return;
+            if (!HasUsefulContent(extracted, message.From?.EmailAddress?.Name))
+                return await HandleIgnoredAsync(item, result, leadEmail, currentUser);
 
-            await _emailReaderService.SendDirectEmailAsync(
-                toEmail: recipientEmail,
-                toName: customer.Name,
-                subject: "Thank you for your enquiry - Awnings of Ireland",
-                body: emailBody,
-                attachBrochure: product != null,
-                productIds: product != null ? new List<int> { product.ProductId } : null);
+            var existing = await FindExistingCustomerAsync(leadEmail);
+            if (existing != null)
+                return await HandleSkippedAsync(item, result, existing, leadEmail, existingCustomersFolderId, currentUser);
 
-            _logger.LogInformation(
-                "Welcome email sent to {Email} for customer {CustomerId}, brochure product {ProductId}",
-                recipientEmail, customer.CustomerId, product?.ProductId);
+            var modelName = ExtractModelFromNotes(extracted.Notes);
+            var product = await ResolveProductAsync(modelName);
+
+            await HandleNewCustomerAsync(message, item, result, extracted, product, modelName, body, currentUser);
+            return processedFolderId;
         }
 
-        private static string? ExtractModelFromNotes(string? notes)
-        {
-            if (string.IsNullOrWhiteSpace(notes)) return null;
+        // ── Case handlers ────────────────────────────────────────────────────────
 
-            foreach (var line in notes.Split('\n', '\r', StringSplitOptions.RemoveEmptyEntries))
-            {
-                var lower = line.ToLowerInvariant();
-                if (lower.Contains("model") || lower.Contains("markilux") || lower.Contains("product interest"))
-                {
-                    var colonIdx = line.IndexOf(':');
-                    if (colonIdx >= 0 && colonIdx < line.Length - 1)
-                    {
-                        var val = line[(colonIdx + 1)..].Trim();
-                        if (!string.IsNullOrWhiteSpace(val) && val.Length < 100)
-                            return val;
-                    }
-                }
-            }
+        private async Task<string?> HandleIgnoredAsync(
+            ImportLeadsItemDto item, ImportLeadsResultDto result, string leadEmail, string currentUser)
+        {
+            item.Status = "Ignored";
+            item.Note = "Email contains no useful information";
+            result.Ignored++;
+            AddAuditLog(0, leadEmail, "IGNORED", currentUser,
+                "Email contains no useful information beyond email address");
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Skipping content-empty email from {Email}", leadEmail);
             return null;
         }
 
-        private static bool HasUsefulContent(ExtractedLeadData d, string? senderName) =>
-            !string.IsNullOrWhiteSpace(d.FirstName) ||
-            !string.IsNullOrWhiteSpace(d.LastName) ||
-            !string.IsNullOrWhiteSpace(d.FullName) ||
-            !string.IsNullOrWhiteSpace(senderName) ||
-            !string.IsNullOrWhiteSpace(d.Phone) ||
-            !string.IsNullOrWhiteSpace(d.Mobile) ||
-            !string.IsNullOrWhiteSpace(d.Address1) ||
-            !string.IsNullOrWhiteSpace(d.Notes);
-
-        private static bool HasMeasurements(string? notes, string? body)
+        private async Task<string> HandleSkippedAsync(
+            ImportLeadsItemDto item, ImportLeadsResultDto result,
+            Customer existing, string leadEmail, string existingCustomersFolderId, string currentUser)
         {
-            var text = $"{notes} {body}".ToLowerInvariant();
-            return text.Contains("width") || text.Contains("height") || text.Contains("projection") ||
-                   text.Contains("metre") || text.Contains("meter") || text.Contains(" cm") ||
-                   text.Contains("feet") || text.Contains("foot") || text.Contains("measurement") ||
-                   text.Contains("dimension") || text.Contains("size");
+            item.Status = "Skipped";
+            item.CustomerName = existing.Name;
+            item.CustomerId = existing.CustomerId;
+            item.Note = "Customer already exists";
+            result.Skipped++;
+            AddAuditLog(existing.CustomerId, existing.Name, "SKIPPED", currentUser,
+                $"Lead import: customer already exists ({leadEmail})");
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Existing customer: '{Name}' ({Email})", existing.Name, leadEmail);
+            return existingCustomersFolderId;
         }
+
+        private async Task HandleNewCustomerAsync(
+            GraphMessage message, ImportLeadsItemDto item, ImportLeadsResultDto result,
+            ExtractedLeadData extracted, Product? product, string? modelName, string body, string currentUser)
+        {
+            var dto = BuildCustomerDto(extracted, message);
+            var hasAttachment = message.HasAttachments ?? false;
+            var hasMeasurements = HasMeasurements(extracted.Notes, body);
+
+            using var tx = await _context.Database.BeginTransactionAsync();
+
+            var customer = await _customerService.SaveCompanyWithContact(dto, currentUser);
+            item.Status = "Created";
+            item.CustomerName = customer.Name;
+            item.CustomerId = customer.CustomerId;
+            item.Note = DetermineItemNote(product, modelName, hasAttachment, hasMeasurements);
+            result.Created++;
+
+            var emailBody = BuildLeadEmailBody(customer, product, hasAttachment && hasMeasurements);
+            var incomingEmailId = await SaveIncomingEmailAsync(message, customer, currentUser);
+            await CreateWorkflowAndEnquiryAsync(customer, extracted, product, emailBody, incomingEmailId, currentUser);
+
+            if (incomingEmailId.HasValue)
+                await _taskService.CreateTaskFromEmailAsync(incomingEmailId.Value, currentUser);
+
+            await tx.CommitAsync();
+
+            _logger.LogInformation("Customer created: '{Name}' ID={Id} — product: {Product}",
+                customer.Name, customer.CustomerId, product?.Description ?? "none");
+
+            await SendEnquiryEmailAsync(customer, product, emailBody);
+        }
+
+        private async Task HandleFailureAsync(
+            GraphMessage message, ImportLeadsItemDto item, ImportLeadsResultDto result,
+            Exception ex, string currentUser)
+        {
+            item.Status = "Failed";
+            item.Error = ex.Message;
+            result.Failed++;
+            _context.ChangeTracker.Clear();
+            try
+            {
+                AddAuditLog(0, message.Subject, AuditAction.CREATE, currentUser,
+                    $"Lead import failed: [{ex.GetType().Name}] {ex.Message}");
+                await _context.SaveChangesAsync();
+            }
+            catch { }
+            _logger.LogError(ex, "Failed to process lead from '{Subject}': [{ExType}] {ExMessage}",
+                message.Subject, ex.GetType().Name, ex.Message);
+        }
+
+        // ── Setup helpers ────────────────────────────────────────────────────────
+
+        private string GetMailbox() =>
+            _configuration["AzureAd:MonitoredMailbox"]
+            ?? _configuration["AzureAd:OrganizerEmail"]
+            ?? throw new InvalidOperationException("Monitored mailbox not configured");
+
+        private async Task<(string sourceFolderId, string processedFolderId, string existingCustomersFolderId)>
+            SetupFoldersAsync(string mailbox, string folderName)
+        {
+            var sourceFolderId = await FindChildFolderIdAsync(mailbox, "inbox", folderName)
+                ?? throw new InvalidOperationException($"Folder '{folderName}' not found under Inbox.");
+
+            var processedFolderId =
+                await GetOrCreateChildFolderAsync(mailbox, sourceFolderId, ProcessedFolderName);
+            var existingCustomersFolderId =
+                await GetOrCreateChildFolderAsync(mailbox, sourceFolderId, ExistingCustomersFolderName);
+
+            return (sourceFolderId, processedFolderId, existingCustomersFolderId);
+        }
+
+        private async Task<List<GraphMessage>> FetchMessagesAsync(string mailbox, string sourceFolderId)
+        {
+            var response = await _graphClient.Users[mailbox]
+                .MailFolders[sourceFolderId]
+                .Messages
+                .GetAsync(req =>
+                {
+                    req.QueryParameters.Select = new[]
+                    {
+                        "id", "subject", "from", "body", "bodyPreview", "receivedDateTime", "hasAttachments"
+                    };
+                    req.QueryParameters.Top = 200;
+                });
+            return response?.Value ?? new List<GraphMessage>();
+        }
+
+        private async Task CopyToFolderAsync(string mailbox, string messageId, string targetFolderId)
+        {
+            await _graphClient.Users[mailbox]
+                .Messages[messageId]
+                .Copy
+                .PostAsync(new Microsoft.Graph.Users.Item.Messages.Item.Copy.CopyPostRequestBody
+                {
+                    DestinationId = targetFolderId
+                });
+        }
+
+        // ── DB lookups ───────────────────────────────────────────────────────────
+
+        private async Task<Customer?> FindExistingCustomerAsync(string leadEmail)
+        {
+            if (string.IsNullOrWhiteSpace(leadEmail)) return null;
+            return await _context.Customers
+                .Include(c => c.CustomerContacts)
+                .FirstOrDefaultAsync(c =>
+                    (c.Email != null && c.Email.ToLower() == leadEmail.ToLower()) ||
+                    c.CustomerContacts.Any(cc => cc.Email != null && cc.Email.ToLower() == leadEmail.ToLower()));
+        }
+
+        private async Task<Product?> ResolveProductAsync(string? modelName)
+        {
+            if (modelName == null) return null;
+            return await _context.Products.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Description.Contains(modelName));
+        }
+
+        // ── Email helpers ────────────────────────────────────────────────────────
+
+        private static string BuildLeadEmailBody(Customer customer, Product? product, bool hasQuoteMaterial)
+        {
+            var name = customer.Name ?? customer.Email ?? "";
+            if (product != null)
+                return BuildEnquiryEmailHtml(name, product.Description);
+            return hasQuoteMaterial
+                ? BuildQuoteOrShowroomEmailHtml(name)
+                : BuildNoProductEmailHtml(name);
+        }
+
+        private static string? DetermineItemNote(
+            Product? product, string? modelName, bool hasAttachment, bool hasMeasurements)
+        {
+            if (product != null) return null;
+            if (hasAttachment && hasMeasurements) return "Measurements and photo provided — quote pending";
+            return modelName == null
+                ? "No product interest found in email"
+                : $"Product '{modelName}' not found in catalogue";
+        }
+
+        private async Task SendEnquiryEmailAsync(Customer customer, Product? product, string emailBody)
+        {
+            if (string.IsNullOrWhiteSpace(customer.Email)) return;
+            try
+            {
+                await _emailReaderService.SendDirectEmailAsync(
+                    toEmail: customer.Email,
+                    toName: customer.Name,
+                    subject: "Thank you for your enquiry - Awnings of Ireland",
+                    body: emailBody,
+                    attachBrochure: product != null,
+                    productIds: product != null ? new List<int> { product.ProductId } : null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Enquiry email failed for customer {Id}", customer.CustomerId);
+            }
+        }
+
+        // ── Workflow & enquiry ───────────────────────────────────────────────────
+
+        private async Task CreateWorkflowAndEnquiryAsync(
+            Customer customer, ExtractedLeadData extracted, Product? product,
+            string emailBody, int? incomingEmailId, string currentUser)
+        {
+            int productId, supplierId, productTypeId;
+
+            if (product != null)
+            {
+                productId = product.ProductId;
+                supplierId = product.SupplierId;
+                productTypeId = product.ProductTypeId;
+            }
+            else
+            {
+                // No specific product matched — use first available to satisfy the non-nullable FK
+                var defaultProduct = await _context.Products.AsNoTracking()
+                    .OrderBy(p => p.ProductId)
+                    .Select(p => new { p.ProductId, p.SupplierId, p.ProductTypeId })
+                    .FirstOrDefaultAsync();
+
+                if (defaultProduct == null)
+                {
+                    _logger.LogWarning(
+                        "No products found in catalogue — skipping workflow creation for customer {Id}",
+                        customer.CustomerId);
+                    return;
+                }
+
+                productId = defaultProduct.ProductId;
+                supplierId = defaultProduct.SupplierId;
+                productTypeId = defaultProduct.ProductTypeId;
+            }
+
+            var workflow = new WorkflowStart
+            {
+                WorkflowName = "Lead Enquiry",
+                Description = extracted.Notes ?? "Lead imported from email",
+                CustomerId = customer.CustomerId,
+                CompanyId = customer.CustomerId,
+                SupplierId = supplierId,
+                ProductTypeId = productTypeId,
+                ProductId = productId,
+                InitialEnquiry = true,
+                CreateQuote = false,
+                InviteShowRoom = false,
+                SetupSiteVisit = false,
+                InvoiceSent = false,
+                FinalQuote = false,
+                DateCreated = DateTime.UtcNow,
+                CreatedBy = currentUser
+            };
+            _context.WorkflowStarts.Add(workflow);
+            await _context.SaveChangesAsync();
+
+            _context.InitialEnquiries.Add(new InitialEnquiry
+            {
+                WorkflowId = workflow.WorkflowId,
+                Comments = emailBody,
+                Email = customer.Email ?? "",
+                AutoReplyContent = emailBody,
+                IncomingEmailId = incomingEmailId,
+                DateCreated = DateTime.UtcNow,
+                CreatedBy = currentUser
+            });
+            await _context.SaveChangesAsync();
+        }
+
+        private async Task<int?> SaveIncomingEmailAsync(GraphMessage message, Customer customer, string currentUser)
+        {
+            if (!string.IsNullOrEmpty(message.Id) &&
+                await _context.IncomingEmails.AnyAsync(e => e.EmailId == message.Id))
+                return null;
+
+            var incomingEmail = new IncomingEmail
+            {
+                EmailId = message.Id ?? "",
+                Subject = message.Subject ?? "(no subject)",
+                FromEmail = message.From?.EmailAddress?.Address ?? "",
+                FromName = message.From?.EmailAddress?.Name ?? "",
+                BodyPreview = message.BodyPreview ?? "",
+                BodyContent = message.Body?.Content,
+                IsHtml = message.Body?.ContentType == BodyType.Html,
+                ReceivedDateTime = message.ReceivedDateTime?.DateTime ?? DateTime.UtcNow,
+                HasAttachments = message.HasAttachments ?? false,
+                Category = "initial_enquiry",
+                CategoryConfidence = 1.0,
+                ProcessingStatus = "Completed",
+                DateProcessed = DateTime.UtcNow,
+                ExtractedData = JsonSerializer.Serialize(new Dictionary<string, object>
+                {
+                    ["customerId"] = customer.CustomerId,
+                    ["customerName"] = customer.Name ?? "",
+                    ["source"] = "ImportLeads"
+                })
+            };
+
+            _context.IncomingEmails.Add(incomingEmail);
+            await _context.SaveChangesAsync();
+            return incomingEmail.Id;
+        }
+
+        // ── Audit ────────────────────────────────────────────────────────────────
+
+        private void AddAuditLog(int entityId, string? entityName, string action,
+            string performedByName, string? notes = null)
+        {
+            _context.AuditLogs.Add(new AuditLog
+            {
+                EntityType = AuditEntityType.CUSTOMER,
+                EntityId = entityId,
+                EntityName = entityName,
+                Action = action,
+                PerformedBy = 0,
+                PerformedByName = performedByName,
+                PerformedAt = DateTime.UtcNow,
+                Notes = notes
+            });
+        }
+
+        // ── Email HTML templates ─────────────────────────────────────────────────
+
+        private static string BuildEnquiryEmailHtml(string customerName, string model) => $@"
+<html>
+<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 650px; margin: 0 auto; padding: 20px;'>
+  <p>Dear {customerName},</p>
+  <p>Thank you for reaching out to us at Awnings of Ireland.</p>
+  <p>Please find attached a quote for the {model}. Additionally, I've included some information about the {model} and attached a brochure for your reference.</p>
+  <p>These awnings are manufactured in Germany. The aluminium powder-coated cassette is designed to withstand rain without any risk of rust.</p>
+  <p>The awning can endure winds of up to 40 km/h when fully extended. With our self-cleaning fabric, your new awning will require minimal maintenance.</p>
+  <p>You can choose from a range of RAL colours for the frame, as well as over 250 fabric options. The awning also features an integrated drainage system to keep you dry and shaded underneath.</p>
+  <p>Please note that all quotations are subject to a site visit. If you're ready to schedule a site survey, feel free to contact me.</p>
+  <p>Alternatively, we have a showroom located in Sandyford, and I would be happy to assist you with our full range of products if you would like to visit.</p>
+  <p>Best regards,<br><strong>Awnings of Ireland</strong></p>
+</body>
+</html>";
 
         private static string BuildQuoteOrShowroomEmailHtml(string name) => $@"
 <html>
@@ -408,39 +519,7 @@ namespace AwningsAPI.Services.ImportLeads
 </body>
 </html>";
 
-        private void AddAuditLog(int entityId, string? entityName, string action, string performedByName, string? notes = null)
-        {
-            _context.AuditLogs.Add(new AuditLog
-            {
-                EntityType = AuditEntityType.CUSTOMER,
-                EntityId = entityId,
-                EntityName = entityName,
-                Action = action,
-                PerformedBy = 0,
-                PerformedByName = performedByName,
-                PerformedAt = DateTime.UtcNow,
-                Notes = notes
-            });
-        }
-
-        private static string BuildEnquiryEmailHtml(string customerName, string model) => $@"
-<html>
-<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 650px; margin: 0 auto; padding: 20px;'>
-  <p>Dear {customerName},</p>
-  <p>Thank you for reaching out to us at Awnings of Ireland.</p>
-  <p>Please find attached a quote for the {model}. Additionally, I've included some information about the {model} and attached a brochure for your reference.</p>
-  <p>These awnings are manufactured in Germany. The aluminium powder-coated cassette is designed to withstand rain without any risk of rust.</p>
-  <p>The awning can endure winds of up to 40 km/h when fully extended. With our self-cleaning fabric, your new awning will require minimal maintenance.</p>
-  <p>You can choose from a range of RAL colours for the frame, as well as over 250 fabric options. The awning also features an integrated drainage system to keep you dry and shaded underneath.</p>
-  <p>Please note that all quotations are subject to a site visit. If you're ready to schedule a site survey, feel free to contact me.</p>
-  <p>Alternatively, we have a showroom located in Sandyford, and I would be happy to assist you with our full range of products if you would like to visit.</p>
-  <p>Best regards,<br><strong>Awnings of Ireland</strong></p>
-</body>
-</html>";
-
-        #endregion
-
-        #region AI Extraction
+        // ── AI extraction ────────────────────────────────────────────────────────
 
         private async Task<ExtractedLeadData> ExtractCustomerDetailsAsync(
             string? subject, string body, string? fromEmail, string? fromName)
@@ -496,9 +575,7 @@ namespace AwningsAPI.Services.ImportLeads
             }
         }
 
-        #endregion
-
-        #region Customer DTO
+        // ── Customer DTO ─────────────────────────────────────────────────────────
 
         private static CompanyWithContactDto BuildCustomerDto(ExtractedLeadData d, GraphMessage message)
         {
@@ -544,9 +621,58 @@ namespace AwningsAPI.Services.ImportLeads
             };
         }
 
-        #endregion
+        // ── Content helpers ──────────────────────────────────────────────────────
 
-        #region Graph Folder Helpers
+        private static bool HasUsefulContent(ExtractedLeadData d, string? senderName) =>
+            !string.IsNullOrWhiteSpace(d.FirstName) ||
+            !string.IsNullOrWhiteSpace(d.LastName) ||
+            !string.IsNullOrWhiteSpace(d.FullName) ||
+            !string.IsNullOrWhiteSpace(senderName) ||
+            !string.IsNullOrWhiteSpace(d.Phone) ||
+            !string.IsNullOrWhiteSpace(d.Mobile) ||
+            !string.IsNullOrWhiteSpace(d.Address1) ||
+            !string.IsNullOrWhiteSpace(d.Notes);
+
+        private static bool HasMeasurements(string? notes, string? body)
+        {
+            var text = $"{notes} {body}".ToLowerInvariant();
+            return text.Contains("width") || text.Contains("height") || text.Contains("projection") ||
+                   text.Contains("metre") || text.Contains("meter") || text.Contains(" cm") ||
+                   text.Contains("feet") || text.Contains("foot") || text.Contains("measurement") ||
+                   text.Contains("dimension") || text.Contains("size");
+        }
+
+        private static string? ExtractModelFromNotes(string? notes)
+        {
+            if (string.IsNullOrWhiteSpace(notes)) return null;
+
+            foreach (var line in notes.Split('\n', '\r', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var lower = line.ToLowerInvariant();
+                if (lower.Contains("model") || lower.Contains("markilux") || lower.Contains("product interest"))
+                {
+                    var colonIdx = line.IndexOf(':');
+                    if (colonIdx >= 0 && colonIdx < line.Length - 1)
+                    {
+                        var val = line[(colonIdx + 1)..].Trim();
+                        if (!string.IsNullOrWhiteSpace(val) && val.Length < 100)
+                            return val;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static string SanitiseBody(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "(no body)";
+            var text = System.Text.RegularExpressions.Regex.Replace(raw, "<[^>]+>", " ");
+            text = System.Net.WebUtility.HtmlDecode(text);
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+            return text.Length <= 3000 ? text : text[..3000];
+        }
+
+        // ── Graph folder helpers ─────────────────────────────────────────────────
 
         private async Task<string?> FindChildFolderIdAsync(
             string mailbox, string parentFolderIdOrWellKnown, string childName)
@@ -575,18 +701,7 @@ namespace AwningsAPI.Services.ImportLeads
                 ?? throw new InvalidOperationException($"Failed to create folder '{folderName}'");
         }
 
-        #endregion
-
-        #region Helpers
-
-        private static string SanitiseBody(string? raw)
-        {
-            if (string.IsNullOrWhiteSpace(raw)) return "(no body)";
-            var text = System.Text.RegularExpressions.Regex.Replace(raw, "<[^>]+>", " ");
-            text = System.Net.WebUtility.HtmlDecode(text);
-            text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
-            return text.Length <= 3000 ? text : text[..3000];
-        }
+        // ── Inner types ──────────────────────────────────────────────────────────
 
         private class ExtractedLeadData
         {
@@ -603,7 +718,5 @@ namespace AwningsAPI.Services.ImportLeads
             public bool? IsResidential { get; set; }
             public string? Notes { get; set; }
         }
-
-        #endregion
     }
 }
