@@ -340,13 +340,27 @@ namespace AwningsAPI.Services.Email
                 _logger.LogInformation(
                     $"✅ Existing workflow found: ID={existingWorkflow.WorkflowId}");
 
-                // ── 3. Both exist — create the Initial Enquiry ────────────────────────
+                // ── 3. Guard — skip emails imported via ImportLeads ───────────────────
+                // ImportLeads already creates an InitialEnquiry with the outgoing reply body.
+                // If the webhook fires for the same email after ImportLeads has run (customer +
+                // workflow now exist), we must not add a second record with the customer's raw
+                // email body. Frontend-initiated enquiries have a different source and must still
+                // be allowed through.
+                if (IsImportLeadsEmail(email.ExtractedData))
+                {
+                    _logger.LogInformation(
+                        "Skipping InitialEnquiry creation for ImportLeads email {EmailId} — already handled by import",
+                        email.EmailId);
+                    return;
+                }
+
+                // ── 4. Both exist — create the Initial Enquiry ────────────────────────
                 var enquiry = await CreateInitialEnquiry(existingWorkflow.WorkflowId, email, analysisResult, currentUser);
 
                 _logger.LogInformation(
                     $"✅ Initial enquiry created: ID={enquiry.EnquiryId} in workflow {existingWorkflow.WorkflowId}");
 
-                // ── 4. Create notification (auto-reply is generated on demand by the user) ──
+                // ── 5. Create notification (auto-reply is generated on demand by the user) ──
                 await CreateEnquiryNotificationAsync(enquiry.EnquiryId, existingWorkflow.WorkflowId, existingCustomer.Name, email.FromEmail, email.Subject);
 
                 // Store IDs in ExtractedData so the task created afterwards is pre-linked
@@ -622,6 +636,19 @@ namespace AwningsAPI.Services.Email
             };
 
             return await _workflowService.AddInitialEnquiry(enquiryDto, currentUser);
+        }
+
+        private static bool IsImportLeadsEmail(string? extractedData)
+        {
+            if (string.IsNullOrWhiteSpace(extractedData)) return false;
+            try
+            {
+                var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(extractedData);
+                return data != null &&
+                       data.TryGetValue("source", out var source) &&
+                       string.Equals(source?.ToString(), "ImportLeads", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
         }
 
         private string GetFirstName(string fullName)
