@@ -894,7 +894,7 @@ namespace AwningsAPI.Services.Tasks
 
         #region Create Task From Email
 
-        public async Task<AppTaskDto> CreateTaskFromEmailAsync(int incomingEmailId, string currentUser)
+        public async Task<AppTaskDto> CreateTaskFromEmailAsync(int incomingEmailId, string currentUser, int? workflowId = null)
         {
             var email = await _context.IncomingEmails
                 .Include(e => e.Attachments)
@@ -943,6 +943,44 @@ namespace AwningsAPI.Services.Tasks
             // Extract company number if available
             var companyNumber = GetValue(extractedData, "companyNumber", null);
 
+            // Resolve customer, name, and email from the DB using the sender's email address
+            int? customerId = null;
+            string? customerName = null;
+            string? customerEmail = null;
+
+            if (!string.IsNullOrWhiteSpace(email.FromEmail))
+            {
+                var fromEmailLower = email.FromEmail.ToLower();
+
+                var customer = await _context.Customers
+                    .Where(c => c.Email != null && c.Email.ToLower() == fromEmailLower)
+                    .Select(c => new { c.CustomerId, c.Name, c.Email })
+                    .FirstOrDefaultAsync();
+
+                if (customer == null)
+                {
+                    var contactCustomerId = await _context.CustomerContacts
+                        .Where(cc => cc.Email != null && cc.Email.ToLower() == fromEmailLower)
+                        .Select(cc => (int?)cc.CustomerId)
+                        .FirstOrDefaultAsync();
+
+                    if (contactCustomerId.HasValue)
+                    {
+                        customer = await _context.Customers
+                            .Where(c => c.CustomerId == contactCustomerId.Value)
+                            .Select(c => new { c.CustomerId, c.Name, c.Email })
+                            .FirstOrDefaultAsync();
+                    }
+                }
+
+                if (customer != null)
+                {
+                    customerId = customer.CustomerId;
+                    customerName = customer.Name;
+                    customerEmail = customer.Email;
+                }
+            }
+
             var createDto = new CreateTaskDto
             {
                 IncomingEmailId = incomingEmailId,
@@ -951,7 +989,10 @@ namespace AwningsAPI.Services.Tasks
                 Subject = email.Subject,
                 Category = category,
                 EmailBody = email.BodyContent,
-                //CustomerId = email.cus
+                CustomerId = customerId,
+                CustomerName = customerName,
+                CustomerEmail = customerEmail,
+                WorkflowId = workflowId,
                 CompanyNumber = companyNumber,
                 Priority = priority,
                 DueDate = dueDate

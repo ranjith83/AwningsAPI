@@ -222,6 +222,7 @@ namespace AwningsAPI.Services.ImportLeads
             Customer? customer = null;
             string emailBody = string.Empty;
             int? incomingEmailId = null;
+            int? workflowId = null;
 
             var strategy = _context.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
@@ -233,10 +234,11 @@ namespace AwningsAPI.Services.ImportLeads
                 emailBody = BuildLeadEmailBody(customer, product, hasAttachment && hasMeasurements);
                 incomingEmailId = await SaveIncomingEmailAsync(
                     message, customer, currentUser, bodyBlobUrl, attachmentResults);
-                await CreateWorkflowAndEnquiryAsync(customer, extracted, product, emailBody, incomingEmailId, currentUser);
+                workflowId = await CreateWorkflowAndEnquiryAsync(
+                    customer, extracted, product, emailBody, incomingEmailId, currentUser);
 
                 if (incomingEmailId.HasValue)
-                    await _taskService.CreateTaskFromEmailAsync(incomingEmailId.Value, currentUser);
+                    await _taskService.CreateTaskFromEmailAsync(incomingEmailId.Value, currentUser, workflowId);
 
                 await tx.CommitAsync();
             });
@@ -446,7 +448,7 @@ namespace AwningsAPI.Services.ImportLeads
 
         // ── Workflow & enquiry ───────────────────────────────────────────────────
 
-        private async Task CreateWorkflowAndEnquiryAsync(
+        private async Task<int?> CreateWorkflowAndEnquiryAsync(
             Customer customer, ExtractedLeadData extracted, Product? product,
             string emailBody, int? incomingEmailId, string currentUser)
         {
@@ -471,7 +473,7 @@ namespace AwningsAPI.Services.ImportLeads
                     _logger.LogWarning(
                         "No products found in catalogue — skipping workflow creation for customer {Id}",
                         customer.CustomerId);
-                    return;
+                    return null;
                 }
 
                 productId = defaultProduct.ProductId;
@@ -511,6 +513,7 @@ namespace AwningsAPI.Services.ImportLeads
                 CreatedBy = currentUser
             });
             await _context.SaveChangesAsync();
+            return workflow.WorkflowId;
         }
 
         private async Task<int?> SaveIncomingEmailAsync(

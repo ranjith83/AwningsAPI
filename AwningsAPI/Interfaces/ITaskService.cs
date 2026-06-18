@@ -46,7 +46,7 @@ namespace AwningsAPI.Interfaces
         Task<IEnumerable<TaskHistoryDto>> GetTaskHistoryAsync(int taskId);
 
         // Automatic task creation from email
-        Task<AppTaskDto> CreateTaskFromEmailAsync(int incomingEmailId, string currentUser);
+        Task<AppTaskDto> CreateTaskFromEmailAsync(int incomingEmailId, string currentUser, int? workflowId = null);
 
         /// <summary>
         /// Execute a specific action on a task
