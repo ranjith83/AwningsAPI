@@ -16,6 +16,7 @@ using Microsoft.Graph.Models;
 using System.Text.Json;
 using GraphMessage = Microsoft.Graph.Models.Message;
 using GraphMailFolder = Microsoft.Graph.Models.MailFolder;
+using FileAttachment = Microsoft.Graph.Models.FileAttachment;
 
 namespace AwningsAPI.Services.ImportLeads
 {
@@ -28,6 +29,7 @@ namespace AwningsAPI.Services.ImportLeads
         private readonly IConfiguration _configuration;
         private readonly IEmailReaderService _emailReaderService;
         private readonly ITaskService _taskService;
+        private readonly IBlobEmailStorageService _blobService;
         private readonly ILogger<ImportLeadsService> _logger;
 
         private const string ProcessedFolderName = "Processed";
@@ -77,6 +79,7 @@ namespace AwningsAPI.Services.ImportLeads
             IConfiguration configuration,
             IEmailReaderService emailReaderService,
             ITaskService taskService,
+            IBlobEmailStorageService blobService,
             ILogger<ImportLeadsService> logger)
         {
             _graphClient = graphClient;
@@ -86,6 +89,7 @@ namespace AwningsAPI.Services.ImportLeads
             _configuration = configuration;
             _emailReaderService = emailReaderService;
             _taskService = taskService;
+            _blobService = blobService;
             _logger = logger;
         }
 
@@ -206,6 +210,13 @@ namespace AwningsAPI.Services.ImportLeads
             var hasAttachment = message.HasAttachments ?? false;
             var hasMeasurements = HasMeasurements(extracted.Notes, body);
 
+            // Upload body and attachments to blob BEFORE the transaction.
+            // Blob operations are not transactional; doing them outside ensures the DB transaction
+            // only contains DB work and blob uploads are idempotent on retry (same Graph message.Id key).
+            var mailbox = GetMailbox();
+            var (bodyBlobUrl, attachmentResults) =
+                await UploadEmailToBlobAsync(message, mailbox);
+
             // SqlServerRetryingExecutionStrategy requires all operations inside CreateExecutionStrategy
             // so that the whole unit can be retried atomically on transient failures.
             Customer? customer = null;
@@ -220,7 +231,8 @@ namespace AwningsAPI.Services.ImportLeads
 
                 customer = await _customerService.SaveCompanyWithContact(dto, currentUser);
                 emailBody = BuildLeadEmailBody(customer, product, hasAttachment && hasMeasurements);
-                incomingEmailId = await SaveIncomingEmailAsync(message, customer, currentUser);
+                incomingEmailId = await SaveIncomingEmailAsync(
+                    message, customer, currentUser, bodyBlobUrl, attachmentResults);
                 await CreateWorkflowAndEnquiryAsync(customer, extracted, product, emailBody, incomingEmailId, currentUser);
 
                 if (incomingEmailId.HasValue)
@@ -325,6 +337,70 @@ namespace AwningsAPI.Services.ImportLeads
             if (modelName == null) return null;
             return await _context.Products.AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Description.Contains(modelName));
+        }
+
+        // ── Blob storage ─────────────────────────────────────────────────────────
+
+        private async Task<(string? bodyBlobUrl, List<AttachmentBlobResult> attachments)>
+            UploadEmailToBlobAsync(GraphMessage message, string mailbox)
+        {
+            string? bodyBlobUrl = null;
+            var attachments = new List<AttachmentBlobResult>();
+
+            var bodyContent = message.Body?.Content;
+            if (!string.IsNullOrWhiteSpace(bodyContent) && !string.IsNullOrEmpty(message.Id))
+            {
+                var isHtml = message.Body?.ContentType == BodyType.Html;
+                bodyBlobUrl = await _blobService.UploadEmailBodyAsync(message.Id, bodyContent, isHtml);
+            }
+
+            if ((message.HasAttachments ?? false) && !string.IsNullOrEmpty(message.Id))
+            {
+                try
+                {
+                    var attResponse = await _graphClient.Users[mailbox]
+                        .Messages[message.Id]
+                        .Attachments
+                        .GetAsync();
+
+                    foreach (var att in attResponse?.Value ?? [])
+                    {
+                        if (att is not FileAttachment fileAtt) continue;
+
+                        var bytes = fileAtt.ContentBytes;
+                        var attId = fileAtt.Id ?? Guid.NewGuid().ToString();
+                        var fileName = fileAtt.Name ?? "attachment";
+                        var contentType = fileAtt.ContentType ?? "application/octet-stream";
+
+                        string? blobUrl = null;
+                        string? base64Fallback = null;
+
+                        if (bytes != null)
+                        {
+                            blobUrl = await _blobService.UploadAttachmentAsync(
+                                message.Id, attId, fileName, bytes, contentType);
+                            if (blobUrl == null)
+                                base64Fallback = Convert.ToBase64String(bytes);
+                        }
+
+                        attachments.Add(new AttachmentBlobResult(
+                            AttachmentId: attId,
+                            FileName: fileName,
+                            ContentType: contentType,
+                            Size: fileAtt.Size ?? 0,
+                            IsInline: fileAtt.IsInline ?? false,
+                            ContentId: fileAtt.ContentId,
+                            BlobUrl: blobUrl,
+                            Base64Content: base64Fallback));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch/upload attachments for message {Id}", message.Id);
+                }
+            }
+
+            return (bodyBlobUrl, attachments);
         }
 
         // ── Email helpers ────────────────────────────────────────────────────────
@@ -437,12 +513,15 @@ namespace AwningsAPI.Services.ImportLeads
             await _context.SaveChangesAsync();
         }
 
-        private async Task<int?> SaveIncomingEmailAsync(GraphMessage message, Customer customer, string currentUser)
+        private async Task<int?> SaveIncomingEmailAsync(
+            GraphMessage message, Customer customer, string currentUser,
+            string? bodyBlobUrl, List<AttachmentBlobResult> attachmentResults)
         {
             if (!string.IsNullOrEmpty(message.Id) &&
                 await _context.IncomingEmails.AnyAsync(e => e.EmailId == message.Id))
                 return null;
 
+            var bodyContent = message.Body?.Content;
             var incomingEmail = new IncomingEmail
             {
                 EmailId = message.Id ?? "",
@@ -450,7 +529,9 @@ namespace AwningsAPI.Services.ImportLeads
                 FromEmail = message.From?.EmailAddress?.Address ?? "",
                 FromName = message.From?.EmailAddress?.Name ?? "",
                 BodyPreview = message.BodyPreview ?? "",
-                BodyContent = message.Body?.Content,
+                // Blob is the source of truth; only fall back to DB when blob upload failed
+                BodyContent = bodyBlobUrl == null ? bodyContent : null,
+                BodyBlobUrl = bodyBlobUrl,
                 IsHtml = message.Body?.ContentType == BodyType.Html,
                 ReceivedDateTime = message.ReceivedDateTime?.DateTime ?? DateTime.UtcNow,
                 HasAttachments = message.HasAttachments ?? false,
@@ -465,6 +546,22 @@ namespace AwningsAPI.Services.ImportLeads
                     ["source"] = "ImportLeads"
                 })
             };
+
+            foreach (var att in attachmentResults)
+            {
+                incomingEmail.Attachments.Add(new EmailAttachment
+                {
+                    AttachmentId = att.AttachmentId,
+                    FileName = att.FileName,
+                    ContentType = att.ContentType,
+                    Size = att.Size,
+                    IsInline = att.IsInline,
+                    ContentId = att.ContentId,
+                    BlobStorageUrl = att.BlobUrl,
+                    Base64Content = att.BlobUrl == null ? att.Base64Content : null,
+                    DateDownloaded = DateTime.UtcNow
+                });
+            }
 
             _context.IncomingEmails.Add(incomingEmail);
             await _context.SaveChangesAsync();
@@ -716,6 +813,16 @@ namespace AwningsAPI.Services.ImportLeads
         }
 
         // ── Inner types ──────────────────────────────────────────────────────────
+
+        private record AttachmentBlobResult(
+            string AttachmentId,
+            string FileName,
+            string ContentType,
+            long Size,
+            bool IsInline,
+            string? ContentId,
+            string? BlobUrl,
+            string? Base64Content);
 
         private class ExtractedLeadData
         {

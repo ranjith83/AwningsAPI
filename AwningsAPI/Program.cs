@@ -97,6 +97,9 @@ builder.Services.AddScoped<IEmailAnalysisService, EmailAnalysisService>();
 builder.Services.AddScoped<IEmailProcessorService, EmailProcessorService>();
 builder.Services.AddScoped<IGraphSubscriptionService, GraphSubscriptionService>();
 //builder.Services.AddHostedService<EmailWatcherBackgroundService>();
+// Blob email storage (singleton — BlobContainerClient is thread-safe)
+builder.Services.AddSingleton<IBlobEmailStorageService, BlobEmailStorageService>();
+
 // Task Service
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IImportLeadsService, ImportLeadsService>();
