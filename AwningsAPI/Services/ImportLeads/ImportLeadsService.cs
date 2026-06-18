@@ -610,27 +610,30 @@ namespace AwningsAPI.Services.ImportLeads
 
             return new CompanyWithContactDto
             {
-                Name = fullName,
-                Email = email,
-                Phone = d.Phone,
-                Mobile = d.Mobile,
+                Name = Trunc(fullName, 255) ?? email,
+                Email = Trunc(email, 255),
+                Phone = Trunc(d.Phone, 20),
+                Mobile = Trunc(d.Mobile, 20),
                 Address1 = d.Address1,
                 Address2 = d.Address2,
-                County = d.County,
-                Eircode = d.Eircode,
+                County = Trunc(d.County, 100),
+                Eircode = Trunc(d.Eircode, 10),
                 Residential = d.IsResidential ?? true,
                 Contacts = new List<CustomerContactDto>
                 {
                     new()
                     {
-                        FirstName = firstName,
-                        LastName = lastName,
-                        Email = email,
-                        Phone = d.Phone ?? d.Mobile ?? ""
+                        FirstName = Trunc(firstName, 100) ?? "",
+                        LastName = Trunc(lastName, 100) ?? "",
+                        Email = Trunc(email, 255) ?? "",
+                        Phone = Trunc(d.Phone ?? d.Mobile, 20) ?? ""
                     }
                 }
             };
         }
+
+        private static string? Trunc(string? value, int maxLength) =>
+            value is null ? null : (value.Length <= maxLength ? value : value[..maxLength]);
 
         // ── Content helpers ──────────────────────────────────────────────────────
 
