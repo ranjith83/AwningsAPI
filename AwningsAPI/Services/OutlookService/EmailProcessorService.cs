@@ -340,17 +340,19 @@ namespace AwningsAPI.Services.Email
                 _logger.LogInformation(
                     $"✅ Existing workflow found: ID={existingWorkflow.WorkflowId}");
 
-                // ── 3. Guard — skip emails imported via ImportLeads ───────────────────
-                // ImportLeads already creates an InitialEnquiry with the outgoing reply body.
-                // If the webhook fires for the same email after ImportLeads has run (customer +
-                // workflow now exist), we must not add a second record with the customer's raw
-                // email body. Frontend-initiated enquiries have a different source and must still
-                // be allowed through.
-                if (IsImportLeadsEmail(email.ExtractedData))
+                // ── 3. Guard — skip if an InitialEnquiry already exists for this email ──
+                // ImportLeads creates the InitialEnquiry (with the outgoing reply body) and links
+                // it via IncomingEmailId. Checking the DB directly is reliable regardless of
+                // whether the webhook loaded the email before or after ImportLeads ran — it avoids
+                // the in-memory ExtractedData staleness problem. Frontend enquiries are created
+                // without an IncomingEmailId so they are never blocked by this check.
+                var enquiryAlreadyExists = await _context.InitialEnquiries
+                    .AnyAsync(e => e.IncomingEmailId == email.Id);
+                if (enquiryAlreadyExists)
                 {
                     _logger.LogInformation(
-                        "Skipping InitialEnquiry creation for ImportLeads email {EmailId} — already handled by import",
-                        email.EmailId);
+                        "InitialEnquiry already exists for IncomingEmail {Id} — skipping duplicate creation",
+                        email.Id);
                     return;
                 }
 

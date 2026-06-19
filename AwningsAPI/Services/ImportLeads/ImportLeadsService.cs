@@ -522,9 +522,26 @@ namespace AwningsAPI.Services.ImportLeads
             GraphMessage message, Customer customer, string currentUser,
             string? bodyBlobUrl, List<AttachmentBlobResult> attachmentResults)
         {
-            if (!string.IsNullOrEmpty(message.Id) &&
-                await _context.IncomingEmails.AnyAsync(e => e.EmailId == message.Id))
-                return null;
+            // If the webhook already saved this email, update its ExtractedData to mark it as an
+            // ImportLeads email so HandleInitialEnquiryWorkflow skips creating a duplicate
+            // InitialEnquiry with the original customer email body.
+            // Also return the existing ID so the InitialEnquiry and task are correctly linked.
+            if (!string.IsNullOrEmpty(message.Id))
+            {
+                var existing = await _context.IncomingEmails
+                    .FirstOrDefaultAsync(e => e.EmailId == message.Id);
+                if (existing != null)
+                {
+                    existing.ExtractedData = JsonSerializer.Serialize(new Dictionary<string, object>
+                    {
+                        ["customerId"] = customer.CustomerId,
+                        ["customerName"] = customer.Name ?? "",
+                        ["source"] = "ImportLeads"
+                    });
+                    await _context.SaveChangesAsync();
+                    return existing.Id;
+                }
+            }
 
             var bodyContent = message.Body?.Content;
             var incomingEmail = new IncomingEmail
