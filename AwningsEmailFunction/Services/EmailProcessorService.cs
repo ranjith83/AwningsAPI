@@ -354,7 +354,10 @@ public class EmailProcessorService : IEmailProcessorService
         {
             if (task.WorkflowId == null) return;
 
-            var exists = await _context.InitialEnquiries.AnyAsync(e => e.TaskId == task.TaskId);
+            // Guard against duplicates — ImportLeads creates InitialEnquiry with IncomingEmailId set
+            // but TaskId null, so checking TaskId alone misses it.
+            var exists = await _context.InitialEnquiries
+                .AnyAsync(e => e.TaskId == task.TaskId || e.IncomingEmailId == email.Id);
             if (exists) return;
 
             var comments = $"Email subject: {email.Subject}";
