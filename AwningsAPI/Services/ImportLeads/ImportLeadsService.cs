@@ -13,6 +13,7 @@ using AwningsAPI.Model.Workflow;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
+using Microsoft.Graph.Models.ODataErrors;
 using System.Text.Json;
 using GraphMessage = Microsoft.Graph.Models.Message;
 using GraphMailFolder = Microsoft.Graph.Models.MailFolder;
@@ -299,6 +300,8 @@ namespace AwningsAPI.Services.ImportLeads
 
         private async Task<List<GraphMessage>> FetchMessagesAsync(string mailbox, string sourceFolderId)
         {
+            var all = new List<GraphMessage>();
+
             var response = await _graphClient.Users[mailbox]
                 .MailFolders[sourceFolderId]
                 .Messages
@@ -308,9 +311,18 @@ namespace AwningsAPI.Services.ImportLeads
                     {
                         "id", "subject", "from", "body", "bodyPreview", "receivedDateTime", "hasAttachments"
                     };
-                    req.QueryParameters.Top = 200;
+                    req.QueryParameters.Top = 50;
                 });
-            return response?.Value ?? new List<GraphMessage>();
+
+            var pageIterator = PageIterator<GraphMessage, MessageCollectionResponse>
+                .CreatePageIterator(_graphClient, response!, msg =>
+                {
+                    all.Add(msg);
+                    return true;
+                });
+
+            await pageIterator.IterateAsync();
+            return all;
         }
 
         private async Task MoveToFolderAsync(string mailbox, string messageId, string targetFolderId)

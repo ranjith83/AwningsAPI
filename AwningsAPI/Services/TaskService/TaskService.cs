@@ -1262,14 +1262,15 @@ namespace AwningsAPI.Services.Tasks
                     return;
                 }
 
-                // Guard: don't create duplicates if the processor runs twice
+                // Guard: don't create duplicates if the processor runs twice, or if
+                // ImportLeads already created one for the same IncomingEmail (TaskId null there).
                 var existing = await _context.InitialEnquiries
-                    .AnyAsync(e => e.TaskId == taskId);
+                    .AnyAsync(e => e.TaskId == taskId || e.IncomingEmailId == email.Id);
                 if (existing)
                 {
                     _logger.LogInformation(
-                        "CreateInitialEnquiryFromEmail: InitialEnquiry already exists for task {TaskId}",
-                        taskId);
+                        "CreateInitialEnquiryFromEmail: InitialEnquiry already exists for task {TaskId} or email {EmailId}",
+                        taskId, email.Id);
                     return;
                 }
 
