@@ -120,8 +120,7 @@ namespace AwningsAPI.Services.ImportLeads
                     var targetFolderId = await ProcessMessageAsync(
                         message, item, result, processedFolderId, existingCustomersFolderId, currentUser);
 
-                    if (targetFolderId != null)
-                        await CopyToFolderAsync(mailbox, message.Id!, targetFolderId);
+                    await MoveToFolderAsync(mailbox, message.Id!, targetFolderId);
                 }
                 catch (Exception ex)
                 {
@@ -140,8 +139,9 @@ namespace AwningsAPI.Services.ImportLeads
 
         // ── Per-message routing ──────────────────────────────────────────────────
 
-        // Returns the target subfolder ID to copy to, or null for ignored emails (no copy).
-        private async Task<string?> ProcessMessageAsync(
+        // Returns the target subfolder ID to move to. All outcomes move the email out of the
+        // source folder so it is not picked up again on the next import run.
+        private async Task<string> ProcessMessageAsync(
             GraphMessage message, ImportLeadsItemDto item, ImportLeadsResultDto result,
             string processedFolderId, string existingCustomersFolderId, string currentUser)
         {
@@ -158,7 +158,10 @@ namespace AwningsAPI.Services.ImportLeads
             item.EnquiryNotes = extracted.Notes;
 
             if (!HasUsefulContent(extracted, message.From?.EmailAddress?.Name))
-                return await HandleIgnoredAsync(item, result, leadEmail, currentUser);
+            {
+                await HandleIgnoredAsync(item, result, leadEmail, currentUser);
+                return processedFolderId; // move ignored emails out so they don't repeat
+            }
 
             var existing = await FindExistingCustomerAsync(leadEmail);
             if (existing != null)
@@ -173,7 +176,7 @@ namespace AwningsAPI.Services.ImportLeads
 
         // ── Case handlers ────────────────────────────────────────────────────────
 
-        private async Task<string?> HandleIgnoredAsync(
+        private async Task HandleIgnoredAsync(
             ImportLeadsItemDto item, ImportLeadsResultDto result, string leadEmail, string currentUser)
         {
             item.Status = "Ignored";
@@ -183,7 +186,6 @@ namespace AwningsAPI.Services.ImportLeads
                 "Email contains no useful information beyond email address");
             await _context.SaveChangesAsync();
             _logger.LogInformation("Skipping content-empty email from {Email}", leadEmail);
-            return null;
         }
 
         private async Task<string> HandleSkippedAsync(
@@ -238,7 +240,7 @@ namespace AwningsAPI.Services.ImportLeads
                     customer, extracted, product, emailBody, incomingEmailId, currentUser);
 
                 if (incomingEmailId.HasValue)
-                    await _taskService.CreateTaskFromEmailAsync(incomingEmailId.Value, currentUser, workflowId);
+                    await _taskService.CreateTaskFromEmailAsync(incomingEmailId.Value, currentUser, workflowId, customer!.CustomerId);
 
                 await tx.CommitAsync();
             });
@@ -311,12 +313,12 @@ namespace AwningsAPI.Services.ImportLeads
             return response?.Value ?? new List<GraphMessage>();
         }
 
-        private async Task CopyToFolderAsync(string mailbox, string messageId, string targetFolderId)
+        private async Task MoveToFolderAsync(string mailbox, string messageId, string targetFolderId)
         {
             await _graphClient.Users[mailbox]
                 .Messages[messageId]
-                .Copy
-                .PostAsync(new Microsoft.Graph.Users.Item.Messages.Item.Copy.CopyPostRequestBody
+                .Move
+                .PostAsync(new Microsoft.Graph.Users.Item.Messages.Item.Move.MovePostRequestBody
                 {
                     DestinationId = targetFolderId
                 });
@@ -529,8 +531,11 @@ namespace AwningsAPI.Services.ImportLeads
             {
                 EmailId = message.Id ?? "",
                 Subject = message.Subject ?? "(no subject)",
-                FromEmail = message.From?.EmailAddress?.Address ?? "",
-                FromName = message.From?.EmailAddress?.Name ?? "",
+                // Use the actual customer email/name extracted from the form body.
+                // For website/HubSpot contact forms the message sender is the company's own
+                // forwarding address (e.g. hello@awningsofireland.com), not the customer.
+                FromEmail = customer.Email ?? message.From?.EmailAddress?.Address ?? "",
+                FromName = customer.Name ?? message.From?.EmailAddress?.Name ?? "",
                 BodyPreview = message.BodyPreview ?? "",
                 // Blob is the source of truth; only fall back to DB when blob upload failed
                 BodyContent = bodyBlobUrl == null ? bodyContent : null,

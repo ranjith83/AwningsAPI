@@ -894,7 +894,7 @@ namespace AwningsAPI.Services.Tasks
 
         #region Create Task From Email
 
-        public async Task<AppTaskDto> CreateTaskFromEmailAsync(int incomingEmailId, string currentUser, int? workflowId = null)
+        public async Task<AppTaskDto> CreateTaskFromEmailAsync(int incomingEmailId, string currentUser, int? workflowId = null, int? customerId = null)
         {
             var email = await _context.IncomingEmails
                 .Include(e => e.Attachments)
@@ -943,12 +943,26 @@ namespace AwningsAPI.Services.Tasks
             // Extract company number if available
             var companyNumber = GetValue(extractedData, "companyNumber", null);
 
-            // Resolve customer, name, and email from the DB using the sender's email address
-            int? customerId = null;
+            // Resolve customer name and email.
+            // ImportLeads passes customerId directly (the correct customer created during import).
+            // All other paths (webhook) fall back to a FromEmail lookup.
             string? customerName = null;
             string? customerEmail = null;
 
-            if (!string.IsNullOrWhiteSpace(email.FromEmail))
+            if (customerId.HasValue)
+            {
+                var customer = await _context.Customers
+                    .Where(c => c.CustomerId == customerId.Value)
+                    .Select(c => new { c.Name, c.Email })
+                    .FirstOrDefaultAsync();
+
+                if (customer != null)
+                {
+                    customerName = customer.Name;
+                    customerEmail = customer.Email;
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(email.FromEmail))
             {
                 var fromEmailLower = email.FromEmail.ToLower();
 
