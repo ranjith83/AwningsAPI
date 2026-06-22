@@ -403,16 +403,19 @@ namespace AwningsAPI.Services.Email
                 var unreadCount = await _context.Notifications.CountAsync(n => !n.IsRead);
                 await _hub.Clients.All.SendAsync("ReceiveNotification", new
                 {
-                    notification.Id,
-                    notification.Type,
-                    notification.Title,
-                    notification.Message,
-                    notification.EntityType,
-                    notification.EntityId,
-                    notification.WorkflowId,
-                    notification.IsRead,
-                    notification.CreatedAt,
-                    count = unreadCount
+                    count = unreadCount,
+                    notification = new
+                    {
+                        notification.Id,
+                        notification.Type,
+                        notification.Title,
+                        notification.Message,
+                        notification.EntityType,
+                        notification.EntityId,
+                        notification.WorkflowId,
+                        notification.IsRead,
+                        notification.CreatedAt
+                    }
                 });
 
                 _logger.LogInformation("Notification created for enquiry {EnquiryId}", enquiryId);
