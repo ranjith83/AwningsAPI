@@ -4,12 +4,15 @@ using AwningsAPI.Database;
 using AwningsAPI.Dto.Customers;
 using AwningsAPI.Dto.ImportLeads;
 using AwningsAPI.Dto.Workflow;
+using AwningsAPI.Hubs;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Audit;
+using AwningsAPI.Model.Common;
 using AwningsAPI.Model.Customers;
 using AwningsAPI.Model.Email;
 using AwningsAPI.Model.Suppliers;
 using AwningsAPI.Model.Workflow;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
@@ -31,6 +34,7 @@ namespace AwningsAPI.Services.ImportLeads
         private readonly IEmailReaderService _emailReaderService;
         private readonly ITaskService _taskService;
         private readonly IBlobEmailStorageService _blobService;
+        private readonly IHubContext<NotificationHub> _hub;
         private readonly ILogger<ImportLeadsService> _logger;
 
         private const string ProcessedFolderName = "Processed";
@@ -81,6 +85,7 @@ namespace AwningsAPI.Services.ImportLeads
             IEmailReaderService emailReaderService,
             ITaskService taskService,
             IBlobEmailStorageService blobService,
+            IHubContext<NotificationHub> hub,
             ILogger<ImportLeadsService> logger)
         {
             _graphClient = graphClient;
@@ -91,6 +96,7 @@ namespace AwningsAPI.Services.ImportLeads
             _emailReaderService = emailReaderService;
             _taskService = taskService;
             _blobService = blobService;
+            _hub = hub;
             _logger = logger;
         }
 
@@ -255,7 +261,7 @@ namespace AwningsAPI.Services.ImportLeads
             _logger.LogInformation("Customer created: '{Name}' ID={Id} — product: {Product}",
                 customer.Name, customer.CustomerId, product?.Description ?? "none");
 
-            await SendEnquiryEmailAsync(customer, product, emailBody);
+            await SaveEnquiryDraftAsync(workflowId, emailBody);
         }
 
         private async Task HandleFailureAsync(
@@ -441,22 +447,62 @@ namespace AwningsAPI.Services.ImportLeads
                 : $"Product '{modelName}' not found in catalogue";
         }
 
-        private async Task SendEnquiryEmailAsync(Customer customer, Product? product, string emailBody)
+        private async Task SaveEnquiryDraftAsync(int? workflowId, string emailBody)
         {
-            if (string.IsNullOrWhiteSpace(customer.Email)) return;
+            if (workflowId == null) return;
             try
             {
-                await _emailReaderService.SendDirectEmailAsync(
-                    toEmail: customer.Email,
-                    toName: customer.Name,
-                    subject: "Thank you for your enquiry - Awnings of Ireland",
-                    body: emailBody,
-                    attachBrochure: product != null,
-                    productIds: product != null ? new List<int> { product.ProductId } : null);
+                var enquiry = await _context.InitialEnquiries
+                    .FirstOrDefaultAsync(e => e.WorkflowId == workflowId.Value);
+                if (enquiry == null) return;
+
+                enquiry.AutoReplyContent = emailBody;
+
+                // Resolve customerId from the workflow so the frontend can navigate directly
+                var customerId = await _context.WorkflowStarts
+                    .Where(w => w.WorkflowId == workflowId.Value)
+                    .Select(w => (int?)w.CustomerId)
+                    .FirstOrDefaultAsync();
+
+                var notification = new Notification
+                {
+                    Type = "enquiry_reply_ready",
+                    Title = "New Lead — Reply Ready for Review",
+                    Message = $"A draft reply for enquiry from {enquiry.Email} is ready to review and send.",
+                    EntityType = "InitialEnquiry",
+                    EntityId = customerId,   // customerId so frontend can navigate to the correct customer
+                    WorkflowId = workflowId.Value,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Notifications.Add(notification);
+
+                await _context.SaveChangesAsync();
+
+                var unreadCount = await _context.Notifications.CountAsync(n => !n.IsRead);
+
+                // Shape matches what InboxNotificationService.ReceiveNotification handler expects:
+                // { count: number, notification: InboxNotification }
+                await _hub.Clients.All.SendAsync("ReceiveNotification", new
+                {
+                    count = unreadCount,
+                    notification = new
+                    {
+                        notification.Id,
+                        notification.Type,
+                        notification.Title,
+                        notification.Message,
+                        notification.EntityType,
+                        notification.EntityId,
+                        notification.WorkflowId,
+                        notification.IsRead,
+                        notification.CreatedAt
+                    }
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Enquiry email failed for customer {Id}", customer.CustomerId);
+                _logger.LogWarning(ex, "SaveEnquiryDraftAsync failed for workflow {WorkflowId}", workflowId);
             }
         }
 
