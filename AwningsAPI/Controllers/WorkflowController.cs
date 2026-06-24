@@ -165,6 +165,13 @@ namespace AwningsAPI.Controllers
 
             // Clear the draft ID so the UI no longer shows the unsent banner
             enquiry.AutoReplyDraftId = null;
+
+            // Sending the reply is the trigger that clears the notification
+            var relatedNotifs = await _context.Notifications
+                .Where(n => !n.IsRead && n.EntityType == "InitialEnquiry" && n.EntityId == enquiryId)
+                .ToListAsync();
+            relatedNotifs.ForEach(n => n.IsRead = true);
+
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Auto-reply draft sent for enquiry {EnquiryId} by {User}", enquiryId, CurrentUser);

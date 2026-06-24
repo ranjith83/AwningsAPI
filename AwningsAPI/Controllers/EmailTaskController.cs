@@ -1114,6 +1114,16 @@ namespace AwningsAPI.Controllers
                     task.NeedsReply = false;
                     task.DateUpdated = DateTime.UtcNow;
                     task.UpdatedBy = GetCurrentUserName();
+
+                    // Sending the reply clears the notification for this workflow
+                    if (task.WorkflowId.HasValue)
+                    {
+                        var relatedNotifs = await _context.Notifications
+                            .Where(n => !n.IsRead && n.WorkflowId == task.WorkflowId)
+                            .ToListAsync();
+                        relatedNotifs.ForEach(n => n.IsRead = true);
+                    }
+
                     await _context.SaveChangesAsync();
                 }
 
