@@ -47,5 +47,13 @@
         // ── Read-only audit fields (returned by GET, ignored by POST/PUT) ─────
         public DateTime? DateCreated { get; set; }
         public string? CreatedBy { get; set; }
+
+        /// <summary>
+        /// Populated only when no real InitialEnquiry exists yet (import-leads path).
+        /// Points to the task whose DraftReply is surfaced as AutoReplyContent.
+        /// The frontend uses this to route the send action through SendTaskEmail
+        /// rather than SendAutoReplyDraft.
+        /// </summary>
+        public int? PendingTaskId { get; set; }
     }
 }

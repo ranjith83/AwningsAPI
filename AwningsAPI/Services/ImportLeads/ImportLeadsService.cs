@@ -243,8 +243,8 @@ namespace AwningsAPI.Services.ImportLeads
                 emailBody = BuildLeadEmailBody(customer, product, hasAttachment && hasMeasurements);
                 incomingEmailId = await SaveIncomingEmailAsync(
                     message, customer, currentUser, bodyBlobUrl, attachmentResults);
-                workflowId = await CreateWorkflowAndEnquiryAsync(
-                    customer, extracted, product, emailBody, incomingEmailId, currentUser);
+                workflowId = await CreateWorkflowAsync(
+                    customer, extracted, product, incomingEmailId, currentUser);
 
                 if (incomingEmailId.HasValue)
                     await _taskService.CreateTaskFromEmailAsync(incomingEmailId.Value, currentUser, workflowId, customer!.CustomerId);
@@ -261,7 +261,21 @@ namespace AwningsAPI.Services.ImportLeads
             _logger.LogInformation("Customer created: '{Name}' ID={Id} — product: {Product}",
                 customer.Name, customer.CustomerId, product?.Description ?? "none");
 
-            await SaveEnquiryDraftAsync(workflowId, emailBody);
+            // Persist the draft reply body on the task so the frontend can pre-load it.
+            if (workflowId.HasValue && !string.IsNullOrEmpty(emailBody))
+            {
+                var pendingTask = await _context.Tasks
+                    .Where(t => t.WorkflowId == workflowId && t.NeedsReply)
+                    .OrderByDescending(t => t.DateCreated)
+                    .FirstOrDefaultAsync();
+                if (pendingTask != null)
+                {
+                    pendingTask.DraftReply = emailBody;
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            await SaveEnquiryDraftAsync(workflowId, customer!.Email ?? "");
         }
 
         private async Task HandleFailureAsync(
@@ -447,18 +461,14 @@ namespace AwningsAPI.Services.ImportLeads
                 : $"Product '{modelName}' not found in catalogue";
         }
 
-        private async Task SaveEnquiryDraftAsync(int? workflowId, string emailBody)
+        // Called after the import transaction commits. InitialEnquiry does not exist yet at this
+        // point — it is only created when the user actually sends the reply via SendTaskEmail.
+        // This method only fires the "draft ready" notification so staff know to review and send.
+        private async Task SaveEnquiryDraftAsync(int? workflowId, string customerEmail)
         {
             if (workflowId == null) return;
             try
             {
-                var enquiry = await _context.InitialEnquiries
-                    .FirstOrDefaultAsync(e => e.WorkflowId == workflowId.Value);
-                if (enquiry == null) return;
-
-                enquiry.AutoReplyContent = emailBody;
-
-                // Resolve customerId from the workflow so the frontend can navigate directly
                 var customerId = await _context.WorkflowStarts
                     .Where(w => w.WorkflowId == workflowId.Value)
                     .Select(w => (int?)w.CustomerId)
@@ -468,9 +478,9 @@ namespace AwningsAPI.Services.ImportLeads
                 {
                     Type = "enquiry_reply_ready",
                     Title = "New Lead — Reply Ready for Review",
-                    Message = $"A draft reply for enquiry from {enquiry.Email} is ready to review and send.",
+                    Message = $"A draft reply for enquiry from {customerEmail} is ready to review and send.",
                     EntityType = "InitialEnquiry",
-                    EntityId = customerId,   // customerId so frontend can navigate to the correct customer
+                    EntityId = customerId,
                     WorkflowId = workflowId.Value,
                     IsRead = false,
                     CreatedAt = DateTime.UtcNow
@@ -481,8 +491,6 @@ namespace AwningsAPI.Services.ImportLeads
 
                 var unreadCount = await _context.Notifications.CountAsync(n => !n.IsRead);
 
-                // Shape matches what InboxNotificationService.ReceiveNotification handler expects:
-                // { count: number, notification: InboxNotification }
                 await _hub.Clients.All.SendAsync("ReceiveNotification", new
                 {
                     count = unreadCount,
@@ -508,9 +516,11 @@ namespace AwningsAPI.Services.ImportLeads
 
         // ── Workflow & enquiry ───────────────────────────────────────────────────
 
-        private async Task<int?> CreateWorkflowAndEnquiryAsync(
+        // Creates the workflow only. InitialEnquiry is intentionally omitted here —
+        // it is written in EmailTaskController.SendTaskEmail once the user sends the reply.
+        private async Task<int?> CreateWorkflowAsync(
             Customer customer, ExtractedLeadData extracted, Product? product,
-            string emailBody, int? incomingEmailId, string currentUser)
+            int? incomingEmailId, string currentUser)
         {
             int productId, supplierId, productTypeId;
 
@@ -560,18 +570,6 @@ namespace AwningsAPI.Services.ImportLeads
                 CreatedBy = currentUser
             };
             _context.WorkflowStarts.Add(workflow);
-            await _context.SaveChangesAsync();
-
-            _context.InitialEnquiries.Add(new InitialEnquiry
-            {
-                WorkflowId = workflow.WorkflowId,
-                Comments = emailBody,
-                Email = customer.Email ?? "",
-                AutoReplyContent = emailBody,
-                IncomingEmailId = incomingEmailId,
-                DateCreated = DateTime.UtcNow,
-                CreatedBy = currentUser
-            });
             await _context.SaveChangesAsync();
             return workflow.WorkflowId;
         }

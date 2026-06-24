@@ -3,6 +3,7 @@ using AwningsAPI.Dto.Tasks;
 using AwningsAPI.Services.WorkflowService;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Tasks;
+using AwningsAPI.Model.Workflow;
 using Azure.Identity;
 using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authorization;
@@ -1115,9 +1116,29 @@ namespace AwningsAPI.Controllers
                     task.DateUpdated = DateTime.UtcNow;
                     task.UpdatedBy = GetCurrentUserName();
 
-                    // Sending the reply clears the notification for this workflow
                     if (task.WorkflowId.HasValue)
                     {
+                        // Import-leads path defers InitialEnquiry creation until the reply is sent.
+                        // Create it now if one does not already exist for this workflow.
+                        var enquiryExists = await _context.InitialEnquiries
+                            .AnyAsync(e => e.WorkflowId == task.WorkflowId.Value);
+
+                        if (!enquiryExists)
+                        {
+                            _context.InitialEnquiries.Add(new InitialEnquiry
+                            {
+                                WorkflowId  = task.WorkflowId.Value,
+                                Comments    = request.Body,
+                                Email       = task.CustomerEmail ?? task.FromEmail ?? "",
+                                AutoReplyContent = request.Body,
+                                IncomingEmailId  = task.IncomingEmailId,
+                                TaskId      = task.TaskId,
+                                DateCreated = DateTime.UtcNow,
+                                CreatedBy   = GetCurrentUserName()
+                            });
+                        }
+
+                        // Sending the reply clears the notification for this workflow
                         var relatedNotifs = await _context.Notifications
                             .Where(n => !n.IsRead && n.WorkflowId == task.WorkflowId)
                             .ToListAsync();

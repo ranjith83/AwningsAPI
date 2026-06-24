@@ -1262,8 +1262,18 @@ namespace AwningsAPI.Services.Tasks
                     return;
                 }
 
-                // Guard: don't create duplicates if the processor runs twice, or if
-                // ImportLeads already created one for the same IncomingEmail (TaskId null there).
+                // Import-leads emails are marked with source=ImportLeads in ExtractedData.
+                // For those, InitialEnquiry must only be created when the user actually sends
+                // the reply (via SendTaskEmail), not here.
+                if (!string.IsNullOrWhiteSpace(email.ExtractedData) &&
+                    email.ExtractedData.Contains("ImportLeads", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation(
+                        "CreateInitialEnquiryFromEmail: skipping — ImportLeads email for task {TaskId}", taskId);
+                    return;
+                }
+
+                // Guard: don't create duplicates if the processor runs twice.
                 var existing = await _context.InitialEnquiries
                     .AnyAsync(e => e.TaskId == taskId || e.IncomingEmailId == email.Id);
                 if (existing)

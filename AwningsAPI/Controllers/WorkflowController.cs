@@ -119,6 +119,31 @@ namespace AwningsAPI.Controllers
                 DateCreated = c.DateCreated,
                 CreatedBy = c.CreatedBy
             }).ToList();
+
+            // Import-leads path: InitialEnquiry is not written until the reply is sent.
+            // Surface the task's Claude draft so the frontend can show it for review.
+            if (!dtos.Any())
+            {
+                var pendingTask = await _context.Tasks
+                    .Where(t => t.WorkflowId == WorkflowId && t.NeedsReply && t.DraftReply != null)
+                    .OrderByDescending(t => t.DateCreated)
+                    .Select(t => new { t.TaskId, t.DraftReply, t.CustomerEmail, t.FromEmail })
+                    .FirstOrDefaultAsync();
+
+                if (pendingTask != null)
+                {
+                    dtos.Add(new InitialEnquiryDto
+                    {
+                        EnquiryId       = null,
+                        WorkflowId      = WorkflowId,
+                        Email           = pendingTask.CustomerEmail ?? pendingTask.FromEmail ?? "",
+                        Comments        = pendingTask.DraftReply,
+                        AutoReplyContent = pendingTask.DraftReply,
+                        PendingTaskId   = pendingTask.TaskId
+                    });
+                }
+            }
+
             return Ok(dtos);
         }
 
