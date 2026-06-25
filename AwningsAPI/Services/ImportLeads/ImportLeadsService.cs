@@ -170,12 +170,13 @@ namespace AwningsAPI.Services.ImportLeads
                 return processedFolderId; // move ignored emails out so they don't repeat
             }
 
-            var existing = await FindExistingCustomerAsync(leadEmail);
-            if (existing != null)
-                return await HandleSkippedAsync(item, result, existing, leadEmail, existingCustomersFolderId, currentUser);
-
             var modelName = ExtractModelFromNotes(extracted.Notes);
             var product = await ResolveProductAsync(modelName);
+
+            var existing = await FindExistingCustomerAsync(leadEmail);
+            if (existing != null)
+                return await HandleExistingCustomerAsync(
+                    message, item, result, existing, product, body, currentUser, processedFolderId);
 
             await HandleNewCustomerAsync(message, item, result, extracted, product, modelName, body, currentUser);
             return processedFolderId;
@@ -195,20 +196,117 @@ namespace AwningsAPI.Services.ImportLeads
             _logger.LogInformation("Skipping content-empty email from {Email}", leadEmail);
         }
 
-        private async Task<string> HandleSkippedAsync(
-            ImportLeadsItemDto item, ImportLeadsResultDto result,
-            Customer existing, string leadEmail, string existingCustomersFolderId, string currentUser)
+        private async Task<string> HandleExistingCustomerAsync(
+            GraphMessage message, ImportLeadsItemDto item, ImportLeadsResultDto result,
+            Customer existing, Product? product, string body, string currentUser, string processedFolderId)
         {
             item.Status = "Skipped";
             item.CustomerName = existing.Name;
             item.CustomerId = existing.CustomerId;
-            item.Note = "Customer already exists";
             result.Skipped++;
+
+            var mailbox = GetMailbox();
+            var (bodyBlobUrl, attachmentResults) = await UploadEmailToBlobAsync(message, mailbox);
+            var newEmailDate = message.ReceivedDateTime?.DateTime ?? DateTime.UtcNow;
+
+            int? incomingEmailId = null;
+            int? workflowId = null;
+            string emailBody = string.Empty;
+            bool taskUpdated = false;
+            bool needsNewTaskDraft = false;
+
+            var strategy = _context.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                _context.ChangeTracker.Clear();
+                using var tx = await _context.Database.BeginTransactionAsync();
+
+                incomingEmailId = await SaveIncomingEmailAsync(
+                    message, existing, currentUser, bodyBlobUrl, attachmentResults);
+
+                emailBody = BuildLeadEmailBody(existing, product, false);
+
+                // Find the customer's latest workflow
+                workflowId = await _context.WorkflowStarts
+                    .Where(w => w.CustomerId == existing.CustomerId)
+                    .OrderByDescending(w => w.WorkflowId)
+                    .Select(w => (int?)w.WorkflowId)
+                    .FirstOrDefaultAsync();
+
+                if (workflowId.HasValue && incomingEmailId.HasValue)
+                {
+                    // Find an existing pending task for this workflow
+                    var pendingTask = await _context.Tasks
+                        .Where(t => t.WorkflowId == workflowId && t.NeedsReply)
+                        .OrderByDescending(t => t.DateCreated)
+                        .FirstOrDefaultAsync();
+
+                    if (pendingTask != null)
+                    {
+                        // Only update the draft if the new email is newer
+                        var existingEmailDate = pendingTask.IncomingEmailId.HasValue
+                            ? await _context.IncomingEmails
+                                .Where(e => e.Id == pendingTask.IncomingEmailId)
+                                .Select(e => (DateTime?)e.ReceivedDateTime)
+                                .FirstOrDefaultAsync() ?? DateTime.MinValue
+                            : DateTime.MinValue;
+
+                        if (newEmailDate >= existingEmailDate)
+                        {
+                            pendingTask.DraftReply = emailBody;
+                            pendingTask.IncomingEmailId = incomingEmailId;
+                            pendingTask.DateUpdated = DateTime.UtcNow;
+                            pendingTask.UpdatedBy = currentUser;
+                            await _context.SaveChangesAsync();
+                            taskUpdated = true;
+                            item.Note = "Existing customer — newer email received, draft updated";
+                        }
+                        else
+                        {
+                            item.Note = "Existing customer — email older than current pending draft, skipped";
+                        }
+                    }
+                    else
+                    {
+                        // No pending task — create one linked to this workflow
+                        await _taskService.CreateTaskFromEmailAsync(
+                            incomingEmailId.Value, currentUser, workflowId, existing.CustomerId);
+                        needsNewTaskDraft = true;
+                        item.Note = "Existing customer — new pending task created with draft";
+                    }
+                }
+                else
+                {
+                    item.Note = "Existing customer — email saved, no workflow found";
+                }
+
+                await tx.CommitAsync();
+            });
+
+            // For a newly created task, set DraftReply after the transaction
+            if (needsNewTaskDraft && workflowId.HasValue && incomingEmailId.HasValue && !string.IsNullOrEmpty(emailBody))
+            {
+                var newTask = await _context.Tasks
+                    .Where(t => t.WorkflowId == workflowId && t.NeedsReply && t.IncomingEmailId == incomingEmailId)
+                    .OrderByDescending(t => t.DateCreated)
+                    .FirstOrDefaultAsync();
+                if (newTask != null)
+                {
+                    newTask.DraftReply = emailBody;
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            // Fire notification if we have a workflow and something actionable happened
+            if (workflowId.HasValue && (taskUpdated || needsNewTaskDraft))
+                await SaveEnquiryDraftAsync(workflowId, existing.Email ?? "");
+
             AddAuditLog(existing.CustomerId, existing.Name, "SKIPPED", currentUser,
-                $"Lead import: customer already exists ({leadEmail})");
+                $"Lead import: {item.Note}");
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Existing customer: '{Name}' ({Email})", existing.Name, leadEmail);
-            return existingCustomersFolderId;
+
+            _logger.LogInformation("Existing customer '{Name}' — {Note}", existing.Name, item.Note);
+            return processedFolderId;
         }
 
         private async Task HandleNewCustomerAsync(
@@ -474,18 +572,33 @@ namespace AwningsAPI.Services.ImportLeads
                     .Select(w => (int?)w.CustomerId)
                     .FirstOrDefaultAsync();
 
-                var notification = new Notification
+                // Upsert: update existing unread notification rather than creating a duplicate
+                var existing = await _context.Notifications
+                    .Where(n => !n.IsRead && n.WorkflowId == workflowId.Value && n.Type == "enquiry_reply_ready")
+                    .FirstOrDefaultAsync();
+
+                Notification notification;
+                if (existing != null)
                 {
-                    Type = "enquiry_reply_ready",
-                    Title = "New Lead — Reply Ready for Review",
-                    Message = $"A draft reply for enquiry from {customerEmail} is ready to review and send.",
-                    EntityType = "InitialEnquiry",
-                    EntityId = customerId,
-                    WorkflowId = workflowId.Value,
-                    IsRead = false,
-                    CreatedAt = DateTime.UtcNow
-                };
-                _context.Notifications.Add(notification);
+                    existing.Message = $"A draft reply for enquiry from {customerEmail} is ready to review and send.";
+                    existing.CreatedAt = DateTime.UtcNow;
+                    notification = existing;
+                }
+                else
+                {
+                    notification = new Notification
+                    {
+                        Type = "enquiry_reply_ready",
+                        Title = "New Lead — Reply Ready for Review",
+                        Message = $"A draft reply for enquiry from {customerEmail} is ready to review and send.",
+                        EntityType = "InitialEnquiry",
+                        EntityId = customerId,
+                        WorkflowId = workflowId.Value,
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.Notifications.Add(notification);
+                }
 
                 await _context.SaveChangesAsync();
 
