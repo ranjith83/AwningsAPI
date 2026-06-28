@@ -1160,10 +1160,9 @@ namespace AwningsAPI.Services.Tasks
                 }
 
                 // ── 3. Auto-complete when customer + single workflow both found ───────
-                // Both conditions met → the task can be fully resolved automatically.
-                // We set status fields here (before SaveChanges) so a single DB round-trip
-                // covers both the link and the completion.
-                if (singleWorkflowMatched)
+                // Skip auto-complete for tasks that still need a reply (e.g. import-leads drafts).
+                // Those are resolved when the user sends the reply, not here.
+                if (singleWorkflowMatched && !task.NeedsReply)
                 {
                     task.Status = "Completed";
                     task.CompletedDate = DateTime.UtcNow;
@@ -1211,17 +1210,19 @@ namespace AwningsAPI.Services.Tasks
                         subject: task.Subject,
                         category: task.Category);
 
-                    // Completed — single rich audit entry (no duplicate StatusChanged)
-                    await AddHistoryEntry(
-                        taskId: taskId,
-                        action: "Completed",
-                        oldValue: "New",
-                        newValue: "Completed",
-                        details: task.CompletionNotes,
-                        createdBy: currentUser,
-                        customerName: customer.Name,
-                        subject: task.Subject,
-                        category: task.Category);
+                    if (!task.NeedsReply)
+                    {
+                        await AddHistoryEntry(
+                            taskId: taskId,
+                            action: "Completed",
+                            oldValue: "New",
+                            newValue: "Completed",
+                            details: task.CompletionNotes,
+                            createdBy: currentUser,
+                            customerName: customer.Name,
+                            subject: task.Subject,
+                            category: task.Category);
+                    }
                 }
             }
             catch (Exception ex)

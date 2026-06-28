@@ -126,7 +126,7 @@ namespace AwningsAPI.Controllers
             {
                 var pendingTask = await _context.Tasks
                     .Where(t => t.WorkflowId == WorkflowId && t.NeedsReply && t.DraftReply != null)
-                    .OrderByDescending(t => t.DateCreated)
+                    .OrderByDescending(t => t.DateUpdated ?? t.DateCreated)
                     .Select(t => new { t.TaskId, t.DraftReply, t.CustomerEmail, t.FromEmail })
                     .FirstOrDefaultAsync();
 

@@ -1112,9 +1112,12 @@ namespace AwningsAPI.Controllers
                 var task = await _context.Tasks.FindAsync(taskId);
                 if (task != null && task.NeedsReply)
                 {
-                    task.NeedsReply = false;
-                    task.DateUpdated = DateTime.UtcNow;
-                    task.UpdatedBy = GetCurrentUserName();
+                    task.NeedsReply    = false;
+                    task.Status        = "Completed";
+                    task.CompletedDate = DateTime.UtcNow;
+                    task.CompletedBy   = GetCurrentUserName();
+                    task.DateUpdated   = DateTime.UtcNow;
+                    task.UpdatedBy     = GetCurrentUserName();
 
                     if (task.WorkflowId.HasValue)
                     {
