@@ -67,5 +67,22 @@ namespace AwningsAPI.Interfaces
 
         Task StoreSiteVisitLinkAsync(int taskId, int siteVisitId, string currentUser);
 
+        /// <summary>
+        /// Called after a reply email is sent for a task.
+        /// Marks the task (and any sibling initial-enquiry tasks on the same workflow) as
+        /// Completed, creates the InitialEnquiry record if not yet present, and clears
+        /// workflow notifications.
+        /// </summary>
+        Task CompleteTaskOnReplySentAsync(int taskId, string emailBody, string currentUser);
+
+        Task<(IEnumerable<NeedsReplyTaskDto> Tasks, int TotalCount)> GetTasksNeedingReplyAsync(int page, int pageSize);
+
+        Task LogTaskReadAsync(int taskId, string username);
+
+        /// <summary>Returns the HTML email body for a task (from blob or DB). Null if task not found.</summary>
+        Task<string?> GetTaskEmailBodyAsync(int taskId);
+
+        /// <summary>Returns attachment bytes with filename/content-type. Null if not found or no content.</summary>
+        Task<TaskAttachmentResultDto?> GetTaskAttachmentAsync(int taskId, int attachmentId);
     }
 }

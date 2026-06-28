@@ -1,11 +1,15 @@
 ﻿using AwningsAPI.Database;
 using AwningsAPI.Dto.Tasks;
 using AwningsAPI.Interfaces;
+using AwningsAPI.Model.Common;
 using AwningsAPI.Model.Customers;
 using AwningsAPI.Model.Email;
 using AwningsAPI.Model.Tasks;
 using AwningsAPI.Model.Workflow;
+using Azure.Identity;
+using Azure.Storage.Blobs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 
 namespace AwningsAPI.Services.Tasks
@@ -15,12 +19,14 @@ namespace AwningsAPI.Services.Tasks
         private readonly AppDbContext _context;
         private readonly Microsoft.Extensions.Logging.ILogger<TaskService> _logger;
         private readonly IEmailAutoReplyService _autoReplyService;
+        private readonly IConfiguration _configuration;
 
-        public TaskService(AppDbContext context, Microsoft.Extensions.Logging.ILogger<TaskService> logger, IEmailAutoReplyService autoReplyService)
+        public TaskService(AppDbContext context, Microsoft.Extensions.Logging.ILogger<TaskService> logger, IEmailAutoReplyService autoReplyService, IConfiguration configuration)
         {
             _context = context;
             _logger = logger;
             _autoReplyService = autoReplyService;
+            _configuration = configuration;
         }
 
         #region Basic CRUD Operations
@@ -804,6 +810,77 @@ namespace AwningsAPI.Services.Tasks
             _logger.LogInformation(
                 "SiteVisit {SiteVisitId} linked to task {TaskId} by {User}",
                 siteVisitId, taskId, currentUser);
+        }
+
+        public async Task CompleteTaskOnReplySentAsync(int taskId, string emailBody, string currentUser)
+        {
+            var task = await _context.Tasks.FindAsync(taskId);
+            if (task == null || !task.NeedsReply) return;
+
+            var now = DateTime.UtcNow;
+
+            task.NeedsReply    = false;
+            task.Status        = "Completed";
+            task.CompletedDate = now;
+            task.CompletedBy   = currentUser;
+            task.DateUpdated   = now;
+            task.UpdatedBy     = currentUser;
+
+            if (task.WorkflowId.HasValue)
+            {
+                // Complete all other pending initial-enquiry tasks on the same workflow.
+                // A customer may have sent multiple emails before the reply was sent.
+                if (string.Equals(task.Category, "initial_enquiry", StringComparison.OrdinalIgnoreCase))
+                {
+                    var siblings = await _context.Tasks
+                        .Where(t => t.WorkflowId == task.WorkflowId
+                                 && t.TaskId != taskId
+                                 && t.NeedsReply
+                                 && t.Category == "initial_enquiry")
+                        .ToListAsync();
+
+                    foreach (var sibling in siblings)
+                    {
+                        sibling.NeedsReply    = false;
+                        sibling.Status        = "Completed";
+                        sibling.CompletedDate = now;
+                        sibling.CompletedBy   = currentUser;
+                        sibling.DateUpdated   = now;
+                        sibling.UpdatedBy     = currentUser;
+                    }
+                }
+
+                // Create InitialEnquiry if the import-leads path deferred it.
+                var enquiryExists = await _context.InitialEnquiries
+                    .AnyAsync(e => e.WorkflowId == task.WorkflowId.Value);
+
+                if (!enquiryExists)
+                {
+                    _context.InitialEnquiries.Add(new InitialEnquiry
+                    {
+                        WorkflowId       = task.WorkflowId.Value,
+                        Comments         = emailBody,
+                        Email            = task.CustomerEmail ?? task.FromEmail ?? "",
+                        AutoReplyContent = emailBody,
+                        IncomingEmailId  = task.IncomingEmailId,
+                        TaskId           = task.TaskId,
+                        DateCreated      = now,
+                        CreatedBy        = currentUser
+                    });
+                }
+
+                // Clear all unread notifications for this workflow.
+                var notifications = await _context.Notifications
+                    .Where(n => !n.IsRead && n.WorkflowId == task.WorkflowId)
+                    .ToListAsync();
+                notifications.ForEach(n => n.IsRead = true);
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Task {TaskId} completed on reply sent by {User} (workflow {WorkflowId})",
+                taskId, currentUser, task.WorkflowId);
         }
 
         #endregion
@@ -1966,6 +2043,183 @@ namespace AwningsAPI.Services.Tasks
                 category: task.Category);
 
             return await GetTaskByIdAsync(taskId);
+        }
+
+        #endregion
+
+        #region Email Body & Attachments
+
+        public async Task<(IEnumerable<NeedsReplyTaskDto> Tasks, int TotalCount)> GetTasksNeedingReplyAsync(int page, int pageSize)
+        {
+            var query = _context.Tasks
+                .Where(t => t.NeedsReply)
+                .OrderByDescending(t => t.DateAdded);
+
+            var totalCount = await query.CountAsync();
+
+            var tasks = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(t => new NeedsReplyTaskDto
+                {
+                    TaskId = t.TaskId,
+                    IncomingEmailId = t.IncomingEmailId,
+                    Subject = t.Subject,
+                    FromName = t.FromName,
+                    FromEmail = t.FromEmail,
+                    Category = t.Category,
+                    Status = t.Status,
+                    DateAdded = t.DateAdded,
+                    DraftReply = t.DraftReply
+                })
+                .ToListAsync();
+
+            return (tasks, totalCount);
+        }
+
+        public async Task LogTaskReadAsync(int taskId, string username)
+        {
+            var task = await _context.Tasks.FindAsync(taskId);
+            if (task == null) return;
+
+            _context.TaskHistories.Add(new TaskHistory
+            {
+                TaskId = taskId,
+                Action = "Read",
+                Details = $"Email viewed by {username}",
+                DateCreated = DateTime.UtcNow,
+                CreatedBy = username,
+                Subject = task.Subject,
+                Category = task.Category
+            });
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<string?> GetTaskEmailBodyAsync(int taskId)
+        {
+            var task = await _context.Tasks
+                .Where(t => t.TaskId == taskId)
+                .Select(t => new { t.IncomingEmailId, t.EmailBody })
+                .FirstOrDefaultAsync();
+
+            if (task == null) return null;
+
+            var html = task.EmailBody ?? string.Empty;
+
+            if (task.IncomingEmailId.HasValue)
+            {
+                var bodyBlobUrl = await _context.IncomingEmails
+                    .Where(e => e.Id == task.IncomingEmailId.Value)
+                    .Select(e => e.BodyBlobUrl)
+                    .FirstOrDefaultAsync();
+
+                if (!string.IsNullOrEmpty(bodyBlobUrl))
+                {
+                    var blobClient = CreateBlobClient(bodyBlobUrl);
+                    if (blobClient != null)
+                    {
+                        try
+                        {
+                            var download = await blobClient.DownloadContentAsync();
+                            html = download.Value.Content.ToString();
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to fetch email body blob for task {TaskId}, falling back to EmailBody", taskId);
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(html) && html.Contains("cid:", StringComparison.OrdinalIgnoreCase))
+                {
+                    var inlineAttachments = await _context.EmailAttachments
+                        .Where(a => a.IncomingEmailId == task.IncomingEmailId.Value
+                                 && a.IsInline
+                                 && a.ContentId != null
+                                 && a.Base64Content != null)
+                        .ToListAsync();
+
+                    foreach (var att in inlineAttachments)
+                    {
+                        var cid = att.ContentId!.Trim('<', '>');
+                        var dataUri = $"data:{att.ContentType};base64,{att.Base64Content}";
+                        html = html.Replace($"cid:{cid}", dataUri, StringComparison.OrdinalIgnoreCase);
+                    }
+                }
+            }
+
+            return html;
+        }
+
+        public async Task<TaskAttachmentResultDto?> GetTaskAttachmentAsync(int taskId, int attachmentId)
+        {
+            var taskAttachment = await _context.TaskAttachments
+                .FirstOrDefaultAsync(a => a.AttachmentId == attachmentId && a.TaskId == taskId);
+
+            if (taskAttachment == null) return null;
+
+            var fileName = taskAttachment.FileName ?? "attachment";
+            var contentType = taskAttachment.FileType ?? "application/octet-stream";
+
+            if (!string.IsNullOrEmpty(taskAttachment.BlobUrl))
+            {
+                var blobClient = CreateBlobClient(taskAttachment.BlobUrl);
+                if (blobClient != null)
+                {
+                    try
+                    {
+                        var download = await blobClient.DownloadContentAsync();
+                        return new TaskAttachmentResultDto
+                        {
+                            FileName = fileName,
+                            ContentType = contentType,
+                            Content = download.Value.Content.ToArray()
+                        };
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to stream attachment {Id} from blob {Url}", attachmentId, taskAttachment.BlobUrl);
+                    }
+                }
+            }
+
+            if (taskAttachment.EmailAttachmentId.HasValue)
+            {
+                var emailAttachment = await _context.EmailAttachments
+                    .FirstOrDefaultAsync(a => a.Id == taskAttachment.EmailAttachmentId.Value);
+
+                if (emailAttachment?.Base64Content != null)
+                {
+                    return new TaskAttachmentResultDto
+                    {
+                        FileName = fileName,
+                        ContentType = contentType,
+                        Content = Convert.FromBase64String(emailAttachment.Base64Content)
+                    };
+                }
+            }
+
+            return null;
+        }
+
+        private BlobClient? CreateBlobClient(string blobUrl)
+        {
+            var blobName = new BlobUriBuilder(new Uri(blobUrl)).BlobName;
+            var containerName = _configuration["BlobStorage:ContainerName"] ?? "awnings-emails";
+
+            var connectionString = _configuration["BlobStorage:ConnectionString"];
+            if (!string.IsNullOrEmpty(connectionString))
+                return new BlobClient(connectionString, containerName, blobName);
+
+            var accountUrl = _configuration["BlobStorage:AccountUrl"];
+            if (!string.IsNullOrEmpty(accountUrl))
+            {
+                var blobUri = new Uri($"{accountUrl.TrimEnd('/')}/{containerName}/{blobName}");
+                return new BlobClient(blobUri, new DefaultAzureCredential());
+            }
+
+            _logger.LogWarning("BlobStorage not configured — set ConnectionString (local) or AccountUrl (production)");
+            return null;
         }
 
         #endregion

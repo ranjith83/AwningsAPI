@@ -1,20 +1,9 @@
-﻿using AwningsAPI.Database;
-using AwningsAPI.Dto.Tasks;
-using AwningsAPI.Services.WorkflowService;
+﻿using AwningsAPI.Dto.Tasks;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Tasks;
-using AwningsAPI.Model.Workflow;
-using Azure.Identity;
-using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace AwningsAPI.Controllers
 {
@@ -29,25 +18,16 @@ namespace AwningsAPI.Controllers
     {
         private readonly ITaskService _taskService;
         private readonly IEmailReaderService _emailReaderService;
-        private readonly IConfiguration _configuration;
         private readonly ILogger<EmailTaskController> _logger;
-        private readonly FollowUpService _followUpService;
-        private readonly AppDbContext _context;
 
         public EmailTaskController(
             ITaskService taskService,
             IEmailReaderService emailReaderService,
-            IConfiguration configuration,
-            ILogger<EmailTaskController> logger,
-            FollowUpService followUpService,
-            AppDbContext context)
+            ILogger<EmailTaskController> logger)
         {
             _taskService = taskService;
             _emailReaderService = emailReaderService;
-            _configuration = configuration;
             _logger = logger;
-            _followUpService = followUpService;
-            _context = context;
         }
 
         #region GET Endpoints
@@ -108,29 +88,7 @@ namespace AwningsAPI.Controllers
         {
             try
             {
-                var query = _context.Tasks
-                    .Where(t => t.NeedsReply)
-                    .OrderByDescending(t => t.DateAdded);
-
-                var totalCount = await query.CountAsync();
-
-                var tasks = await query
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(t => new NeedsReplyTaskDto
-                    {
-                        TaskId = t.TaskId,
-                        IncomingEmailId = t.IncomingEmailId,
-                        Subject = t.Subject,
-                        FromName = t.FromName,
-                        FromEmail = t.FromEmail,
-                        Category = t.Category,
-                        Status = t.Status,
-                        DateAdded = t.DateAdded,
-                        DraftReply = t.DraftReply
-                    })
-                    .ToListAsync();
-
+                var (tasks, totalCount) = await _taskService.GetTasksNeedingReplyAsync(page, pageSize);
                 return Ok(new
                 {
                     page,
@@ -655,49 +613,12 @@ namespace AwningsAPI.Controllers
         [HttpGet("{taskId}/attachments/{attachmentId}")]
         public async Task<IActionResult> DownloadAttachment(int taskId, int attachmentId)
         {
-            var taskAttachment = await _context.TaskAttachments
-                .FirstOrDefaultAsync(a => a.AttachmentId == attachmentId && a.TaskId == taskId);
+            var result = await _taskService.GetTaskAttachmentAsync(taskId, attachmentId);
 
-            if (taskAttachment == null)
-                return NotFound(new { error = "Attachment not found" });
+            if (result == null)
+                return NotFound(new { error = "Attachment not found or content is not available" });
 
-            var fileName = taskAttachment.FileName ?? "attachment";
-            var contentType = taskAttachment.FileType ?? "application/octet-stream";
-
-            // ── Path 1: read from blob ────────────────────────────────────────
-            if (!string.IsNullOrEmpty(taskAttachment.BlobUrl))
-            {
-                var blobClient = CreateBlobClient(taskAttachment.BlobUrl);
-                if (blobClient != null)
-                {
-                    try
-                    {
-                        var download = await blobClient.DownloadStreamingAsync();
-                        Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
-                        return File(download.Value.Content, contentType, fileName);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to stream attachment {Id} from blob {Url}", attachmentId, taskAttachment.BlobUrl);
-                        // Fall through to Base64 fallback
-                    }
-                }
-            }
-
-            // ── Path 2: fall back to Base64Content in EmailAttachment ─────────
-            if (taskAttachment.EmailAttachmentId.HasValue)
-            {
-                var emailAttachment = await _context.EmailAttachments
-                    .FirstOrDefaultAsync(a => a.Id == taskAttachment.EmailAttachmentId.Value);
-
-                if (emailAttachment?.Base64Content != null)
-                {
-                    var bytes = Convert.FromBase64String(emailAttachment.Base64Content);
-                    return File(bytes, contentType, fileName);
-                }
-            }
-
-            return NotFound(new { error = "Attachment content is not available" });
+            return File(result.Content, result.ContentType, result.FileName);
         }
 
         /// <summary>
@@ -709,60 +630,10 @@ namespace AwningsAPI.Controllers
         [HttpGet("{taskId}/body")]
         public async Task<IActionResult> GetEmailBody(int taskId)
         {
-            var task = await _context.Tasks
-                .Where(t => t.TaskId == taskId)
-                .Select(t => new { t.IncomingEmailId, t.EmailBody })
-                .FirstOrDefaultAsync();
+            var html = await _taskService.GetTaskEmailBodyAsync(taskId);
 
-            if (task == null)
+            if (html == null)
                 return NotFound(new { error = "Task not found" });
-
-            var html = task.EmailBody ?? string.Empty;
-
-            if (task.IncomingEmailId.HasValue)
-            {
-                var bodyBlobUrl = await _context.IncomingEmails
-                    .Where(e => e.Id == task.IncomingEmailId.Value)
-                    .Select(e => e.BodyBlobUrl)
-                    .FirstOrDefaultAsync();
-
-                if (!string.IsNullOrEmpty(bodyBlobUrl))
-                {
-                    var blobClient = CreateBlobClient(bodyBlobUrl);
-                    if (blobClient != null)
-                    {
-                        try
-                        {
-                            var download = await blobClient.DownloadContentAsync();
-                            html = download.Value.Content.ToString();
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Failed to fetch email body blob for task {TaskId}, falling back to EmailBody", taskId);
-                        }
-                    }
-                }
-
-                // Replace cid: references with data URIs so inline images render in the browser.
-                // Browsers can't resolve cid: outside of a MIME multipart context.
-                if (!string.IsNullOrEmpty(html) && html.Contains("cid:", StringComparison.OrdinalIgnoreCase))
-                {
-                    var inlineAttachments = await _context.EmailAttachments
-                        .Where(a => a.IncomingEmailId == task.IncomingEmailId.Value
-                                 && a.IsInline
-                                 && a.ContentId != null
-                                 && a.Base64Content != null)
-                        .ToListAsync();
-
-                    foreach (var att in inlineAttachments)
-                    {
-                        // ContentId may be stored with surrounding angle brackets — strip them
-                        var cid = att.ContentId!.Trim('<', '>');
-                        var dataUri = $"data:{att.ContentType};base64,{att.Base64Content}";
-                        html = html.Replace($"cid:{cid}", dataUri, StringComparison.OrdinalIgnoreCase);
-                    }
-                }
-            }
 
             return Content(html, "text/html; charset=utf-8");
         }
@@ -848,24 +719,11 @@ namespace AwningsAPI.Controllers
         [HttpPost("{taskId}/read")]
         public async Task<IActionResult> LogRead(int taskId)
         {
-            var task = await _context.Tasks.FindAsync(taskId);
-            if (task == null) return NotFound();
-
             var username = User.FindFirstValue(ClaimTypes.Name)
                         ?? User.FindFirstValue(ClaimTypes.Email)
                         ?? "Unknown";
 
-            _context.TaskHistories.Add(new TaskHistory
-            {
-                TaskId      = taskId,
-                Action      = "Read",
-                Details     = $"Email viewed by {username}",
-                DateCreated = DateTime.UtcNow,
-                CreatedBy   = username,
-                Subject     = task.Subject,
-                Category    = task.Category
-            });
-            await _context.SaveChangesAsync();
+            await _taskService.LogTaskReadAsync(taskId, username);
             return Ok();
         }
 
@@ -1109,47 +967,7 @@ namespace AwningsAPI.Controllers
                     attachments: attachments,
                     currentUser: GetCurrentUserName());
 
-                var task = await _context.Tasks.FindAsync(taskId);
-                if (task != null && task.NeedsReply)
-                {
-                    task.NeedsReply    = false;
-                    task.Status        = "Completed";
-                    task.CompletedDate = DateTime.UtcNow;
-                    task.CompletedBy   = GetCurrentUserName();
-                    task.DateUpdated   = DateTime.UtcNow;
-                    task.UpdatedBy     = GetCurrentUserName();
-
-                    if (task.WorkflowId.HasValue)
-                    {
-                        // Import-leads path defers InitialEnquiry creation until the reply is sent.
-                        // Create it now if one does not already exist for this workflow.
-                        var enquiryExists = await _context.InitialEnquiries
-                            .AnyAsync(e => e.WorkflowId == task.WorkflowId.Value);
-
-                        if (!enquiryExists)
-                        {
-                            _context.InitialEnquiries.Add(new InitialEnquiry
-                            {
-                                WorkflowId  = task.WorkflowId.Value,
-                                Comments    = request.Body,
-                                Email       = task.CustomerEmail ?? task.FromEmail ?? "",
-                                AutoReplyContent = request.Body,
-                                IncomingEmailId  = task.IncomingEmailId,
-                                TaskId      = task.TaskId,
-                                DateCreated = DateTime.UtcNow,
-                                CreatedBy   = GetCurrentUserName()
-                            });
-                        }
-
-                        // Sending the reply clears the notification for this workflow
-                        var relatedNotifs = await _context.Notifications
-                            .Where(n => !n.IsRead && n.WorkflowId == task.WorkflowId)
-                            .ToListAsync();
-                        relatedNotifs.ForEach(n => n.IsRead = true);
-                    }
-
-                    await _context.SaveChangesAsync();
-                }
+                await _taskService.CompleteTaskOnReplySentAsync(taskId, request.Body, GetCurrentUserName());
 
                 return Ok(new { message = "Email sent successfully" });
             }
@@ -1203,24 +1021,6 @@ namespace AwningsAPI.Controllers
                 _logger.LogError(ex, "Error sending direct email to {ToEmail}", request.ToEmail);
                 return StatusCode(500, new { error = ex.Message });
             }
-        }
-
-        /// <summary>
-        /// Converts a plain-text body (with line breaks) to minimal HTML so Graph
-        /// renders it correctly. If the caller already supplies HTML it is passed through.
-        /// </summary>
-        private static string WrapPlainTextAsHtml(string body)
-        {
-            if (string.IsNullOrWhiteSpace(body)) return "<p></p>";
-
-            // Already HTML — don't double-wrap
-            if (body.TrimStart().StartsWith("<", StringComparison.Ordinal))
-                return body;
-
-            var escaped = System.Net.WebUtility.HtmlEncode(body)
-                                               .Replace("\r\n", "<br>")
-                                               .Replace("\n", "<br>");
-            return $"<div style=\"font-family:Aptos,Calibri,Arial,sans-serif;font-size:12pt;\">{escaped}</div>";
         }
 
         // ==================== REQUEST DTOs ====================
@@ -1326,36 +1126,6 @@ namespace AwningsAPI.Controllers
             var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
                            ?? User?.FindFirst("userId")?.Value;
             return int.TryParse(userIdClaim, out var userId) ? userId : 0;
-        }
-
-        /// <summary>
-        /// Creates a BlobClient for the given blob URL using whichever auth is configured:
-        ///   • BlobStorage:ConnectionString set → connection string (local Azurite or access-key)
-        ///   • BlobStorage:AccountUrl set      → DefaultAzureCredential (Managed Identity / Entra)
-        ///   • Neither                         → returns null (caller falls back to DB content)
-        /// </summary>
-        private BlobClient? CreateBlobClient(string blobUrl)
-        {
-            // BlobUriBuilder handles both production (https://account.blob.core.windows.net/...)
-            // and Azurite dev (http://127.0.0.1:10000/devstoreaccount1/...) URLs correctly.
-            var blobName = new BlobUriBuilder(new Uri(blobUrl)).BlobName;
-            var containerName = _configuration["BlobStorage:ContainerName"] ?? "awnings-emails";
-
-            // Local dev: Azurite connection string (UseDevelopmentStorage=true)
-            var connectionString = _configuration["BlobStorage:ConnectionString"];
-            if (!string.IsNullOrEmpty(connectionString))
-                return new BlobClient(connectionString, containerName, blobName);
-
-            // Production: Managed Identity via AccountUrl
-            var accountUrl = _configuration["BlobStorage:AccountUrl"];
-            if (!string.IsNullOrEmpty(accountUrl))
-            {
-                var blobUri = new Uri($"{accountUrl.TrimEnd('/')}/{containerName}/{blobName}");
-                return new BlobClient(blobUri, new DefaultAzureCredential());
-            }
-
-            _logger.LogWarning("BlobStorage not configured — set ConnectionString (local) or AccountUrl (production)");
-            return null;
         }
 
         #endregion

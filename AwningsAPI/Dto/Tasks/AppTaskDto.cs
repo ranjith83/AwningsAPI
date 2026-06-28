@@ -377,4 +377,11 @@ namespace AwningsAPI.Dto.Tasks
         public int? CurrentUserId { get; set; }
         public bool IsAdmin { get; set; } = false;
     }
+
+    public class TaskAttachmentResultDto
+    {
+        public string FileName { get; set; } = string.Empty;
+        public string ContentType { get; set; } = "application/octet-stream";
+        public byte[] Content { get; set; } = Array.Empty<byte>();
+    }
 }
