@@ -89,15 +89,6 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/awningsapi:latest
             ghcr.io/${{ github.repository_owner }}/awningsapi:${{ github.sha }}
 
-      - name: Set container package visibility to public
-        run: |
-          gh api --method PATCH /user/packages/container/awningsapi \
-            -f visibility=public || \
-          gh api --method PATCH /orgs/${{ github.repository_owner }}/packages/container/awningsapi \
-            -f visibility=public
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Setup .NET 9
         if: steps.check-migrations.outputs.has_migrations == 'true'
         uses: actions/setup-dotnet@v4
@@ -164,6 +155,3 @@ jobs:
           containerAppName: ${{ secrets.CONTAINER_APP_NAME }}
           resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
           imageToDeploy: ghcr.io/${{ github.repository_owner }}/awningsapi:${{ github.sha }}
-          registryUrl: ghcr.io
-          registryUsername: ${{ github.actor }}
-          registryPassword: ${{ secrets.GITHUB_TOKEN }}
