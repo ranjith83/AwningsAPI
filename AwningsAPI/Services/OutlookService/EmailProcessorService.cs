@@ -236,13 +236,31 @@ namespace AwningsAPI.Services.Email
                 email.DateProcessed = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
 
-                // Mark as read and move to appropriate folder
+                // Mark as read
                 await _emailReaderService.MarkEmailAsReadAsync(mailboxEmail, email.EmailId);
 
-                //var folderName = analysisResult.IsSpam ? "Junk" : $"Processed/{email.Category}";
-                //await _emailReaderService.MoveEmailToFolderAsync(mailboxEmail, email.EmailId, folderName);
+                // Move to "No Customer Email" folder only for Kendlebell answering-service emails
+                // where the body contains no customer email address.
+                // Regular customer emails are excluded — their address is in the From header, not the body.
+                var isKendlebell = email.FromEmail?.EndsWith("kbell.ie", StringComparison.OrdinalIgnoreCase) == true;
+                if (!analysisResult.IsSpam && isKendlebell)
+                {
+                    var hasCustomerBodyEmail = analysisResult.CustomerInfo.TryGetValue("bodyEmail", out var bodyEmail)
+                        && !string.IsNullOrWhiteSpace(bodyEmail);
 
-                // _logger.LogInformation($"✅ Email {email.EmailId} processed and moved to {folderName}");
+                    if (!hasCustomerBodyEmail)
+                    {
+                        try
+                        {
+                            await _emailReaderService.MoveEmailToFolderAsync(mailboxEmail, email.EmailId, "No Customer Email");
+                            _logger.LogInformation("📁 Email {EmailId} moved to 'No Customer Email' folder — Kendlebell message with no customer email in body", email.EmailId);
+                        }
+                        catch (Exception moveEx)
+                        {
+                            _logger.LogWarning(moveEx, "⚠️ Could not move email {EmailId} to 'No Customer Email' folder", email.EmailId);
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {

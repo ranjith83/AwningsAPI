@@ -161,7 +161,8 @@ Respond ONLY with the JSON object, no other text.";
                     { "fromName", email.FromName ?? "" },
                     { "fromEmail", email.FromEmail ?? "" },
                     { "phone", ExtractPhoneNumber(body) ?? "" },
-                    { "companyNumber", ExtractCompanyNumber(body) ?? "" }
+                    { "companyNumber", ExtractCompanyNumber(body) ?? "" },
+                    { "bodyEmail", ExtractEmailAddressFromBody(body, email.FromEmail) ?? "" }
                 };
 
                 // 5. Build final result using AI analysis
@@ -611,6 +612,18 @@ Respond ONLY with the JSON object, no other text.";
             }
 
             return merged;
+        }
+
+        private string ExtractEmailAddressFromBody(string text, string excludeEmail = null)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            var matches = Regex.Matches(text, @"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}");
+            foreach (Match match in matches)
+            {
+                if (!string.Equals(match.Value, excludeEmail, StringComparison.OrdinalIgnoreCase))
+                    return match.Value;
+            }
+            return null;
         }
 
         private string ExtractCompanyNumber(string text)
