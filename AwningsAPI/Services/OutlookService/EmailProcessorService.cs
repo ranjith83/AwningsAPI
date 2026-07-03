@@ -349,9 +349,14 @@ namespace AwningsAPI.Services.Email
 
                 if (existingCustomer == null)
                 {
-                    if (isKendlebell && !string.IsNullOrWhiteSpace(effectiveEmail) && effectiveEmail != email.FromEmail)
+                    // Only create a new customer from a Kendlebell email when a real customer email
+                    // was actually found in the body (bodyEmail is populated by regex that already
+                    // excludes the Kendlebell sender address, so it can never be kbell.ie).
+                    var hasBodyEmail = analysisResult.CustomerInfo.TryGetValue("bodyEmail", out var bodyEmailValue)
+                        && !string.IsNullOrWhiteSpace(bodyEmailValue);
+
+                    if (isKendlebell && hasBodyEmail)
                     {
-                        // Kendlebell form submission — we have all required data, create the customer
                         _logger.LogInformation($"📝 New customer from Kendlebell form: {effectiveEmail}");
                         existingCustomer = await CreateCustomerFromEmail(email, analysisResult, currentUser);
                     }
