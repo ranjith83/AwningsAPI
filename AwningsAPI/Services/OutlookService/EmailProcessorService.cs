@@ -330,13 +330,30 @@ namespace AwningsAPI.Services.Email
         {
             try
             {
+                var isKendlebell = email.FromEmail?.EndsWith("kbell.ie", StringComparison.OrdinalIgnoreCase) == true;
+
+                // ── Guard: Kendlebell emails without a customer email in the body are unactionable.
+                // Do NOT create a customer, workflow, or initial enquiry — and do not look anything up.
+                // ProcessEmailAsync will move this email to the "No Customer Email" folder.
+                if (isKendlebell)
+                {
+                    var hasBodyEmail = analysisResult.CustomerInfo.TryGetValue("bodyEmail", out var be)
+                        && !string.IsNullOrWhiteSpace(be);
+
+                    if (!hasBodyEmail)
+                    {
+                        _logger.LogInformation(
+                            "⏭️ Kendlebell email {EmailId} has no customer email in body — skipping customer and enquiry creation",
+                            email.EmailId);
+                        return;
+                    }
+                }
+
                 // For Kendlebell emails the real customer email is parsed from the body into CustomerInfo["fromEmail"].
                 // For all other senders the From header IS the customer email.
                 var effectiveEmail = analysisResult.CustomerInfo.TryGetValue("fromEmail", out var ce) && !string.IsNullOrWhiteSpace(ce)
                     ? ce
                     : email.FromEmail;
-
-                var isKendlebell = email.FromEmail?.EndsWith("kbell.ie", StringComparison.OrdinalIgnoreCase) == true;
 
                 _logger.LogInformation($"🔄 Checking Initial Enquiry conditions for {effectiveEmail}");
 
@@ -623,6 +640,16 @@ namespace AwningsAPI.Services.Email
             // Use body-parsed values from CustomerInfo (set for Kendlebell emails) with header values as fallback
             var effectiveEmail = analysisResult.CustomerInfo.TryGetValue("fromEmail", out var ce) && !string.IsNullOrWhiteSpace(ce)
                 ? ce : email.FromEmail;
+
+            // Hard safety guard — never persist a Kendlebell address as a customer email
+            if (effectiveEmail.EndsWith("kbell.ie", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogError(
+                    "🚫 Blocked attempt to create customer with Kendlebell email {Email} — this should have been caught earlier",
+                    effectiveEmail);
+                throw new InvalidOperationException(
+                    $"Customer creation blocked: Kendlebell address '{effectiveEmail}' cannot be used as a customer email.");
+            }
             var effectiveName = analysisResult.CustomerInfo.TryGetValue("fromName", out var cn) && !string.IsNullOrWhiteSpace(cn)
                 ? cn : (email.FromName ?? "Unknown Customer");
             var phone = analysisResult.CustomerInfo.TryGetValue("phone", out var ph) ? ph : "";
