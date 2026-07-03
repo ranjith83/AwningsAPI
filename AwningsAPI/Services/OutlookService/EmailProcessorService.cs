@@ -245,10 +245,17 @@ namespace AwningsAPI.Services.Email
                 var isKendlebell = email.FromEmail?.EndsWith("kbell.ie", StringComparison.OrdinalIgnoreCase) == true;
                 if (!analysisResult.IsSpam && isKendlebell)
                 {
-                    var hasCustomerBodyEmail = analysisResult.CustomerInfo.TryGetValue("bodyEmail", out var bodyEmail)
+                    // A customer email is present if EITHER:
+                    //   (a) the regex found an email address in the raw body, OR
+                    //   (b) the Kendlebell "Email:" field was parsed and overrode CustomerInfo["fromEmail"]
+                    //       (catches cases where HTML encoding might fool the regex)
+                    var hasBodyEmail = analysisResult.CustomerInfo.TryGetValue("bodyEmail", out var bodyEmail)
                         && !string.IsNullOrWhiteSpace(bodyEmail);
+                    var hasParsedEmail = analysisResult.CustomerInfo.TryGetValue("fromEmail", out var parsedEmail)
+                        && !string.IsNullOrWhiteSpace(parsedEmail)
+                        && !parsedEmail.EndsWith("kbell.ie", StringComparison.OrdinalIgnoreCase);
 
-                    if (!hasCustomerBodyEmail)
+                    if (!hasBodyEmail && !hasParsedEmail)
                     {
                         try
                         {
@@ -323,26 +330,43 @@ namespace AwningsAPI.Services.Email
         {
             try
             {
-                _logger.LogInformation($"🔄 Checking Initial Enquiry conditions for {email.FromEmail}");
+                // For Kendlebell emails the real customer email is parsed from the body into CustomerInfo["fromEmail"].
+                // For all other senders the From header IS the customer email.
+                var effectiveEmail = analysisResult.CustomerInfo.TryGetValue("fromEmail", out var ce) && !string.IsNullOrWhiteSpace(ce)
+                    ? ce
+                    : email.FromEmail;
 
-                // ── 1. Customer must already exist ────────────────────────────────────
+                var isKendlebell = email.FromEmail?.EndsWith("kbell.ie", StringComparison.OrdinalIgnoreCase) == true;
+
+                _logger.LogInformation($"🔄 Checking Initial Enquiry conditions for {effectiveEmail}");
+
+                // ── 1. Customer lookup ────────────────────────────────────────────────
                 var existingCustomer = await _context.Customers
                     .Include(c => c.CustomerContacts)
                     .FirstOrDefaultAsync(c =>
-                        c.Email == email.FromEmail ||
-                        c.CustomerContacts.Any(cc => cc.Email == email.FromEmail));
+                        c.Email == effectiveEmail ||
+                        c.CustomerContacts.Any(cc => cc.Email == effectiveEmail));
 
                 if (existingCustomer == null)
                 {
-                    _logger.LogInformation(
-                        $"⏭️ No existing customer found for '{email.FromEmail}' — skipping Initial Enquiry creation");
-                    return;
+                    if (isKendlebell && !string.IsNullOrWhiteSpace(effectiveEmail) && effectiveEmail != email.FromEmail)
+                    {
+                        // Kendlebell form submission — we have all required data, create the customer
+                        _logger.LogInformation($"📝 New customer from Kendlebell form: {effectiveEmail}");
+                        existingCustomer = await CreateCustomerFromEmail(email, analysisResult, currentUser);
+                    }
+                    else
+                    {
+                        _logger.LogInformation(
+                            $"⏭️ No existing customer found for '{effectiveEmail}' — skipping Initial Enquiry creation");
+                        return;
+                    }
                 }
 
                 _logger.LogInformation(
-                    $"✅ Existing customer found: ID={existingCustomer.CustomerId}, Name={existingCustomer.Name}");
+                    $"✅ Customer: ID={existingCustomer.CustomerId}, Name={existingCustomer.Name}");
 
-                // ── 2. Workflow must already exist for that customer ───────────────────
+                // ── 2. Workflow lookup / creation ─────────────────────────────────────
                 var existingWorkflow = await _context.WorkflowStarts
                     .Where(w => w.CustomerId == existingCustomer.CustomerId)
                     .OrderByDescending(w => w.DateCreated)
@@ -350,20 +374,23 @@ namespace AwningsAPI.Services.Email
 
                 if (existingWorkflow == null)
                 {
-                    _logger.LogInformation(
-                        $"⏭️ Customer {existingCustomer.CustomerId} has no workflow — skipping Initial Enquiry creation");
-                    return;
+                    if (isKendlebell)
+                    {
+                        // New lead via Kendlebell — create the workflow
+                        _logger.LogInformation($"📝 Creating workflow for new Kendlebell customer {existingCustomer.CustomerId}");
+                        existingWorkflow = await GetOrCreateWorkflow(existingCustomer.CustomerId, currentUser);
+                    }
+                    else
+                    {
+                        _logger.LogInformation(
+                            $"⏭️ Customer {existingCustomer.CustomerId} has no workflow — skipping Initial Enquiry creation");
+                        return;
+                    }
                 }
 
-                _logger.LogInformation(
-                    $"✅ Existing workflow found: ID={existingWorkflow.WorkflowId}");
+                _logger.LogInformation($"✅ Workflow: ID={existingWorkflow.WorkflowId}");
 
                 // ── 3. Guard — skip if an InitialEnquiry already exists for this email ──
-                // ImportLeads creates the InitialEnquiry (with the outgoing reply body) and links
-                // it via IncomingEmailId. Checking the DB directly is reliable regardless of
-                // whether the webhook loaded the email before or after ImportLeads ran — it avoids
-                // the in-memory ExtractedData staleness problem. Frontend enquiries are created
-                // without an IncomingEmailId so they are never blocked by this check.
                 var enquiryAlreadyExists = await _context.InitialEnquiries
                     .AnyAsync(e => e.IncomingEmailId == email.Id);
                 if (enquiryAlreadyExists)
@@ -374,14 +401,14 @@ namespace AwningsAPI.Services.Email
                     return;
                 }
 
-                // ── 4. Both exist — create the Initial Enquiry ────────────────────────
-                var enquiry = await CreateInitialEnquiry(existingWorkflow.WorkflowId, email, analysisResult, currentUser);
+                // ── 4. Create the Initial Enquiry ─────────────────────────────────────
+                var enquiry = await CreateInitialEnquiry(existingWorkflow.WorkflowId, email, analysisResult, currentUser, effectiveEmail);
 
                 _logger.LogInformation(
                     $"✅ Initial enquiry created: ID={enquiry.EnquiryId} in workflow {existingWorkflow.WorkflowId}");
 
-                // ── 5. Create notification (auto-reply is generated on demand by the user) ──
-                await CreateEnquiryNotificationAsync(enquiry.EnquiryId, existingWorkflow.WorkflowId, existingCustomer.Name, email.FromEmail, email.Subject);
+                // ── 5. Notification ───────────────────────────────────────────────────
+                await CreateEnquiryNotificationAsync(enquiry.EnquiryId, existingWorkflow.WorkflowId, existingCustomer.Name, effectiveEmail, email.Subject);
 
                 // Store IDs in ExtractedData so the task created afterwards is pre-linked
                 email.ExtractedData = JsonConvert.SerializeObject(new Dictionary<string, object>
@@ -588,28 +615,30 @@ namespace AwningsAPI.Services.Email
             EmailAnalysisResult analysisResult,
             string currentUser)
         {
-            var phone = analysisResult.CustomerInfo.ContainsKey("phone")
-                ? analysisResult.CustomerInfo["phone"]
-                : "";
-
-            var companyNumber = analysisResult.CustomerInfo.ContainsKey("companyNumber")
-                ? analysisResult.CustomerInfo["companyNumber"]
-                : "";
+            // Use body-parsed values from CustomerInfo (set for Kendlebell emails) with header values as fallback
+            var effectiveEmail = analysisResult.CustomerInfo.TryGetValue("fromEmail", out var ce) && !string.IsNullOrWhiteSpace(ce)
+                ? ce : email.FromEmail;
+            var effectiveName = analysisResult.CustomerInfo.TryGetValue("fromName", out var cn) && !string.IsNullOrWhiteSpace(cn)
+                ? cn : (email.FromName ?? "Unknown Customer");
+            var phone = analysisResult.CustomerInfo.TryGetValue("phone", out var ph) ? ph : "";
+            var companyNumber = analysisResult.CustomerInfo.TryGetValue("companyNumber", out var co) ? co : "";
+            var isResidential = !analysisResult.CustomerInfo.TryGetValue("residential", out var res)
+                || string.Equals(res, "true", StringComparison.OrdinalIgnoreCase);
 
             var companyDto = new CompanyWithContactDto
             {
-                Name = email.FromName ?? "Unknown Customer",
-                Email = email.FromEmail,
+                Name = effectiveName,
+                Email = effectiveEmail,
                 Phone = phone,
                 CompanyNumber = companyNumber,
-                Residential = true,
+                Residential = isResidential,
                 Contacts = new List<CustomerContactDto>
                 {
                     new CustomerContactDto
                     {
-                        FirstName = GetFirstName(email.FromName),
-                        LastName = GetLastName(email.FromName),
-                        Email = email.FromEmail,
+                        FirstName = GetFirstName(effectiveName),
+                        LastName = GetLastName(effectiveName),
+                        Email = effectiveEmail,
                         Phone = phone
                     }
                 }
@@ -648,12 +677,13 @@ namespace AwningsAPI.Services.Email
             int workflowId,
             IncomingEmail email,
             EmailAnalysisResult analysisResult,
-            string currentUser)
+            string currentUser,
+            string effectiveEmail = null)
         {
             var enquiryDto = new InitialEnquiryDto
             {
                 WorkflowId = workflowId,
-                Email = email.FromEmail,
+                Email = effectiveEmail ?? email.FromEmail,
                 Comments = $"Subject: {email.Subject}\n\n{email.BodyPreview ?? ""}",
                 Images = null
             };

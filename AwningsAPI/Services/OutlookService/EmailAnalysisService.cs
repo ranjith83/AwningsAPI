@@ -165,6 +165,25 @@ Respond ONLY with the JSON object, no other text.";
                     { "bodyEmail", ExtractEmailAddressFromBody(body, email.FromEmail) ?? "" }
                 };
 
+                // For Kendlebell answering-service emails, the real customer details are in the body.
+                // Override CustomerInfo with the structured fields so downstream logic uses the correct email/name/phone.
+                if (email.FromEmail?.EndsWith("kbell.ie", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    var kf = ParseKendlebellBody(body);
+                    if (kf.TryGetValue("Email", out var kEmail) && !string.IsNullOrWhiteSpace(kEmail))
+                        result.CustomerInfo["fromEmail"] = kEmail;
+                    if (kf.TryGetValue("Name", out var kName) && !string.IsNullOrWhiteSpace(kName))
+                        result.CustomerInfo["fromName"] = kName;
+                    if (kf.TryGetValue("Phone", out var kPhone) && !string.IsNullOrWhiteSpace(kPhone))
+                        result.CustomerInfo["phone"] = kPhone;
+                    if (kf.TryGetValue("Postcode", out var kPost) && !string.IsNullOrWhiteSpace(kPost))
+                        result.CustomerInfo["postcode"] = kPost;
+                    if (kf.TryGetValue("Model interested in", out var kModel) && !string.IsNullOrWhiteSpace(kModel))
+                        result.CustomerInfo["modelInterested"] = kModel;
+                    if (kf.TryGetValue("Business/Residential", out var kRes))
+                        result.CustomerInfo["residential"] = string.Equals(kRes, "Residential", StringComparison.OrdinalIgnoreCase) ? "true" : "false";
+                }
+
                 // 5. Build final result using AI analysis
                 result.Category = aiAnalysis.Category;
                 result.TaskType = MapCategoryToTaskType(aiAnalysis.Category);
@@ -624,6 +643,30 @@ Respond ONLY with the JSON object, no other text.";
                     return match.Value;
             }
             return null;
+        }
+
+        /// <summary>
+        /// Parses the structured key: value fields from a Kendlebell answering-service email body.
+        /// Strips HTML tags before parsing so it works for both plain-text and HTML bodies.
+        /// </summary>
+        private static Dictionary<string, string> ParseKendlebellBody(string body)
+        {
+            var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrEmpty(body)) return fields;
+
+            var plain = Regex.Replace(body, "<[^>]+>", " ");
+            plain = System.Net.WebUtility.HtmlDecode(plain);
+
+            foreach (var line in plain.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var idx = line.IndexOf(':');
+                if (idx <= 0) continue;
+                var key = line[..idx].Trim();
+                var value = line[(idx + 1)..].Trim();
+                if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
+                    fields[key] = value;
+            }
+            return fields;
         }
 
         private string ExtractCompanyNumber(string text)
