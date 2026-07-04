@@ -39,6 +39,7 @@ namespace AwningsAPI.Services.ImportLeads
 
         private const string ProcessedFolderName = "Processed";
         private const string ExistingCustomersFolderName = "Existing Customers";
+        private const string NoCustomerEmailFolderName = "No Customer Email";
 
         private const string ExtractionSystemPrompt =
             "You are a data extraction assistant for Awnings of Ireland. " +
@@ -105,7 +106,7 @@ namespace AwningsAPI.Services.ImportLeads
         public async Task<ImportLeadsResultDto> ProcessLeadsFolderAsync(string folderName, string currentUser)
         {
             var mailbox = GetMailbox();
-            var (sourceFolderId, processedFolderId, existingCustomersFolderId) =
+            var (sourceFolderId, processedFolderId, existingCustomersFolderId, noCustomerEmailFolderId) =
                 await SetupFoldersAsync(mailbox, folderName);
             var messages = await FetchMessagesAsync(mailbox, sourceFolderId);
 
@@ -125,7 +126,7 @@ namespace AwningsAPI.Services.ImportLeads
                 try
                 {
                     var targetFolderId = await ProcessMessageAsync(
-                        message, item, result, processedFolderId, existingCustomersFolderId, currentUser);
+                        message, item, result, processedFolderId, existingCustomersFolderId, noCustomerEmailFolderId, currentUser);
 
                     await MoveToFolderAsync(mailbox, message.Id!, targetFolderId);
                 }
@@ -150,7 +151,7 @@ namespace AwningsAPI.Services.ImportLeads
         // source folder so it is not picked up again on the next import run.
         private async Task<string> ProcessMessageAsync(
             GraphMessage message, ImportLeadsItemDto item, ImportLeadsResultDto result,
-            string processedFolderId, string existingCustomersFolderId, string currentUser)
+            string processedFolderId, string existingCustomersFolderId, string noCustomerEmailFolderId, string currentUser)
         {
             var body = message.Body?.Content ?? message.BodyPreview ?? "";
             var extracted = await ExtractCustomerDetailsAsync(
@@ -166,16 +167,23 @@ namespace AwningsAPI.Services.ImportLeads
 
             // Kendlebell answering-service messages with no customer email cannot be linked to a
             // real person — the From address is kbell.ie which must never become a customer record.
+            // Also guard against the AI reading the From header and echoing back the kbell.ie address
+            // as the extracted email when the body "Email:" field is blank.
             var fromAddress = message.From?.EmailAddress?.Address ?? "";
-            if (fromAddress.EndsWith("kbell.ie", StringComparison.OrdinalIgnoreCase)
-                && string.IsNullOrWhiteSpace(extracted.Email))
+            if (fromAddress.EndsWith("kbell.ie", StringComparison.OrdinalIgnoreCase))
             {
-                item.Status = "Ignored";
-                item.Note = "Kendlebell message with no customer email — skipped";
-                result.Ignored++;
-                _logger.LogInformation(
-                    "Skipping Kendlebell message '{Subject}' — no customer email found in body", message.Subject);
-                return processedFolderId;
+                var hasRealCustomerEmail = !string.IsNullOrWhiteSpace(extracted.Email)
+                    && !extracted.Email.EndsWith("kbell.ie", StringComparison.OrdinalIgnoreCase);
+
+                if (!hasRealCustomerEmail)
+                {
+                    item.Status = "Ignored";
+                    item.Note = "Kendlebell message with no customer email — moved to No Customer Email folder";
+                    result.Ignored++;
+                    _logger.LogInformation(
+                        "Skipping Kendlebell message '{Subject}' — no customer email found in body, moving to No Customer Email folder", message.Subject);
+                    return noCustomerEmailFolderId;
+                }
             }
 
             if (!HasUsefulContent(extracted, message.From?.EmailAddress?.Name))
@@ -416,7 +424,7 @@ namespace AwningsAPI.Services.ImportLeads
             ?? _configuration["AzureAd:OrganizerEmail"]
             ?? throw new InvalidOperationException("Monitored mailbox not configured");
 
-        private async Task<(string sourceFolderId, string processedFolderId, string existingCustomersFolderId)>
+        private async Task<(string sourceFolderId, string processedFolderId, string existingCustomersFolderId, string noCustomerEmailFolderId)>
             SetupFoldersAsync(string mailbox, string folderName)
         {
             var sourceFolderId = await FindChildFolderIdAsync(mailbox, "inbox", folderName)
@@ -426,8 +434,10 @@ namespace AwningsAPI.Services.ImportLeads
                 await GetOrCreateChildFolderAsync(mailbox, sourceFolderId, ProcessedFolderName);
             var existingCustomersFolderId =
                 await GetOrCreateChildFolderAsync(mailbox, sourceFolderId, ExistingCustomersFolderName);
+            var noCustomerEmailFolderId =
+                await GetOrCreateChildFolderAsync(mailbox, sourceFolderId, NoCustomerEmailFolderName);
 
-            return (sourceFolderId, processedFolderId, existingCustomersFolderId);
+            return (sourceFolderId, processedFolderId, existingCustomersFolderId, noCustomerEmailFolderId);
         }
 
         private async Task<List<GraphMessage>> FetchMessagesAsync(string mailbox, string sourceFolderId)
