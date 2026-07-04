@@ -164,6 +164,20 @@ namespace AwningsAPI.Services.ImportLeads
 
             item.EnquiryNotes = extracted.Notes;
 
+            // Kendlebell answering-service messages with no customer email cannot be linked to a
+            // real person — the From address is kbell.ie which must never become a customer record.
+            var fromAddress = message.From?.EmailAddress?.Address ?? "";
+            if (fromAddress.EndsWith("kbell.ie", StringComparison.OrdinalIgnoreCase)
+                && string.IsNullOrWhiteSpace(extracted.Email))
+            {
+                item.Status = "Ignored";
+                item.Note = "Kendlebell message with no customer email — skipped";
+                result.Ignored++;
+                _logger.LogInformation(
+                    "Skipping Kendlebell message '{Subject}' — no customer email found in body", message.Subject);
+                return processedFolderId;
+            }
+
             if (!HasUsefulContent(extracted, message.From?.EmailAddress?.Name))
             {
                 await HandleIgnoredAsync(item, result, leadEmail, currentUser);
