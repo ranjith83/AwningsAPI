@@ -985,8 +985,33 @@ namespace AwningsAPI.Services.Tasks
                 .FirstOrDefaultAsync(t => t.IncomingEmailId == incomingEmailId);
             if (existingTask != null)
             {
-                _logger.LogWarning("Task already exists (TaskId={TaskId}) for IncomingEmailId={EmailId} — skipping duplicate creation",
-                    existingTask.TaskId, incomingEmailId);
+                // If caller explicitly supplies a customerId and the existing task is unlinked, apply it now.
+                // This handles the case where a webhook created the task before ImportLeads resolved the customer.
+                if (customerId.HasValue && existingTask.CustomerId == null)
+                {
+                    var cust = await _context.Customers
+                        .Where(c => c.CustomerId == customerId.Value)
+                        .Select(c => new { c.Name, c.Email })
+                        .FirstOrDefaultAsync();
+                    if (cust != null)
+                    {
+                        existingTask.CustomerId = customerId.Value;
+                        existingTask.CustomerName = cust.Name;
+                        existingTask.CustomerEmail = cust.Email;
+                        if (workflowId.HasValue && existingTask.WorkflowId == null)
+                            existingTask.WorkflowId = workflowId.Value;
+                        existingTask.DateUpdated = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation(
+                            "Linked existing task {TaskId} to customer {CustomerId} (late-bind from ImportLeads)",
+                            existingTask.TaskId, customerId.Value);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("Task already exists (TaskId={TaskId}) for IncomingEmailId={EmailId} — skipping duplicate creation",
+                        existingTask.TaskId, incomingEmailId);
+                }
                 return await GetTaskByIdAsync(existingTask.TaskId);
             }
 

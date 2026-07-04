@@ -149,11 +149,39 @@ namespace AwningsAPI.Services.ImportLeads
 
         // Returns the target subfolder ID to move to. All outcomes move the email out of the
         // source folder so it is not picked up again on the next import run.
+        private static bool IsSystemEmail(GraphMessage message)
+        {
+            var from    = message.From?.EmailAddress?.Address?.ToLower() ?? "";
+            var subject = (message.Subject ?? "").ToLower();
+            var body    = (message.Body?.Content ?? message.BodyPreview ?? "").ToLower();
+            var combined = $"{subject} {body}";
+
+            if (from.Contains("noreply") || from.Contains("no-reply") || from.Contains("donotreply"))
+                return true;
+
+            var systemPatterns = new[]
+            {
+                "a new contact was added",
+                "contact was added or updated",
+                "contact was updated in the crm",
+                "go and review for accuracy",
+                "generic domain so no account was found",
+                "their email was from a generic domain",
+                "hub id:",
+                "turn off form submission notifications",
+                "this email was sent to",
+            };
+
+            return systemPatterns.Any(p => combined.Contains(p));
+        }
+
         private async Task<string> ProcessMessageAsync(
             GraphMessage message, ImportLeadsItemDto item, ImportLeadsResultDto result,
             string processedFolderId, string existingCustomersFolderId, string noCustomerEmailFolderId, string currentUser)
         {
-            var body = message.Body?.Content ?? message.BodyPreview ?? "";
+            var body      = message.Body?.Content ?? message.BodyPreview ?? "";
+            var isSystem  = IsSystemEmail(message);
+
             var extracted = await ExtractCustomerDetailsAsync(
                 message.Subject, body,
                 message.From?.EmailAddress?.Address,
@@ -189,16 +217,34 @@ namespace AwningsAPI.Services.ImportLeads
             if (!HasUsefulContent(extracted, message.From?.EmailAddress?.Name))
             {
                 await HandleIgnoredAsync(message, item, result, leadEmail, extracted.Email, currentUser);
-                return processedFolderId; // move ignored emails out so they don't repeat
+                return processedFolderId;
             }
 
             var modelName = ExtractModelFromNotes(extracted.Notes);
-            var product = await ResolveProductAsync(modelName);
+            var product   = await ResolveProductAsync(modelName);
 
             var existing = await FindExistingCustomerAsync(leadEmail);
+
+            if (existing != null && isSystem)
+                return await HandleCrmNotificationAsync(
+                    message, item, result, existing, body, currentUser, existingCustomersFolderId);
+
             if (existing != null)
                 return await HandleExistingCustomerAsync(
                     message, item, result, existing, product, body, currentUser, existingCustomersFolderId);
+
+            // System/CRM notification emails must not create a new customer —
+            // they only make sense when linked to an existing one.
+            if (isSystem)
+            {
+                item.Status = "Ignored";
+                item.Note   = "CRM notification — no matching customer found, skipped";
+                result.Ignored++;
+                _logger.LogInformation(
+                    "Skipping system email '{Subject}' — no existing customer for '{Email}'",
+                    message.Subject, leadEmail);
+                return processedFolderId;
+            }
 
             await HandleNewCustomerAsync(message, item, result, extracted, product, modelName, body, currentUser);
             return processedFolderId;
@@ -246,6 +292,59 @@ namespace AwningsAPI.Services.ImportLeads
 
             await _context.SaveChangesAsync();
             _logger.LogInformation("Skipping content-empty email from {Email}", leadEmail);
+        }
+
+        /// <summary>
+        /// CRM notification path: customer already exists — create IncomingEmail + task so the
+        /// notification surfaces on the Initial Enquiry screen. No draft reply is generated.
+        /// </summary>
+        private async Task<string> HandleCrmNotificationAsync(
+            GraphMessage message, ImportLeadsItemDto item, ImportLeadsResultDto result,
+            Customer existing, string body, string currentUser, string existingCustomersFolderId)
+        {
+            item.Status       = "Skipped";
+            item.CustomerName = existing.Name;
+            item.CustomerId   = existing.CustomerId;
+            item.Note         = "CRM notification — linked to existing customer";
+            result.Skipped++;
+
+            var mailbox = GetMailbox();
+            var (bodyBlobUrl, attachmentResults) = await UploadEmailToBlobAsync(message, mailbox);
+
+            int? incomingEmailId = null;
+            int? workflowId      = null;
+
+            var strategy = _context.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                _context.ChangeTracker.Clear();
+                using var tx = await _context.Database.BeginTransactionAsync();
+
+                incomingEmailId = await SaveIncomingEmailAsync(
+                    message, existing, currentUser, bodyBlobUrl, attachmentResults);
+
+                workflowId = await _context.WorkflowStarts
+                    .Where(w => w.CustomerId == existing.CustomerId)
+                    .OrderByDescending(w => w.WorkflowId)
+                    .Select(w => (int?)w.WorkflowId)
+                    .FirstOrDefaultAsync();
+
+                if (incomingEmailId.HasValue)
+                    await _taskService.CreateTaskFromEmailAsync(
+                        incomingEmailId.Value, currentUser, workflowId, existing.CustomerId);
+
+                await tx.CommitAsync();
+            });
+
+            AddAuditLog(existing.CustomerId, existing.Name, "SKIPPED", currentUser,
+                "CRM notification linked to existing customer");
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "CRM notification linked to existing customer '{Name}' (ID={Id})",
+                existing.Name, existing.CustomerId);
+
+            return existingCustomersFolderId;
         }
 
         private async Task<string> HandleExistingCustomerAsync(
