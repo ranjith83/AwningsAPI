@@ -188,7 +188,7 @@ namespace AwningsAPI.Services.ImportLeads
 
             if (!HasUsefulContent(extracted, message.From?.EmailAddress?.Name))
             {
-                await HandleIgnoredAsync(item, result, leadEmail, currentUser);
+                await HandleIgnoredAsync(message, item, result, leadEmail, extracted.Email, currentUser);
                 return processedFolderId; // move ignored emails out so they don't repeat
             }
 
@@ -198,7 +198,7 @@ namespace AwningsAPI.Services.ImportLeads
             var existing = await FindExistingCustomerAsync(leadEmail);
             if (existing != null)
                 return await HandleExistingCustomerAsync(
-                    message, item, result, existing, product, body, currentUser, processedFolderId);
+                    message, item, result, existing, product, body, currentUser, existingCustomersFolderId);
 
             await HandleNewCustomerAsync(message, item, result, extracted, product, modelName, body, currentUser);
             return processedFolderId;
@@ -207,20 +207,50 @@ namespace AwningsAPI.Services.ImportLeads
         // ── Case handlers ────────────────────────────────────────────────────────
 
         private async Task HandleIgnoredAsync(
-            ImportLeadsItemDto item, ImportLeadsResultDto result, string leadEmail, string currentUser)
+            GraphMessage message, ImportLeadsItemDto item, ImportLeadsResultDto result,
+            string leadEmail, string? extractedEmail, string currentUser)
         {
             item.Status = "Ignored";
             item.Note = "Email contains no useful information";
             result.Ignored++;
             AddAuditLog(0, leadEmail, "IGNORED", currentUser,
                 "Email contains no useful information beyond email address");
+
+            var hasCustomerEmail = !string.IsNullOrWhiteSpace(extractedEmail)
+                && !extractedEmail.EndsWith("kbell.ie", StringComparison.OrdinalIgnoreCase);
+
+            if (!string.IsNullOrEmpty(message.Id))
+            {
+                var existing = await _context.IncomingEmails
+                    .FirstOrDefaultAsync(e => e.EmailId == message.Id);
+                if (existing != null)
+                {
+                    if (hasCustomerEmail)
+                    {
+                        // Customer email found — keep as initial_enquiry but correct the FromEmail
+                        // so the record reflects the real customer address, not the form sender.
+                        existing.FromEmail = extractedEmail!.Trim();
+                    }
+                    else
+                    {
+                        // No customer email at all — not actionable, reclassify to junk.
+                        existing.Category = "junk";
+                        existing.ExtractedData = JsonSerializer.Serialize(new Dictionary<string, object>
+                        {
+                            ["source"] = "ImportLeads",
+                            ["ignored"] = true
+                        });
+                    }
+                }
+            }
+
             await _context.SaveChangesAsync();
             _logger.LogInformation("Skipping content-empty email from {Email}", leadEmail);
         }
 
         private async Task<string> HandleExistingCustomerAsync(
             GraphMessage message, ImportLeadsItemDto item, ImportLeadsResultDto result,
-            Customer existing, Product? product, string body, string currentUser, string processedFolderId)
+            Customer existing, Product? product, string body, string currentUser, string existingCustomersFolderId)
         {
             item.Status = "Skipped";
             item.CustomerName = existing.Name;
@@ -328,7 +358,7 @@ namespace AwningsAPI.Services.ImportLeads
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Existing customer '{Name}' — {Note}", existing.Name, item.Note);
-            return processedFolderId;
+            return existingCustomersFolderId;
         }
 
         private async Task HandleNewCustomerAsync(
