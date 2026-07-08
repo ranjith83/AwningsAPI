@@ -55,7 +55,7 @@ namespace AwningsAPI.Controllers
         /// Get audit logs with filters and pagination
         /// </summary>
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<AuditLogPagedResultDto>> GetAuditLogs([FromQuery] AuditLogFilterDto filter)
         {
             try
@@ -118,7 +118,7 @@ namespace AwningsAPI.Controllers
         /// Get a specific audit log by ID
         /// </summary>
         [HttpGet("{id}")]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<AuditLogDto>> GetAuditLogById(int id)
         {
             try
@@ -148,7 +148,7 @@ namespace AwningsAPI.Controllers
         /// Get audit summary statistics
         /// </summary>
         [HttpGet("summary")]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<AuditSummaryDto>> GetAuditSummary(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate)

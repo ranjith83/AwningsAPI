@@ -36,19 +36,24 @@ namespace AwningsAPI.Services.CustomerService
         public async Task<List<CustomerMainViewDto>> GetAllCustomersMainViewAsync()
         {
             var customers = await _context.Customers.AsNoTracking().Include(c => c.CustomerContacts).ToListAsync();
-            return customers.Select(c => new CustomerMainViewDto
+            return customers.Select(c =>
             {
-                CustomerId = c.CustomerId,
-                CompanyName = c.Name ?? string.Empty,
-                ContactName = c.CustomerContacts?.FirstOrDefault()?.FirstName + " " +
-                             c.CustomerContacts?.FirstOrDefault()?.LastName ?? string.Empty,
-                ContactEmail = c.CustomerContacts?.FirstOrDefault()?.Email ?? string.Empty,
-                MobilePhone = c.Mobile ?? string.Empty,
-                Email = c.Email ?? string.Empty,
-                Phone = c.Phone ?? string.Empty,
-                SiteAddress = string.Join(", ", new[] { c.Address1, c.Address2, c.Address3 }
-                              .Where(a => !string.IsNullOrWhiteSpace(a))),
-                AssignedSalesperson = c.AssignedSalespersonName ?? string.Empty
+                var contact = c.CustomerContacts?.FirstOrDefault();
+                return new CustomerMainViewDto
+                {
+                    CustomerId = c.CustomerId,
+                    CompanyName = c.Name ?? string.Empty,
+                    ContactName = $"{contact?.FirstName} {contact?.LastName}".Trim(),
+                    ContactFirstName = c.FirstName ?? string.Empty,
+                    ContactLastName = c.LastName ?? string.Empty,
+                    ContactEmail = contact?.Email ?? string.Empty,
+                    MobilePhone = c.Mobile ?? string.Empty,
+                    Email = c.Email ?? string.Empty,
+                    Phone = c.Phone ?? string.Empty,
+                    SiteAddress = string.Join(", ", new[] { c.Address1, c.Address2, c.Address3 }
+                                  .Where(a => !string.IsNullOrWhiteSpace(a))),
+                    AssignedSalesperson = c.AssignedSalespersonName ?? string.Empty
+                };
             }).ToList();
         }
 
@@ -67,9 +72,13 @@ namespace AwningsAPI.Services.CustomerService
 
         public async Task<Customer> SaveCompanyWithContact(CompanyWithContactDto dto, string currentUser)
         {
+            ValidateCustomerNameFields(dto.Residential, dto.FirstName, dto.LastName, dto.Name);
+
             var customer = new Model.Customers.Customer
             {
                 Name = dto.Name,
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
                 CompanyNumber = dto.CompanyNumber,
                 Residential = dto.Residential,
                 RegistrationNumber = dto.RegistrationNumber,
@@ -129,6 +138,8 @@ namespace AwningsAPI.Services.CustomerService
 
         public async Task<Customer> UpdateCompany(int CompanyId, CompanyDto dto, string currentUser)
         {
+            ValidateCustomerNameFields(dto.Residential, dto.FirstName, dto.LastName, dto.Name);
+
             var company = await _context.Customers.FindAsync(CompanyId);
 
             if (company == null)
@@ -137,6 +148,8 @@ namespace AwningsAPI.Services.CustomerService
             }
 
             company.Name = dto.Name;
+            company.FirstName = dto.FirstName;
+            company.LastName = dto.LastName;
             company.CompanyNumber = dto.CompanyNumber;
             company.Residential = dto.Residential;
             company.RegistrationNumber = dto.RegistrationNumber;
@@ -197,6 +210,19 @@ namespace AwningsAPI.Services.CustomerService
             await _context.SaveChangesAsync();
             _logger.LogInformation("Customer {CustomerId} deleted by {User}", customerId, currentUser);
             return true;
+        }
+
+        private static void ValidateCustomerNameFields(bool? residential, string? firstName, string? lastName, string? name)
+        {
+            if (residential == true)
+            {
+                if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+                    throw new ArgumentException("First name and last name are required for residential customers.");
+            }
+            else if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("Company name is required for commercial customers.");
+            }
         }
 
         public async Task<EircodeResultDto?> LookupEircodeAsync(string eircode)

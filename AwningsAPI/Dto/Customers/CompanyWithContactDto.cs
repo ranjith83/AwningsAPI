@@ -6,6 +6,8 @@ namespace AwningsAPI.Dto.Customers
     {
         public int CompanyId { get; set; }
         public string Name { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
         public string? CompanyNumber { get; set; }
         public bool? Residential { get; set; }
         public string? RegistrationNumber { get; set; }

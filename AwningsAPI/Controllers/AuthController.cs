@@ -1,4 +1,4 @@
-﻿using AwningsAPI.Dto.Auth;
+using AwningsAPI.Dto.Auth;
 using AwningsAPI.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +19,7 @@ namespace AwningsAPI.Controllers
             _logger = logger;
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto loginDto)
         {
@@ -28,19 +29,24 @@ namespace AwningsAPI.Controllers
             return Ok(response);
         }
 
-        [HttpPost("register")]
-        public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterDto registerDto)
-        {
-            var response = await _authService.RegisterAsync(registerDto);
-            _logger.LogInformation("New user registered: {Username}", registerDto.Username);
-            return Ok(response);
-        }
-
+        [AllowAnonymous]
         [HttpPost("refresh-token")]
         public async Task<ActionResult<AuthResponseDto>> RefreshToken([FromBody] RefreshTokenDto refreshTokenDto)
         {
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
             var response = await _authService.RefreshTokenAsync(refreshTokenDto.RefreshToken, ipAddress);
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Create a new user account. Admin only — self-registration is not supported.
+        /// </summary>
+        [Authorize(Roles = "Admin")]
+        [HttpPost("register")]
+        public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterDto registerDto)
+        {
+            var response = await _authService.RegisterAsync(registerDto);
+            _logger.LogInformation("New user registered by admin: {Username}", registerDto.Username);
             return Ok(response);
         }
 
@@ -83,75 +89,6 @@ namespace AwningsAPI.Controllers
                 Department = user.Department,
                 IsActive = user.IsActive
             });
-        }
-
-        [Authorize]
-        [HttpGet("users")]
-        public async Task<ActionResult<IEnumerable<UserDto>>> GetAllUsers()
-        {
-            var users = await _authService.GetAllUsersAsync();
-            return Ok(users);
-        }
-
-
-
-        /// <summary>
-        /// Get user by ID (Admin only)
-        /// </summary>
-        [Authorize(Roles = "Admin")]
-        [HttpGet("{id}")]
-        public async Task<ActionResult<UserDto>> GetUserById(int id)
-        {
-            var user = await _authService.GetUserByIdAsync(id);
-            if (user == null) return NotFound(new { message = $"User with ID {id} not found" });
-            return Ok(user);
-        }
-
-        /// <summary>
-        /// Update user information (Admin only)
-        /// </summary>
-        [Authorize(Roles = "Admin")]
-        [HttpPut("{id}")]
-        public async Task<ActionResult<UserDto>> UpdateUser(int id, [FromBody] UpdateUserDto dto)
-        {
-            var user = await _authService.UpdateUserAsync(id, dto);
-            return Ok(user);
-        }
-
-        /// <summary>
-        /// Deactivate user (Admin only)
-        /// </summary>
-        [Authorize(Roles = "Admin")]
-        [HttpPatch("{id}/deactivate")]
-        public async Task<ActionResult> DeactivateUser(int id)
-        {
-            var result = await _authService.DeactivateUserAsync(id);
-            if (!result) return NotFound(new { message = $"User with ID {id} not found" });
-            return Ok(new { message = "User deactivated successfully" });
-        }
-
-        /// <summary>
-        /// Activate user (Admin only)
-        /// </summary>
-        [Authorize(Roles = "Admin")]
-        [HttpPatch("{id}/activate")]
-        public async Task<ActionResult> ActivateUser(int id)
-        {
-            var result = await _authService.ActivateUserAsync(id);
-            if (!result) return NotFound(new { message = $"User with ID {id} not found" });
-            return Ok(new { message = "User activated successfully" });
-        }
-
-        /// <summary>
-        /// Delete user permanently (Admin only)
-        /// </summary>
-        [Authorize(Roles = "Admin")]
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> DeleteUser(int id)
-        {
-            var result = await _authService.DeleteUserAsync(id);
-            if (!result) return NotFound(new { message = $"User with ID {id} not found" });
-            return Ok(new { message = "User deleted successfully" });
         }
 
         /// <summary>

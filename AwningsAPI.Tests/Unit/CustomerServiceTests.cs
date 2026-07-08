@@ -84,6 +84,33 @@ public class CustomerServiceTests
             .WithMessage("*999*");
     }
 
+    // ── GetAllCustomersMainView ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetAllCustomersMainViewAsync_Residential_ShowsCustomerOwnFirstAndLastName()
+    {
+        using var ctx = DbContextFactory.Create();
+        ctx.Customers.Add(new Customer
+        {
+            CustomerId = 1,
+            Name = "",
+            Residential = true,
+            FirstName = "Jane",
+            LastName = "Doe",
+            DateCreated = DateTime.UtcNow,
+            CreatedBy = "tester",
+            CustomerContacts = new List<CustomerContact>(),
+        });
+        await ctx.SaveChangesAsync();
+
+        var svc = Build(ctx);
+        var result = (await svc.GetAllCustomersMainViewAsync()).Single();
+
+        result.ContactFirstName.Should().Be("Jane");
+        result.ContactLastName.Should().Be("Doe");
+        result.CompanyName.Should().BeEmpty();
+    }
+
     // ── SaveCompanyWithContact ────────────────────────────────────────────────
 
     [Fact]
@@ -108,6 +135,64 @@ public class CustomerServiceTests
         result.Name.Should().Be("New Corp");
         result.CustomerContacts.Should().HaveCount(1);
         result.CreatedBy.Should().Be("tester");
+    }
+
+    [Fact]
+    public async Task SaveCompanyWithContact_Residential_PersistsFirstAndLastName()
+    {
+        using var ctx = DbContextFactory.Create();
+        var svc = Build(ctx);
+
+        var dto = new CompanyWithContactDto
+        {
+            Name = "",
+            Residential = true,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@doe.com",
+            Contacts = new List<CustomerContactDto>(),
+        };
+
+        var result = await svc.SaveCompanyWithContact(dto, "tester");
+
+        result.FirstName.Should().Be("Jane");
+        result.LastName.Should().Be("Doe");
+    }
+
+    [Fact]
+    public async Task SaveCompanyWithContact_Residential_WithoutLastName_ThrowsArgumentException()
+    {
+        using var ctx = DbContextFactory.Create();
+        var svc = Build(ctx);
+
+        var dto = new CompanyWithContactDto
+        {
+            Name = "",
+            Residential = true,
+            FirstName = "Jane",
+            LastName = "",
+            Contacts = new List<CustomerContactDto>(),
+        };
+
+        await svc.Invoking(s => s.SaveCompanyWithContact(dto, "tester"))
+            .Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task SaveCompanyWithContact_Commercial_WithoutName_ThrowsArgumentException()
+    {
+        using var ctx = DbContextFactory.Create();
+        var svc = Build(ctx);
+
+        var dto = new CompanyWithContactDto
+        {
+            Name = "",
+            Residential = false,
+            Contacts = new List<CustomerContactDto>(),
+        };
+
+        await svc.Invoking(s => s.SaveCompanyWithContact(dto, "tester"))
+            .Should().ThrowAsync<ArgumentException>();
     }
 
     [Fact]
@@ -170,6 +255,22 @@ public class CustomerServiceTests
 
         result.Name.Should().Be("New Name");
         result.UpdatedBy.Should().Be("editor");
+    }
+
+    [Fact]
+    public async Task UpdateCompany_ToResidential_PersistsFirstAndLastName()
+    {
+        using var ctx = DbContextFactory.Create();
+        ctx.Customers.Add(MakeCustomer(1, "Old Name"));
+        await ctx.SaveChangesAsync();
+
+        var svc = Build(ctx);
+        var dto = new CompanyDto { Name = "", Residential = true, FirstName = "Jane", LastName = "Doe" };
+
+        var result = await svc.UpdateCompany(1, dto, "editor");
+
+        result.FirstName.Should().Be("Jane");
+        result.LastName.Should().Be("Doe");
     }
 
     [Fact]
