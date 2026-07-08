@@ -56,22 +56,22 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Open SQL firewall for runner
-        if: steps.check-migrations.outputs.has_migrations == 'true'
-        env:
-          RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
-          SQL_SERVER: ${{ secrets.AZURE_SQL_SERVER }}
-        run: |
-          RESOURCE_GROUP=$(echo "$RESOURCE_GROUP" | tr -d '[:space:]')
-          SQL_SERVER=$(echo "$SQL_SERVER" | tr -d '[:space:]')
-          RUNNER_IP=$(curl -s https://api.ipify.org)
-          echo "Runner IP: $RUNNER_IP"
-          az sql server firewall-rule create \
-            --resource-group "$RESOURCE_GROUP" \
-            --server "$SQL_SERVER" \
-            --name github-runner \
-            --start-ip-address "$RUNNER_IP" \
-            --end-ip-address "$RUNNER_IP"
+     # - name: Open SQL firewall for runner
+     #   if: steps.check-migrations.outputs.has_migrations == 'true'
+     #   env:
+     #     RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+     #     SQL_SERVER: ${{ secrets.AZURE_SQL_SERVER }}
+     #   run: |
+     #     RESOURCE_GROUP=$(echo "$RESOURCE_GROUP" | tr -d '[:space:]')
+     #     SQL_SERVER=$(echo "$SQL_SERVER" | tr -d '[:space:]')
+     #     RUNNER_IP=$(curl -s https://api.ipify.org)
+     #     echo "Runner IP: $RUNNER_IP"
+     #     az sql server firewall-rule create \
+     #       --resource-group "$RESOURCE_GROUP" \
+     #       --server "$SQL_SERVER" \
+     #       --name github-runner \
+     #       --start-ip-address "$RUNNER_IP" \
+     #       --end-ip-address "$RUNNER_IP"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -118,36 +118,36 @@ jobs:
             2>/dev/null | grep -v "(Pending)" | tail -1 | awk '{print $1}')
           echo "last_migration=${LAST:-0}" >> $GITHUB_OUTPUT
 
-      - name: Run database migrations
-        id: migrate
-        if: steps.check-migrations.outputs.has_migrations == 'true'
-        run: |
-          dotnet ef database update \
-            --project AwningsAPI/AwningsAPI.csproj \
-            --no-build \
-            --connection "${{ secrets.SQL_CONNECTION_STRING }}"
+     # - name: Run database migrations
+     #   id: migrate
+     #   if: steps.check-migrations.outputs.has_migrations == 'true'
+     #   run: |
+     #     dotnet ef database update \
+     #       --project AwningsAPI/AwningsAPI.csproj \
+     #       --no-build \
+     #       --connection "${{ secrets.SQL_CONNECTION_STRING }}"
 
-      - name: Rollback migration on failure
-        if: steps.check-migrations.outputs.has_migrations == 'true' && failure() && steps.migrate.outcome == 'failure'
-        run: |
-          dotnet ef database update ${{ steps.pre-migrate.outputs.last_migration }} \
-            --project AwningsAPI/AwningsAPI.csproj \
-            --no-build \
-            --connection "${{ secrets.SQL_CONNECTION_STRING }}"
+     # - name: Rollback migration on failure
+     #   if: steps.check-migrations.outputs.has_migrations == 'true' && failure() && steps.migrate.outcome == 'failure'
+     #   run: |
+     #     dotnet ef database update ${{ steps.pre-migrate.outputs.last_migration }} \
+     #       --project AwningsAPI/AwningsAPI.csproj \
+     #       --no-build \
+     #       --connection "${{ secrets.SQL_CONNECTION_STRING }}"
 
-      - name: Remove SQL firewall rule
-        if: always() && steps.check-migrations.outputs.has_migrations == 'true'
-        env:
-          RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
-          SQL_SERVER: ${{ secrets.AZURE_SQL_SERVER }}
-        run: |
-          RESOURCE_GROUP=$(echo "$RESOURCE_GROUP" | tr -d '[:space:]')
-          SQL_SERVER=$(echo "$SQL_SERVER" | tr -d '[:space:]')
-          az sql server firewall-rule delete \
-            --resource-group "$RESOURCE_GROUP" \
-            --server "$SQL_SERVER" \
-            --name github-runner \
-            --yes
+     # - name: Remove SQL firewall rule
+     #   if: always() && steps.check-migrations.outputs.has_migrations == 'true'
+     #   env:
+     #     RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+     #     SQL_SERVER: ${{ secrets.AZURE_SQL_SERVER }}
+     #   run: |
+     #     RESOURCE_GROUP=$(echo "$RESOURCE_GROUP" | tr -d '[:space:]')
+     #     SQL_SERVER=$(echo "$SQL_SERVER" | tr -d '[:space:]')
+     #     az sql server firewall-rule delete \
+     #       --resource-group "$RESOURCE_GROUP" \
+     #       --server "$SQL_SERVER" \
+     #       --name github-runner \
+     #       --yes
 
       - name: Deploy image to Production Container App
         uses: azure/container-apps-deploy-action@v2
