@@ -165,27 +165,37 @@ namespace AwningsAPI.Controllers
             // ── Step 1: Persist the site visit ───────────────────────────────
             var siteVisit = await _siteVisitService.CreateSiteVisitAsync(dto, currentUser);
 
-                // ── Step 2: Create the matching task ─────────────────────────────
-                var taskDto = new CreateTaskDto
-                {
-                    SourceType = TaskSourceType.SiteVisit.ToString(),
-                    Title = $"Site Visit – {dto.Model ?? dto.ProductModelType ?? "New"}",
-                    Category = "Site Visit",
-                   // EmailBody = BuildSiteVisitSummary(dto),
-                    Priority = "Normal",
-                    WorkflowId = dto.WorkflowId,
-                    CustomerName = dto.CustomerName,
-                    CustomerEmail = dto.CustomerEmail,
-                    CustomerId = dto.CustomerId,
-                };
+                // ── Step 2: Find the pending task booked via calendar for this
+                //            workflow, or create a new one if none exists ───────
+                var task = await _taskService.GetPendingSiteVisitTaskByWorkflowIdAsync(dto.WorkflowId);
 
-                var task = await _taskService.CreateTaskAsync(taskDto, currentUser);
+                if (task == null)
+                {
+                    var taskDto = new CreateTaskDto
+                    {
+                        SourceType = TaskSourceType.SiteVisit.ToString(),
+                        Title = $"Site Visit – {dto.Model ?? dto.ProductModelType ?? "New"}",
+                        Category = "Site Visit",
+                       // EmailBody = BuildSiteVisitSummary(dto),
+                        Priority = "Normal",
+                        WorkflowId = dto.WorkflowId,
+                        CustomerName = dto.CustomerName,
+                        CustomerEmail = dto.CustomerEmail,
+                        CustomerId = dto.CustomerId,
+                    };
+
+                    task = await _taskService.CreateTaskAsync(taskDto, currentUser);
+                }
 
                 // ── Step 3: Stamp SiteVisitId directly on the task row ───────────
                 await _taskService.StoreSiteVisitLinkAsync(
                     task.TaskId, siteVisit.SiteVisitId, currentUser);
 
-                // ── Step 4: Return combined response ─────────────────────────────
+                // ── Step 4: The survey has been carried out and saved — complete
+                //            the linked task ────────────────────────────────────
+                task = await _taskService.CompleteTaskAsync(task.TaskId, "Site survey completed", currentUser);
+
+                // ── Step 5: Return combined response ─────────────────────────────
                 var response = new CreateSiteVisitResponseDto
                 {
                     SiteVisitId = siteVisit.SiteVisitId,
@@ -199,6 +209,43 @@ namespace AwningsAPI.Controllers
 
             _logger.LogInformation("Site visit {SiteVisitId} created for workflow {WorkflowId} by {User}, linked to task {TaskId}", siteVisit.SiteVisitId, siteVisit.WorkflowId, currentUser, task.TaskId);
             return CreatedAtAction(nameof(GetSiteVisitById), new { id = siteVisit.SiteVisitId }, response);
+        }
+
+        /// <summary>
+        /// GET api/SiteVisit/scheduled
+        ///
+        /// Upcoming showroom/site-visit calendar bookings (ShowroomInvite rows with
+        /// EventDate in the future and Status = "Scheduled"). Powers the Site Survey
+        /// "Scheduled" tab — this is the source of truth for what's booked, since it's
+        /// written atomically by POST api/outlook/create-showroom-invite.
+        /// </summary>
+        [Authorize]
+        [HttpGet("scheduled")]
+        public async Task<ActionResult> GetScheduledSiteVisits([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            var (items, totalCount) = await _siteVisitService.GetUpcomingShowroomInvitesAsync(page, pageSize);
+            return Ok(new
+            {
+                page,
+                pageSize,
+                totalCount,
+                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+                items
+            });
+        }
+
+        /// <summary>
+        /// GET api/SiteVisit/pending-count
+        ///
+        /// Count of upcoming showroom/site-visit bookings that haven't been carried out
+        /// yet. Powers the Site Survey menu badge.
+        /// </summary>
+        [Authorize]
+        [HttpGet("pending-count")]
+        public async Task<ActionResult<SiteVisitPendingCountDto>> GetPendingCount()
+        {
+            var count = await _siteVisitService.GetUpcomingShowroomInviteCountAsync();
+            return Ok(new SiteVisitPendingCountDto { Count = count });
         }
 
         [Authorize]
@@ -273,5 +320,10 @@ namespace AwningsAPI.Controllers
         public DateTime DateCreated { get; set; }
         public string CreatedBy { get; set; }
         public object TaskId { get; set; }
+    }
+
+    public class SiteVisitPendingCountDto
+    {
+        public int Count { get; set; }
     }
 }

@@ -68,6 +68,14 @@ namespace AwningsAPI.Interfaces
         Task StoreSiteVisitLinkAsync(int taskId, int siteVisitId, string currentUser);
 
         /// <summary>
+        /// Returns the most recent not-yet-completed SiteVisit-sourced task for a workflow,
+        /// or null if none exists. In practice this is only ever non-null if a task was
+        /// created for the workflow through some other path than the calendar booking flow,
+        /// which now writes directly to ShowroomInvite instead of the Task table.
+        /// </summary>
+        Task<AppTaskDto?> GetPendingSiteVisitTaskByWorkflowIdAsync(int workflowId);
+
+        /// <summary>
         /// Called after a reply email is sent for a task.
         /// Marks the task (and any sibling initial-enquiry tasks on the same workflow) as
         /// Completed, creates the InitialEnquiry record if not yet present, and clears

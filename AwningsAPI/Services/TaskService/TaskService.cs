@@ -62,11 +62,15 @@ namespace AwningsAPI.Services.Tasks
             return taskDtos;
         }
 
-        private AppTaskSummaryDto MapToSummaryDto(AppTask task)
+        private AppTaskSummaryDto MapToSummaryDto(AppTask task, IReadOnlyDictionary<int, Customer>? customers = null)
         {
             var displayTitle = !string.IsNullOrWhiteSpace(task.Title)
                 ? task.Title
                 : task.Subject ?? "(No title)";
+
+            Customer? customer = null;
+            if (customers != null && task.CustomerId.HasValue)
+                customers.TryGetValue(task.CustomerId.Value, out customer);
 
             return new AppTaskSummaryDto
             {
@@ -94,6 +98,10 @@ namespace AwningsAPI.Services.Tasks
                 CustomerId = task.CustomerId,
                 CustomerName = task.CustomerName,
                 CustomerEmail = task.CustomerEmail,
+                CustomerAddress = customer == null ? null : string.Join(", ", new[] { customer.Address1, customer.Address2, customer.Address3 }
+                                  .Where(a => !string.IsNullOrWhiteSpace(a))),
+                CustomerPhone = customer?.Phone ?? customer?.Mobile,
+                SalesPersonName = customer?.AssignedSalespersonName,
                 WorkflowId = task.WorkflowId,
                 SiteVisitId = task.SiteVisitId,
                 DueDate = task.DueDate,
@@ -107,6 +115,17 @@ namespace AwningsAPI.Services.Tasks
                 CreatedBy = task.CreatedBy,
                 UpdatedBy = task.UpdatedBy,
             };
+        }
+
+        private async Task<Dictionary<int, Customer>> LoadCustomersForTasksAsync(IEnumerable<AppTask> tasks)
+        {
+            var customerIds = tasks.Where(t => t.CustomerId.HasValue).Select(t => t.CustomerId!.Value).Distinct().ToList();
+            if (customerIds.Count == 0)
+                return new Dictionary<int, Customer>();
+
+            return await _context.Customers.AsNoTracking()
+                .Where(c => customerIds.Contains(c.CustomerId))
+                .ToDictionaryAsync(c => c.CustomerId);
         }
 
 
@@ -634,7 +653,8 @@ namespace AwningsAPI.Services.Tasks
                 .Take(filterDto.PageSize)
                 .ToListAsync();
 
-            return (tasks.Select(MapToSummaryDto).ToList(), totalCount);
+            var customers = await LoadCustomersForTasksAsync(tasks);
+            return (tasks.Select(t => MapToSummaryDto(t, customers)).ToList(), totalCount);
         }
 
         public async Task<IEnumerable<AppTaskSummaryDto>> GetTasksByUserAsync(int userId)
@@ -644,7 +664,7 @@ namespace AwningsAPI.Services.Tasks
                 .OrderByDescending(t => t.DateAdded)
                 .ToListAsync();
 
-            return tasks.Select(MapToSummaryDto).ToList();
+            return tasks.Select(t => MapToSummaryDto(t)).ToList();
         }
 
         public async Task<IEnumerable<AppTaskSummaryDto>> GetTasksByCustomerAsync(int customerId, TaskSourceType? sourceType = null)
@@ -657,7 +677,7 @@ namespace AwningsAPI.Services.Tasks
                 .OrderByDescending(t => t.DateAdded)
                 .ToListAsync();
 
-            return tasks.Select(MapToSummaryDto).ToList();
+            return tasks.Select(t => MapToSummaryDto(t)).ToList();
         }
 
         public async Task<IEnumerable<AppTaskSummaryDto>> GetTasksByTypeAsync(string taskType)
@@ -667,7 +687,7 @@ namespace AwningsAPI.Services.Tasks
                 .OrderByDescending(t => t.DateAdded)
                 .ToListAsync();
 
-            return tasks.Select(MapToSummaryDto).ToList();
+            return tasks.Select(t => MapToSummaryDto(t)).ToList();
         }
 
         public async Task<IEnumerable<AppTaskSummaryDto>> GetOverdueTasksAsync()
@@ -678,7 +698,7 @@ namespace AwningsAPI.Services.Tasks
                 .OrderBy(t => t.DueDate)
                 .ToListAsync();
 
-            return tasks.Select(MapToSummaryDto).ToList();
+            return tasks.Select(t => MapToSummaryDto(t)).ToList();
         }
 
         public async Task<IEnumerable<AppTaskSummaryDto>> GetTasksDueTodayAsync()
@@ -689,7 +709,7 @@ namespace AwningsAPI.Services.Tasks
                 .OrderBy(t => t.Priority)
                 .ToListAsync();
 
-            return tasks.Select(MapToSummaryDto).ToList();
+            return tasks.Select(t => MapToSummaryDto(t)).ToList();
         }
 
 
@@ -780,7 +800,7 @@ namespace AwningsAPI.Services.Tasks
                 .Take(filter.PageSize)
                 .ToListAsync();
 
-            return (tasks.Select(MapToSummaryDto).ToList(), totalCount);
+            return (tasks.Select(t => MapToSummaryDto(t)).ToList(), totalCount);
         }
 
 
@@ -810,6 +830,18 @@ namespace AwningsAPI.Services.Tasks
             _logger.LogInformation(
                 "SiteVisit {SiteVisitId} linked to task {TaskId} by {User}",
                 siteVisitId, taskId, currentUser);
+        }
+
+        public async Task<AppTaskDto?> GetPendingSiteVisitTaskByWorkflowIdAsync(int workflowId)
+        {
+            var task = await _context.Tasks
+                .Where(t => t.WorkflowId == workflowId
+                         && t.SourceType == TaskSourceType.SiteVisit.ToString()
+                         && t.Status != TaskStatusValue.Completed)
+                .OrderByDescending(t => t.DateCreated)
+                .FirstOrDefaultAsync();
+
+            return task == null ? null : await GetTaskByIdAsync(task.TaskId);
         }
 
         public async Task CompleteTaskOnReplySentAsync(int taskId, string emailBody, string currentUser)

@@ -17,5 +17,7 @@ namespace AwningsAPI.Interfaces
         Task<Dictionary<string, List<string>>> GetAllValuesDictionaryAsync();
         Task SaveImageUrlsAsync(int siteVisitId, List<string> imageUrls, string currentUser);
         Task<bool> DeleteImagesAsync(int siteVisitId, List<string> imageUrls);
+        Task<(IEnumerable<ScheduledShowroomInviteDto> Items, int TotalCount)> GetUpcomingShowroomInvitesAsync(int page, int pageSize);
+        Task<int> GetUpcomingShowroomInviteCountAsync();
     }
 }

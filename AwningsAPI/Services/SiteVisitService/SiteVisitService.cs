@@ -1,6 +1,7 @@
 ﻿using AwningsAPI.Database;
 using AwningsAPI.Dto.SiteVisit;
 using AwningsAPI.Interfaces;
+using AwningsAPI.Model.Showroom;
 using AwningsAPI.Model.SiteVisit;
 using AwningsAPI.Model.Workflow;
 using Microsoft.EntityFrameworkCore;
@@ -361,6 +362,49 @@ namespace AwningsAPI.Services.SiteVisitService
             }
 
             return true;
+        }
+
+        private static IQueryable<ShowroomInvite> UpcomingShowroomInvitesQuery(AppDbContext context) =>
+            context.ShowroomInvites
+                .AsNoTracking()
+                .Include(s => s.Customer)
+                .Where(s => s.EventDate >= DateTime.Now && s.Status == "Scheduled")
+                .OrderBy(s => s.EventDate);
+
+        public async Task<(IEnumerable<ScheduledShowroomInviteDto> Items, int TotalCount)> GetUpcomingShowroomInvitesAsync(int page, int pageSize)
+        {
+            var query = UpcomingShowroomInvitesQuery(_context);
+
+            var totalCount = await query.CountAsync();
+            var invites = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var items = invites.Select(s => new ScheduledShowroomInviteDto
+            {
+                ShowroomInviteId = s.ShowroomInviteId,
+                WorkflowId = s.WorkflowId,
+                CustomerId = s.CustomerId,
+                CustomerName = s.CustomerName,
+                CustomerEmail = s.CustomerEmail,
+                CustomerAddress = s.Customer == null ? null : string.Join(", ", new[] { s.Customer.Address1, s.Customer.Address2, s.Customer.Address3 }
+                                  .Where(a => !string.IsNullOrWhiteSpace(a))),
+                CustomerPhone = s.Customer?.Phone,
+                SalesPersonName = s.Customer?.AssignedSalespersonName,
+                EventDate = s.EventDate,
+                EndDate = s.EndDate,
+                Notes = s.Description,
+                Status = s.Status,
+                CreatedBy = s.CreatedBy
+            }).ToList();
+
+            return (items, totalCount);
+        }
+
+        public async Task<int> GetUpcomingShowroomInviteCountAsync()
+        {
+            return await UpcomingShowroomInvitesQuery(_context).CountAsync();
         }
     }
 }

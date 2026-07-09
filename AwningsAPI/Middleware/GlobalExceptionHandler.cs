@@ -17,6 +17,15 @@ namespace AwningsAPI.Middleware
             Exception exception,
             CancellationToken cancellationToken)
         {
+            // The client (or an intervening proxy) disconnected before we got a chance
+            // to respond. Writing a body to an aborted connection just throws a second,
+            // unhandled TaskCanceledException, so there's nothing useful left to do.
+            if (context.RequestAborted.IsCancellationRequested)
+            {
+                _logger.LogWarning(exception, "Request aborted by client on {Method} {Path}", context.Request.Method, context.Request.Path);
+                return true;
+            }
+
             var (statusCode, title) = exception switch
             {
                 KeyNotFoundException     => (StatusCodes.Status404NotFound,            "Not Found"),
@@ -40,7 +49,15 @@ namespace AwningsAPI.Middleware
                 Detail = exception.Message
             };
 
-            await context.Response.WriteAsJsonAsync(problem, cancellationToken);
+            try
+            {
+                await context.Response.WriteAsJsonAsync(problem, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // Connection was aborted mid-write; nothing left to do.
+            }
+
             return true;
         }
     }
