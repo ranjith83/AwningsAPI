@@ -154,6 +154,8 @@ namespace AwningsAPI.Services.Tasks
                 AssignedToUserId = null,                       // no assignee on creation
                 DueDate = createDto.DueDate,
                 CustomerId = createDto.CustomerId,
+                CustomerName = createDto.CustomerName,
+                CustomerEmail = createDto.CustomerEmail,
                 WorkflowId = createDto.WorkflowId,
                 SiteVisitId = createDto.SiteVisitId,       // set by SiteVisitController
                 DateAdded = DateTime.UtcNow,

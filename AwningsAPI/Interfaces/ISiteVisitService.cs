@@ -19,5 +19,6 @@ namespace AwningsAPI.Interfaces
         Task<bool> DeleteImagesAsync(int siteVisitId, List<string> imageUrls);
         Task<(IEnumerable<ScheduledShowroomInviteDto> Items, int TotalCount)> GetUpcomingShowroomInvitesAsync(int page, int pageSize);
         Task<int> GetUpcomingShowroomInviteCountAsync();
+        Task<bool> CompletePendingShowroomInviteAsync(int workflowId, string currentUser);
     }
 }

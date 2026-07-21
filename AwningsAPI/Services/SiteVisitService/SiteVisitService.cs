@@ -406,5 +406,30 @@ namespace AwningsAPI.Services.SiteVisitService
         {
             return await UpcomingShowroomInvitesQuery(_context).CountAsync();
         }
+
+        /// <summary>
+        /// Marks the most recent "Scheduled" showroom/site-visit booking for this workflow
+        /// as carried out, so it drops out of GetUpcomingShowroomInvitesAsync/CountAsync —
+        /// otherwise a booking stays "Scheduled" forever, even after the site visit it
+        /// represents has actually been surveyed.
+        /// </summary>
+        public async Task<bool> CompletePendingShowroomInviteAsync(int workflowId, string currentUser)
+        {
+            var invite = await _context.ShowroomInvites
+                .Where(s => s.WorkflowId == workflowId && s.Status == "Scheduled")
+                .OrderByDescending(s => s.EventDate)
+                .FirstOrDefaultAsync();
+
+            if (invite == null)
+                return false;
+
+            invite.Status = "Completed";
+            invite.CompletedDate = DateTime.UtcNow;
+            invite.DateUpdated = DateTime.UtcNow;
+            invite.UpdatedBy = currentUser;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }

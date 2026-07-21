@@ -195,6 +195,10 @@ namespace AwningsAPI.Controllers
                 //            the linked task ────────────────────────────────────
                 task = await _taskService.CompleteTaskAsync(task.TaskId, "Site survey completed", currentUser);
 
+                // ── Step 4b: Also close out the calendar booking (if any) so it
+                //             drops off the "Scheduled" tab / pending-count badge ──
+                await _siteVisitService.CompletePendingShowroomInviteAsync(dto.WorkflowId, currentUser);
+
                 // ── Step 5: Return combined response ─────────────────────────────
                 var response = new CreateSiteVisitResponseDto
                 {
