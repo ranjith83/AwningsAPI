@@ -5,6 +5,7 @@ using AwningsAPI.Model.Tasks;
 using AwningsAPI.Services.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace AwningsAPI.Controllers
 {
@@ -191,6 +192,19 @@ namespace AwningsAPI.Controllers
                 await _taskService.StoreSiteVisitLinkAsync(
                     task.TaskId, siteVisit.SiteVisitId, currentUser);
 
+                // ── Step 3b: Credit the survey to whoever actually carried it out,
+                //             if nobody was already assigned ─────────────────────
+                if (!task.AssignedToUserId.HasValue)
+                {
+                    var currentUserId = GetCurrentUserId();
+                    if (currentUserId > 0)
+                    {
+                        var assigned = await _taskService.AssignTaskAsync(
+                            task.TaskId, new AssignTaskDto { AssignedToUserId = currentUserId }, currentUser);
+                        if (assigned != null) task = assigned;
+                    }
+                }
+
                 // ── Step 4: The survey has been carried out and saved — complete
                 //            the linked task ────────────────────────────────────
                 task = await _taskService.CompleteTaskAsync(task.TaskId, "Site survey completed", currentUser);
@@ -312,6 +326,13 @@ namespace AwningsAPI.Controllers
 
             await _siteVisitService.DeleteImagesAsync(siteVisitId, dto.ImageUrls);
             return Ok(new { message = "Images deleted successfully" });
+        }
+
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                           ?? User?.FindFirst("userId")?.Value;
+            return int.TryParse(userIdClaim, out var userId) ? userId : 0;
         }
     }
 
