@@ -205,13 +205,10 @@ namespace AwningsAPI.Controllers
                     }
                 }
 
-                // ── Step 4: The survey has been carried out and saved — complete
-                //            the linked task ────────────────────────────────────
-                task = await _taskService.CompleteTaskAsync(task.TaskId, "Site survey completed", currentUser);
-
-                // ── Step 4b: Also close out the calendar booking (if any) so it
-                //             drops off the "Scheduled" tab / pending-count badge ──
-                await _siteVisitService.CompletePendingShowroomInviteAsync(dto.WorkflowId, currentUser);
+                // ── Step 4: The survey stays active (New/In Progress) — it now shows
+                //            up under the "Site Surveys" tab. It only moves to the
+                //            "Completed" tab once the user explicitly marks it done
+                //            via POST /api/SiteVisit/{siteVisitId}/complete ──────────
 
                 // ── Step 5: Return combined response ─────────────────────────────
                 var response = new CreateSiteVisitResponseDto
@@ -227,6 +224,33 @@ namespace AwningsAPI.Controllers
 
             _logger.LogInformation("Site visit {SiteVisitId} created for workflow {WorkflowId} by {User}, linked to task {TaskId}", siteVisit.SiteVisitId, siteVisit.WorkflowId, currentUser, task.TaskId);
             return CreatedAtAction(nameof(GetSiteVisitById), new { id = siteVisit.SiteVisitId }, response);
+        }
+
+        /// <summary>
+        /// POST api/SiteVisit/{siteVisitId}/complete
+        ///
+        /// Marks a site visit as carried out: completes its linked Task (moving it
+        /// from the "Site Surveys" tab to the "Completed" tab) and closes out the
+        /// matching calendar booking, if any, so it drops off "Scheduled" too.
+        /// </summary>
+        [Authorize]
+        [HttpPost("{siteVisitId}/complete")]
+        public async Task<ActionResult> CompleteSiteVisit(int siteVisitId)
+        {
+            var currentUser = User?.Identity?.Name ?? "System";
+
+            var siteVisit = await _siteVisitService.GetSiteVisitByIdAsync(siteVisitId);
+            if (siteVisit == null)
+                return NotFound(new { message = $"Site visit with ID {siteVisitId} not found" });
+
+            var taskId = await _siteVisitService.GetLinkedTaskIdAsync(siteVisitId);
+            if (taskId.HasValue)
+                await _taskService.CompleteTaskAsync(taskId.Value, "Site survey marked complete", currentUser);
+
+            await _siteVisitService.CompletePendingShowroomInviteAsync(siteVisit.WorkflowId, currentUser);
+
+            _logger.LogInformation("Site visit {SiteVisitId} marked complete by {User}", siteVisitId, currentUser);
+            return Ok(new { message = "Site visit marked as complete" });
         }
 
         /// <summary>

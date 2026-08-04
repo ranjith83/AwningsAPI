@@ -20,5 +20,6 @@ namespace AwningsAPI.Interfaces
         Task<(IEnumerable<ScheduledShowroomInviteDto> Items, int TotalCount)> GetUpcomingShowroomInvitesAsync(int page, int pageSize);
         Task<int> GetUpcomingShowroomInviteCountAsync();
         Task<bool> CompletePendingShowroomInviteAsync(int workflowId, string currentUser);
+        Task<int?> GetLinkedTaskIdAsync(int siteVisitId);
     }
 }

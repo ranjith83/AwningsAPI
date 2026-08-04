@@ -431,5 +431,16 @@ namespace AwningsAPI.Services.SiteVisitService
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<int?> GetLinkedTaskIdAsync(int siteVisitId)
+        {
+            var task = await _context.Tasks
+                .AsNoTracking()
+                .Where(t => t.SiteVisitId == siteVisitId)
+                .Select(t => (int?)t.TaskId)
+                .FirstOrDefaultAsync();
+
+            return task;
+        }
     }
 }

@@ -836,10 +836,15 @@ namespace AwningsAPI.Services.Tasks
 
         public async Task<AppTaskDto?> GetPendingSiteVisitTaskByWorkflowIdAsync(int workflowId)
         {
+            // Only reuse a task that isn't already linked to a specific site visit —
+            // otherwise, submitting a second survey for the same workflow before the
+            // first one is marked complete would silently steal the first task's link
+            // (SiteVisitId gets overwritten), hiding the first survey from the list.
             var task = await _context.Tasks
                 .Where(t => t.WorkflowId == workflowId
                          && t.SourceType == TaskSourceType.SiteVisit.ToString()
-                         && t.Status != TaskStatusValue.Completed)
+                         && t.Status != TaskStatusValue.Completed
+                         && t.SiteVisitId == null)
                 .OrderByDescending(t => t.DateCreated)
                 .FirstOrDefaultAsync();
 
