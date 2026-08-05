@@ -7,7 +7,7 @@ namespace AwningsAPI.Controllers
 {
     [ApiController]
     [Route("api/users")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -19,6 +19,9 @@ namespace AwningsAPI.Controllers
             _logger = logger;
         }
 
+        // Listing users is needed by every "Assigned To" dropdown (site visit calendar
+        // events, task assignment, etc.) — any authenticated user can read the list.
+        // Mutating endpoints below stay Admin-only.
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserDto>>> GetAllUsers()
         {
@@ -34,6 +37,7 @@ namespace AwningsAPI.Controllers
             return Ok(user);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<ActionResult<UserDto>> UpdateUser(int id, [FromBody] UpdateUserDto dto)
         {
@@ -41,6 +45,7 @@ namespace AwningsAPI.Controllers
             return Ok(user);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPatch("{id}/deactivate")]
         public async Task<ActionResult> DeactivateUser(int id)
         {
@@ -49,6 +54,7 @@ namespace AwningsAPI.Controllers
             return Ok(new { message = "User deactivated successfully" });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPatch("{id}/activate")]
         public async Task<ActionResult> ActivateUser(int id)
         {
@@ -57,6 +63,7 @@ namespace AwningsAPI.Controllers
             return Ok(new { message = "User activated successfully" });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteUser(int id)
         {
