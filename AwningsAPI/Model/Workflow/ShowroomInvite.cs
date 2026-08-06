@@ -44,6 +44,11 @@ namespace AwningsAPI.Model.Showroom
 
         public bool EmailClient { get; set; }
 
+        public int? AssignedToUserId { get; set; }
+
+        [MaxLength(100)]
+        public string? AssignedToUserName { get; set; }
+
         [MaxLength(255)]
         public string? OutlookEventId { get; set; }
 

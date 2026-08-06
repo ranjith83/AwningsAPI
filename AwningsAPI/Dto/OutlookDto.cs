@@ -12,6 +12,7 @@
         public DateTime? EndDate { get; set; }
         public string TimeSlot { get; set; }
         public bool EmailClient { get; set; }
+        public int? AssignedToUserId { get; set; }
     }
 
     public class OutlookEventDto

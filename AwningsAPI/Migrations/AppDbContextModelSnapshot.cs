@@ -17477,6 +17477,13 @@ namespace AwningsAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShowroomInviteId"));
 
+                    b.Property<int?>("AssignedToUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AssignedToUserName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<DateTime?>("CompletedDate")
                         .HasColumnType("datetime2");
 

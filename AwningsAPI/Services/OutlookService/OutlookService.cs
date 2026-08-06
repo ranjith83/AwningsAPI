@@ -1,7 +1,9 @@
 ﻿using AwningsAPI.Database;
 using AwningsAPI.Dto.Outlook;
+using AwningsAPI.Dto.Tasks;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Showroom;
+using AwningsAPI.Model.Tasks;
 using AwningsAPI.Model.Workflow;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
@@ -20,6 +22,7 @@ namespace AwningsAPI.Services.OutlookService
         private readonly GraphServiceClient _graphClient;
         private readonly ILogger<OutlookService> _logger;
         private readonly IMemoryCache _cache;
+        private readonly ITaskService _taskService;
         private CancellationTokenSource _calendarCacheToken = new();
 
         public OutlookService(
@@ -27,13 +30,15 @@ namespace AwningsAPI.Services.OutlookService
             IConfiguration configuration,
             GraphServiceClient graphClient,
             ILogger<OutlookService> logger,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            ITaskService taskService)
         {
             _context = context;
             _configuration = configuration;
             _graphClient = graphClient;
             _logger = logger;
             _cache = cache;
+            _taskService = taskService;
         }
 
         public async Task<string> CreateShowroomInviteAsync(ShowroomInviteDto dto, string currentUser)
@@ -92,6 +97,14 @@ namespace AwningsAPI.Services.OutlookService
                     .Events
                     .PostAsync(newEvent);
 
+                // Resolve the assignee picked in the Add Calendar Event popup, if any
+                string? assignedToUserName = null;
+                if (dto.AssignedToUserId.HasValue)
+                {
+                    var assignedUser = await _context.Users.FindAsync(dto.AssignedToUserId.Value);
+                    assignedToUserName = assignedUser?.Username;
+                }
+
                 // Save to database
                 var showroomInvite = new ShowroomInvite
                 {
@@ -105,6 +118,8 @@ namespace AwningsAPI.Services.OutlookService
                     EndDate = endTime,
                     TimeSlot = dto.TimeSlot,
                     EmailClient = dto.EmailClient,
+                    AssignedToUserId = dto.AssignedToUserId,
+                    AssignedToUserName = assignedToUserName,
                     OutlookEventId = createdEvent.Id,
                     Status = "Scheduled",
                     DateCreated = DateTime.UtcNow,
@@ -119,6 +134,36 @@ namespace AwningsAPI.Services.OutlookService
                         .SetProperty(w => w.InviteShowRoom, true)
                         .SetProperty(w => w.DateUpdated, DateTime.UtcNow)
                         .SetProperty(w => w.UpdatedBy, currentUser));
+
+                // Keep the workflow's Site Visit task in sync with whoever was picked
+                // as "Assigned To" on this booking — create it if it doesn't exist yet
+                // so the Task Management screen and the Site Survey grid agree.
+                if (dto.AssignedToUserId.HasValue)
+                {
+                    var task = await _taskService.GetPendingSiteVisitTaskByWorkflowIdAsync(dto.WorkflowId);
+                    if (task == null)
+                    {
+                        task = await _taskService.CreateTaskAsync(new CreateTaskDto
+                        {
+                            SourceType = TaskSourceType.SiteVisit.ToString(),
+                            Title = $"Site Visit – {dto.CustomerName}",
+                            Category = "Site Visit",
+                            Priority = "Normal",
+                            WorkflowId = dto.WorkflowId,
+                            CustomerName = dto.CustomerName,
+                            CustomerEmail = dto.CustomerEmail,
+                            CustomerId = dto.CustomerId
+                        }, currentUser);
+                    }
+
+                    if (task.AssignedToUserId != dto.AssignedToUserId.Value)
+                    {
+                        await _taskService.AssignTaskAsync(
+                            task.TaskId,
+                            new AssignTaskDto { AssignedToUserId = dto.AssignedToUserId.Value },
+                            currentUser);
+                    }
+                }
 
                 // Send email if requested
                 if (dto.EmailClient)

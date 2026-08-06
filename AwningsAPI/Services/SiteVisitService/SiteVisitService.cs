@@ -382,20 +382,23 @@ namespace AwningsAPI.Services.SiteVisitService
                 .Take(pageSize)
                 .ToListAsync();
 
-            // The "Assigned To" salesperson for a scheduled visit lives on the linked
-            // Site Visit task (set via the Task Management "Assign" action), not on the
-            // Customer record — a customer's default salesperson can differ from whoever
-            // this particular visit was actually assigned to.
-            var workflowIds = invites.Select(s => s.WorkflowId).Distinct().ToList();
-            var assignedNames = await _context.Tasks
-                .Where(t => t.WorkflowId.HasValue
-                         && workflowIds.Contains(t.WorkflowId.Value)
-                         && t.SourceType == TaskSourceType.SiteVisit.ToString()
-                         && t.Status != TaskStatusValue.Completed)
-                .OrderByDescending(t => t.DateAdded)
-                .GroupBy(t => t.WorkflowId!.Value)
-                .Select(g => new { WorkflowId = g.Key, AssignedToUserName = g.First().AssignedToUserName })
-                .ToDictionaryAsync(x => x.WorkflowId, x => x.AssignedToUserName);
+            // The "Assigned To" salesperson for a scheduled visit is normally stamped
+            // directly on the invite (from the Add Calendar Event popup). Fall back to
+            // the linked Site Visit task's assignee for older invites that predate that
+            // field, or ones since reassigned via Task Management.
+            var workflowIds = invites.Where(s => s.AssignedToUserName == null)
+                .Select(s => s.WorkflowId).Distinct().ToList();
+            var assignedNames = workflowIds.Count == 0
+                ? new Dictionary<int, string?>()
+                : await _context.Tasks
+                    .Where(t => t.WorkflowId.HasValue
+                             && workflowIds.Contains(t.WorkflowId.Value)
+                             && t.SourceType == TaskSourceType.SiteVisit.ToString()
+                             && t.Status != TaskStatusValue.Completed)
+                    .OrderByDescending(t => t.DateAdded)
+                    .GroupBy(t => t.WorkflowId!.Value)
+                    .Select(g => new { WorkflowId = g.Key, AssignedToUserName = g.First().AssignedToUserName })
+                    .ToDictionaryAsync(x => x.WorkflowId, x => x.AssignedToUserName);
 
             var items = invites.Select(s => new ScheduledShowroomInviteDto
             {
@@ -407,7 +410,8 @@ namespace AwningsAPI.Services.SiteVisitService
                 CustomerAddress = s.Customer == null ? null : string.Join(", ", new[] { s.Customer.Address1, s.Customer.Address2, s.Customer.Address3 }
                                   .Where(a => !string.IsNullOrWhiteSpace(a))),
                 CustomerPhone = s.Customer?.Phone,
-                AssignedToName = assignedNames.TryGetValue(s.WorkflowId, out var assignedToName) ? assignedToName : null,
+                AssignedToName = s.AssignedToUserName
+                                  ?? (assignedNames.TryGetValue(s.WorkflowId, out var assignedToName) ? assignedToName : null),
                 EventDate = s.EventDate,
                 EndDate = s.EndDate,
                 Notes = s.Description,
