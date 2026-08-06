@@ -9,7 +9,7 @@ namespace AwningsAPI.Dto.SiteVisit
         public string CustomerEmail { get; set; } = string.Empty;
         public string? CustomerAddress { get; set; }
         public string? CustomerPhone { get; set; }
-        public string? SalesPersonName { get; set; }
+        public string? AssignedToName { get; set; }
         public DateTime EventDate { get; set; }
         public DateTime EndDate { get; set; }
         public string? Notes { get; set; }

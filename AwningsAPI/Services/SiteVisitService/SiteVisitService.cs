@@ -3,6 +3,7 @@ using AwningsAPI.Dto.SiteVisit;
 using AwningsAPI.Interfaces;
 using AwningsAPI.Model.Showroom;
 using AwningsAPI.Model.SiteVisit;
+using AwningsAPI.Model.Tasks;
 using AwningsAPI.Model.Workflow;
 using Microsoft.EntityFrameworkCore;
 
@@ -381,6 +382,21 @@ namespace AwningsAPI.Services.SiteVisitService
                 .Take(pageSize)
                 .ToListAsync();
 
+            // The "Assigned To" salesperson for a scheduled visit lives on the linked
+            // Site Visit task (set via the Task Management "Assign" action), not on the
+            // Customer record — a customer's default salesperson can differ from whoever
+            // this particular visit was actually assigned to.
+            var workflowIds = invites.Select(s => s.WorkflowId).Distinct().ToList();
+            var assignedNames = await _context.Tasks
+                .Where(t => t.WorkflowId.HasValue
+                         && workflowIds.Contains(t.WorkflowId.Value)
+                         && t.SourceType == TaskSourceType.SiteVisit.ToString()
+                         && t.Status != TaskStatusValue.Completed)
+                .OrderByDescending(t => t.DateAdded)
+                .GroupBy(t => t.WorkflowId!.Value)
+                .Select(g => new { WorkflowId = g.Key, AssignedToUserName = g.First().AssignedToUserName })
+                .ToDictionaryAsync(x => x.WorkflowId, x => x.AssignedToUserName);
+
             var items = invites.Select(s => new ScheduledShowroomInviteDto
             {
                 ShowroomInviteId = s.ShowroomInviteId,
@@ -391,7 +407,7 @@ namespace AwningsAPI.Services.SiteVisitService
                 CustomerAddress = s.Customer == null ? null : string.Join(", ", new[] { s.Customer.Address1, s.Customer.Address2, s.Customer.Address3 }
                                   .Where(a => !string.IsNullOrWhiteSpace(a))),
                 CustomerPhone = s.Customer?.Phone,
-                SalesPersonName = s.Customer?.AssignedSalespersonName,
+                AssignedToName = assignedNames.TryGetValue(s.WorkflowId, out var assignedToName) ? assignedToName : null,
                 EventDate = s.EventDate,
                 EndDate = s.EndDate,
                 Notes = s.Description,
