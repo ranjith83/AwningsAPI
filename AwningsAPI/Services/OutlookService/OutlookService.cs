@@ -467,8 +467,29 @@ namespace AwningsAPI.Services.OutlookService
         private string GenerateInviteEmailBody(ShowroomInviteDto dto)
         {
             var showroomAddress = _configuration["Showroom:Address"] ?? "Awnings Ireland Showroom";
-            var showroomPhone = _configuration["Showroom:Phone"] ?? "+353 1 234 5678";
-            var showroomEmail = _configuration["Showroom:Email"] ?? "info@awnings.ie";
+            var showroomPhone = _configuration["Showroom:Phone"] ?? "+353 (0) 1 652 3014";
+            var showroomEmail = _configuration["Showroom:Email"] ?? "hello@awningsofireland.com";
+            var companyName = _configuration["Showroom:CompanyName"] ?? "Awnings of Ireland";
+
+            // Use Description field which already contains the product name (e.g., "Markilux 900")
+            // Also try to fetch from ProductId as fallback if ProductId is provided
+            string productName = "Our Premium Awning Products";
+
+            // If ProductId is provided and try database lookup
+            if (dto.ProductId.HasValue && dto.ProductId.Value > 0)
+            {
+                var product = _context.Products
+                    .AsNoTracking()
+                    .FirstOrDefault(p => p.ProductId == dto.ProductId.Value);
+
+                if (product != null)
+                {
+                    productName = product.Description;
+                }
+            }
+
+            // Generate Google Maps link
+            var mapsLink = GenerateGoogleMapsLink(showroomAddress);
 
             return $@"
                 <html>
@@ -480,6 +501,8 @@ namespace AwningsAPI.Services.OutlookService
                         .content {{ background-color: #f9f9f9; padding: 30px; border: 1px solid #ddd; }}
                         .details {{ background-color: white; padding: 20px; margin: 20px 0; border-left: 4px solid #3498db; }}
                         .footer {{ text-align: center; padding: 20px; color: #777; font-size: 12px; }}
+                        .location-info {{ background-color: #ecf0f1; padding: 15px; margin-top: 10px; border-radius: 5px; }}
+                        .maps-link {{ display: inline-block; margin-top: 10px; padding: 8px 16px; background-color: #3498db; color: white; text-decoration: none; border-radius: 4px; }}
                     </style>
                 </head>
                 <body>
@@ -489,17 +512,22 @@ namespace AwningsAPI.Services.OutlookService
                         </div>
                         <div class='content'>
                             <p>Dear {dto.CustomerName},</p>
-                            
+
                             <p>Thank you for your interest in our products. We're delighted to invite you to visit our showroom.</p>
-                            
+
                             <div class='details'>
                                 <h3>Visit Details:</h3>
                                 <p><strong>Date:</strong> {dto.EventDate:dddd, MMMM dd, yyyy}</p>
                                 <p><strong>Time:</strong> {dto.TimeSlot}</p>
-                                <p><strong>Product:</strong> {dto.Description}</p>
-                                <p><strong>Location:</strong> {showroomAddress}</p>
+                                <p><strong>Product:</strong> {productName}</p>
+
+                                <div class='location-info'>
+                                    <strong>Location:</strong><br>
+                                    {showroomAddress}<br>
+                                    <a href=""{mapsLink}"" class=""maps-link"" target=""_blank"">View on Google Maps</a>
+                                </div>
                             </div>
-                            
+
                             <p>During your visit, our expert team will:</p>
                             <ul>
                                 <li>Showcase our premium awning products</li>
@@ -507,17 +535,18 @@ namespace AwningsAPI.Services.OutlookService
                                 <li>Provide professional recommendations</li>
                                 <li>Answer any questions you may have</li>
                             </ul>
-                            
+
                             <p>If you need to reschedule or have any questions, please don't hesitate to contact us.</p>
-                            
+
                             <p><strong>Contact Information:</strong><br>
+                            <strong>{companyName}</strong><br>
                             Phone: {showroomPhone}<br>
                             Email: {showroomEmail}</p>
-                            
+
                             <p>We look forward to seeing you!</p>
-                            
+
                             <p>Best regards,<br>
-                            <strong>Awnings Ireland Team</strong></p>
+                            <strong>{companyName} Team</strong></p>
                         </div>
                         <div class='footer'>
                             <p>This is an automated message. Please do not reply directly to this email.</p>
@@ -526,6 +555,15 @@ namespace AwningsAPI.Services.OutlookService
                 </body>
                 </html>
             ";
+        }
+
+        /// <summary>
+        /// Generates a Google Maps URL from a full address string.
+        /// </summary>
+        private string GenerateGoogleMapsLink(string address)
+        {
+            var encodedAddress = System.Uri.EscapeDataString(address);
+            return $"https://www.google.com/maps/search/{encodedAddress}";
         }
     }
 }

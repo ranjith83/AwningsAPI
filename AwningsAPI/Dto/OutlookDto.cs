@@ -13,6 +13,11 @@
         public string TimeSlot { get; set; }
         public bool EmailClient { get; set; }
         public int? AssignedToUserId { get; set; }
+        /// <summary>
+        /// Product ID of the awning/product being discussed during the showroom visit.
+        /// Used to display the correct product name in the email invitation.
+        /// </summary>
+        public int? ProductId { get; set; }
     }
 
     public class OutlookEventDto
